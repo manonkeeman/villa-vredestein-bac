@@ -33,7 +33,6 @@ public class DocumentService {
     }
 
     public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file) throws IOException {
-        // Controleer of gebruiker bestaat
         User uploader = userRepository.findById(uploaderUserId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Uploader met id " + uploaderUserId + " niet gevonden"

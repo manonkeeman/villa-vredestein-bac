@@ -1,0 +1,18 @@
+{
+	"info": {
+		"_postman_id": "b5990684-b67b-44b4-9f41-ece50754acb7",
+		"name": "villa-vredestein-bac",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39569849"
+	},
+	"item": [
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		}
+	]
+}

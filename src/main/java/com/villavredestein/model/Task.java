@@ -13,59 +13,95 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Taaknaam mag niet leeg zijn")
+    @NotBlank(message = "Taaknaam is verplicht")
     @Size(min = 3, max = 100, message = "Taaknaam moet tussen 3 en 100 tekens bevatten")
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @NotBlank(message = "Omschrijving mag niet leeg zijn")
+    @NotBlank(message = "Omschrijving is verplicht")
     @Size(max = 255, message = "Omschrijving mag maximaal 255 tekens bevatten")
-    @Column(nullable = false)
+    @Column(name = "description", nullable = false, length = 255)
     private String description;
 
-    @OneToOne
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
+
+    @Column(name = "completed", nullable = false)
+    private boolean completed = false;
+
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evidence_document_id")
     private Document evidenceDocument;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id")
     private User assignedUser;
 
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt = Instant.now();
-
-    @Column(nullable = false)
-    private boolean completed = false;
-
-    public Task() {}
+    public Task() {
+    }
 
     public Task(String name, String description, Document evidenceDocument, User assignedUser, Instant createdAt, boolean completed) {
         this.name = name;
         this.description = description;
         this.evidenceDocument = evidenceDocument;
         this.assignedUser = assignedUser;
-        this.createdAt = createdAt;
+        this.createdAt = (createdAt != null) ? createdAt : Instant.now();
         this.completed = completed;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getName() {
+        return name;
+    }
 
-    public Document getEvidenceDocument() { return evidenceDocument; }
-    public void setEvidenceDocument(Document evidenceDocument) { this.evidenceDocument = evidenceDocument; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public User getAssignedUser() { return assignedUser; }
-    public void setAssignedUser(User assignedUser) { this.assignedUser = assignedUser; }
+    public String getDescription() {
+        return description;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-    public boolean isCompleted() { return completed; }
-    public void setCompleted(boolean completed) { this.completed = completed; }
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public Document getEvidenceDocument() {
+        return evidenceDocument;
+    }
+
+    public void setEvidenceDocument(Document evidenceDocument) {
+        this.evidenceDocument = evidenceDocument;
+    }
+
+    public User getAssignedUser() {
+        return assignedUser;
+    }
+
+    public void setAssignedUser(User assignedUser) {
+        this.assignedUser = assignedUser;
+    }
 }

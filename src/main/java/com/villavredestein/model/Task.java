@@ -1,6 +1,7 @@
 package com.villavredestein.model;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
 
 @Entity
@@ -35,7 +36,8 @@ public class Task {
     private boolean completed = false;
 
     // --- Constructors ---
-    public Task() {}
+    public Task() {
+    }
 
     public Task(String name, String description, Document evidenceDocument, User assignedUser, Instant createdAt, boolean completed) {
         this.name = name;

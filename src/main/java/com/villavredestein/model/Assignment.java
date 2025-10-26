@@ -1,39 +1,34 @@
 package com.villavredestein.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
+
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "assignments")
 public class Assignment {
 
-    public enum Status { PLANNED, OPEN, IN_PROGRESS, DONE }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "task_id", referencedColumnName = "id", nullable = false)
     private Task task;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "assignee_id", referencedColumnName = "id", nullable = false)
     private User assignee;
-
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.PLANNED;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
     // --- Constructors ---
-    public Assignment() {}
+    public Assignment() {
+    }
 
     public Assignment(Task task, User assignee, LocalDate dueDate, Status status, Instant createdAt) {
         this.task = task;
@@ -91,4 +86,6 @@ public class Assignment {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
+    public enum Status {PLANNED, OPEN, IN_PROGRESS, DONE}
 }

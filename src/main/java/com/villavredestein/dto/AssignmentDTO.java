@@ -9,4 +9,5 @@ public record AssignmentDTO(
         @NotNull Long taskId,
         @NotNull Long userId,
         @NotNull @FutureOrPresent LocalDate dueDate
-) {}
+) {
+}

@@ -1,8 +1,7 @@
 package com.villavredestein.model;
 
-import com.villavredestein.model.User;
-
 import jakarta.persistence.*;
+
 import java.time.Instant;
 
 @Entity
@@ -32,7 +31,8 @@ public class Document {
     private User uploader;
 
     // --- Constructors ---
-    public Document() {}
+    public Document() {
+    }
 
     public Document(String fileName, String contentType, long size, String storagePath, Instant uploadedAt) {
         this.fileName = fileName;
@@ -43,29 +43,53 @@ public class Document {
     }
 
     // --- Getters en Setters ---
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public void setId(Long id) { this.id = id; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getFileName() { return fileName; }
+    public String getFileName() {
+        return fileName;
+    }
 
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-    public String getContentType() { return contentType; }
+    public String getContentType() {
+        return contentType;
+    }
 
-    public void setContentType(String contentType) { this.contentType = contentType; }
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
 
-    public long getSize() { return size; }
+    public long getSize() {
+        return size;
+    }
 
-    public void setSize(long size) { this.size = size; }
+    public void setSize(long size) {
+        this.size = size;
+    }
 
-    public String getStoragePath() { return storagePath; }
+    public String getStoragePath() {
+        return storagePath;
+    }
 
-    public void setStoragePath(String storagePath) { this.storagePath = storagePath; }
+    public void setStoragePath(String storagePath) {
+        this.storagePath = storagePath;
+    }
 
-    public Instant getUploadedAt() { return uploadedAt; }
+    public Instant getUploadedAt() {
+        return uploadedAt;
+    }
 
-    public void setUploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; }
+    public void setUploadedAt(Instant uploadedAt) {
+        this.uploadedAt = uploadedAt;
+    }
 
     public User getUploader() {
         return uploader;

@@ -1,75 +1,62 @@
 package com.villavredestein.controller;
 
-import com.villavredestein.dto.UploadResponseDTO;
-import com.villavredestein.service.DocumentService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import com.villavredestein.model.Document;
+import com.villavredestein.repository.DocumentRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/documents")
 public class DocumentController {
 
-    private final DocumentService documentService;
+    private final DocumentRepository documentRepository;
 
-    @Autowired
-    public DocumentController(DocumentService documentService) {
-        this.documentService = documentService;
+    @Value("${app.upload-dir}")
+    private String uploadDir;
+
+    public DocumentController(DocumentRepository documentRepository) {
+        this.documentRepository = documentRepository;
     }
 
-    @GetMapping("/ping")
-    public String ping() {
-        return "documents-ok";
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN','CLEANER','STUDENT')")
-    @PostMapping(path = "/{uploaderUserId}/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<UploadResponseDTO> uploadDocument(
-            @PathVariable Long uploaderUserId,
-            @RequestParam("file") MultipartFile file) {
+    @PostMapping("/upload")
+    public ResponseEntity<?> uploadDocument(@RequestParam("file") MultipartFile file) {
         try {
-            UploadResponseDTO response = documentService.upload(uploaderUserId, file);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN','CLEANER','STUDENT')")
-    @GetMapping("/{id}/download")
-    public ResponseEntity<FileSystemResource> downloadDocument(@PathVariable Long id) {
-        try {
-            FileSystemResource resource = documentService.download(id);
-            if (resource == null || !resource.exists()) {
-                return ResponseEntity.notFound().build();
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Bestand is leeg");
             }
 
-            String filename = resource.getFilename();
-            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-
-            String detectedType = Files.probeContentType(resource.getFile().toPath());
-            if (detectedType != null) {
-                mediaType = MediaType.parseMediaType(detectedType);
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
             }
 
-            return ResponseEntity.ok()
-                    .contentType(mediaType)
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            ContentDisposition.attachment().filename(filename).build().toString())
-                    .body(resource);
+            String fileName = file.getOriginalFilename();
+            Path filePath = uploadPath.resolve(fileName);
+
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            Document document = new Document(
+                    fileName,
+                    file.getContentType(),
+                    file.getSize(),
+                    filePath.toString(),
+                    Instant.now()
+            );
+
+            documentRepository.save(document);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(document);
 
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Fout bij uploaden bestand: " + e.getMessage());
         }
     }
 }

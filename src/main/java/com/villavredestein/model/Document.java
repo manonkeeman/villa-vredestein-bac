@@ -56,6 +56,14 @@ public class Document {
         this.uploader = uploader;
     }
 
+    public Document(String fileName, String contentType, long size, String storagePath, Instant uploadedAt) {
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.size = size;
+        this.storagePath = storagePath;
+        this.uploadedAt = (uploadedAt != null) ? uploadedAt : Instant.now();
+    }
+
     public Long getId() {
         return id;
     }

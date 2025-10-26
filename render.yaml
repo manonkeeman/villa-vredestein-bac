@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: villa-vredestein-bac
+    env: java
+    plan: free
+    region: frankfurt
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/villa-vredestein-bac-1.0.0.jar
+    envVars:
+      - key: SERVER_PORT
+        value: ${PORT}

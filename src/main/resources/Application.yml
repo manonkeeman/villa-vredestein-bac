@@ -1,19 +1,12 @@
-# ==========================================
-# Algemene configuratie
-# ==========================================
 spring:
   application:
     name: villa-vredestein-bac
 
-  # =======================================
-  # Database (H2 in-memory)
-  # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -23,30 +16,37 @@ spring:
       hibernate:
         format_sql: true
 
-  # =======================================
-  # H2-console instellingen
-  # =======================================
   h2:
     console:
       enabled: true
       path: /h2-console
 
-  # =======================================
-  # Bestandsuploads
-  # =======================================
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
 
-# ==========================================
-# Server instellingen
-# ==========================================
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: villavredestein@gmail.com
+    password: jouw_appspecifiek_wachtwoord
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  task:
+    scheduling:
+      enabled: true
+
 server:
   port: 8080
 
-# ==========================================
-# Applicatie specifieke instellingen
-# ==========================================
 app:
   upload-dir: ./uploads
+  mail:
+    enabled: true
+    from: villavredestein@gmail.com

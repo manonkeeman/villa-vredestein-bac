@@ -1,62 +1,62 @@
 package com.villavredestein.controller;
 
+import com.villavredestein.dto.UploadResponseDTO;
 import com.villavredestein.model.Document;
-import com.villavredestein.repository.DocumentRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.villavredestein.service.DocumentService;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
-import java.nio.file.*;
-import java.time.Instant;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/documents")
 public class DocumentController {
 
-    private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
 
-    @Value("${app.upload-dir}")
-    private String uploadDir;
-
-    public DocumentController(DocumentRepository documentRepository) {
-        this.documentRepository = documentRepository;
+    public DocumentController(DocumentService documentService) {
+        this.documentService = documentService;
     }
 
+    // 👀 Studenten en Admins mogen lijst zien
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
+    @GetMapping
+    public ResponseEntity<List<Document>> getAllDocuments() {
+        return ResponseEntity.ok(documentService.listAll());
+    }
+
+    // 📥 Alleen Admin mag uploaden
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadDocument(@RequestParam("file") MultipartFile file) {
-        try {
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body("Bestand is leeg");
-            }
+    public ResponseEntity<UploadResponseDTO> uploadDocument(
+            @RequestParam("uploaderId") Long uploaderId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "ALL") String roleAccess) throws IOException {
+        return ResponseEntity.ok(documentService.upload(uploaderId, file, roleAccess));
+    }
 
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            String fileName = file.getOriginalFilename();
-            Path filePath = uploadPath.resolve(fileName);
-
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            Document document = new Document(
-                    fileName,
-                    file.getContentType(),
-                    file.getSize(),
-                    filePath.toString(),
-                    Instant.now()
-            );
-
-            documentRepository.save(document);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(document);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Fout bij uploaden bestand: " + e.getMessage());
+    // 📄 Studenten & Admins mogen downloaden
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
+    @GetMapping("/{id}/download")
+    public ResponseEntity<FileSystemResource> downloadDocument(@PathVariable Long id) {
+        FileSystemResource resource = documentService.download(id);
+        if (resource == null) {
+            return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + resource.getFilename())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+    }
+
+    // ❌ Alleen Admin mag verwijderen
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteDocument(@PathVariable Long id) {
+        documentService.delete(id);
+        return ResponseEntity.ok("🗑️ Document verwijderd.");
     }
 }

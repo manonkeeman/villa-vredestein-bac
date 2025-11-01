@@ -1,12 +1,7 @@
 package com.villavredestein.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
-
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "documents")
@@ -16,107 +11,46 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Bestandsnaam mag niet leeg zijn")
-    @Size(max = 255, message = "Bestandsnaam te lang (maximaal 255 tekens)")
-    @Column(name = "file_name", nullable = false, length = 255)
-    private String fileName;
+    private String title;           // "Huisregels"
+    private String description;     // "Huisregels 2025.pdf"
+    private String storagePath;     // Pad naar opgeslagen bestand op schijf
+    private String contentType;     // "application/pdf"
+    private String roleAccess;      // "STUDENT", "ADMIN" of "ALL"
+    private long size;              // Bestandsgrootte in bytes
+    private LocalDateTime uploadedAt = LocalDateTime.now();
 
-    @NotBlank(message = "Content type is verplicht")
-    @Size(max = 255, message = "Content type te lang (maximaal 255 tekens)")
-    @Column(name = "content_type", nullable = false, length = 255)
-    private String contentType;
+    @ManyToOne
+    private User uploadedBy;
 
-    @Positive(message = "Bestandsgrootte moet positief zijn")
-    @Column(nullable = false)
-    private long size;
+    public Document() {}
 
-    @NotBlank(message = "Opslagpad mag niet leeg zijn")
-    @Size(max = 255, message = "Opslagpad te lang (maximaal 255 tekens)")
-    @Column(name = "storage_path", nullable = false, length = 255)
-    private String storagePath;
-
-    @NotNull(message = "Uploadmoment is verplicht")
-    @Column(name = "uploaded_at", nullable = false)
-    private Instant uploadedAt = Instant.now();
-
-    @NotNull(message = "Uploader is verplicht")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "uploader_id", nullable = false)
-    private User uploader;
-
-    public Document() {
-    }
-
-    public Document(String fileName, String contentType, long size, String storagePath, Instant uploadedAt, User uploader) {
-        this.fileName = fileName;
-        this.contentType = contentType;
-        this.size = size;
+    public Document(String title, String description, String storagePath, String contentType,
+                    String roleAccess, long size, User uploadedBy) {
+        this.title = title;
+        this.description = description;
         this.storagePath = storagePath;
-        this.uploadedAt = (uploadedAt != null) ? uploadedAt : Instant.now();
-        this.uploader = uploader;
-    }
-
-    public Document(String fileName, String contentType, long size, String storagePath, Instant uploadedAt) {
-        this.fileName = fileName;
         this.contentType = contentType;
+        this.roleAccess = roleAccess;
         this.size = size;
-        this.storagePath = storagePath;
-        this.uploadedAt = (uploadedAt != null) ? uploadedAt : Instant.now();
+        this.uploadedBy = uploadedBy;
+        this.uploadedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public void setSize(long size) {
-        this.size = size;
-    }
-
-    public String getStoragePath() {
-        return storagePath;
-    }
-
-    public void setStoragePath(String storagePath) {
-        this.storagePath = storagePath;
-    }
-
-    public Instant getUploadedAt() {
-        return uploadedAt;
-    }
-
-    public void setUploadedAt(Instant uploadedAt) {
-        this.uploadedAt = uploadedAt;
-    }
-
-    public User getUploader() {
-        return uploader;
-    }
-
-    public void setUploader(User uploader) {
-        this.uploader = uploader;
-    }
+    public Long getId() { return id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getStoragePath() { return storagePath; }
+    public void setStoragePath(String storagePath) { this.storagePath = storagePath; }
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+    public String getRoleAccess() { return roleAccess; }
+    public void setRoleAccess(String roleAccess) { this.roleAccess = roleAccess; }
+    public long getSize() { return size; }
+    public void setSize(long size) { this.size = size; }
+    public LocalDateTime getUploadedAt() { return uploadedAt; }
+    public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+    public User getUploadedBy() { return uploadedBy; }
+    public void setUploadedBy(User uploadedBy) { this.uploadedBy = uploadedBy; }
 }

@@ -1,5 +1,5 @@
 # ==========================================
-# 🧱 Build output
+# Build output
 # ==========================================
 target/
 build/
@@ -11,7 +11,7 @@ nbdist/
 !**/src/test/**/target/
 
 # ==========================================
-# ⚙️ IDE & project settings
+# IDE & project settings
 # ==========================================
 .idea/
 *.iml
@@ -30,7 +30,7 @@ shelf/
 workspace.xml
 
 # ==========================================
-# 📁 Local/generated data
+# Local/generated data
 # ==========================================
 uploads/
 *.log
@@ -38,7 +38,7 @@ uploads/
 *.bak
 
 # ==========================================
-# ☁️ App secrets & config files
+# App secrets & config files
 # ==========================================
 # Never commit credentials
 src/main/resources/application.yml
@@ -48,7 +48,7 @@ src/main/resources/application.properties
 !src/main/resources/application.yml
 
 # ==========================================
-# 🧪 API / Postman / SQL
+# API / Postman / SQL
 # ==========================================
 !*.postman_collection.json
 !postman/*.json

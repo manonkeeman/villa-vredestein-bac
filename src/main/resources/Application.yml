@@ -1,7 +1,14 @@
+# ==========================================
+# 🏠 Villa Vredestein - Secure Application Config
+# ==========================================
+
 spring:
   application:
     name: villa-vredestein-bac
 
+  # =======================================
+  # 🗄️ Database (H2 - In-memory for dev)
+  # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
     driver-class-name: org.h2.Driver
@@ -16,37 +23,70 @@ spring:
       hibernate:
         format_sql: true
 
+  # =======================================
+  # 💾 H2 Web Console
+  # =======================================
   h2:
     console:
       enabled: true
       path: /h2-console
 
+  # =======================================
+  # 📂 File Uploads
+  # =======================================
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
 
+  # =======================================
+  # 📧 Mail (SMTP via Gmail)
+  # =======================================
   mail:
     host: smtp.gmail.com
     port: 587
-    username: villavredestein@gmail.com
-    password: jouw_appspecifiek_wachtwoord
+    # ✅ Gebruik env variabelen, met fallback voor lokale runs
+    username: ${MAIL_USERNAME:no-reply@villavredestein.local}
+    password: ${MAIL_PASSWORD:dummy-password}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
+  # =======================================
+  # ⏰ Scheduling (facturen, reminders)
+  # =======================================
   task:
     scheduling:
       enabled: true
 
+# ==========================================
+# 🌐 Server Settings
+# ==========================================
 server:
   port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
 
+# ==========================================
+# ⚙️ Applicatie Specifiek
+# ==========================================
 app:
   upload-dir: ./uploads
+
   mail:
-    enabled: true
-    from: villavredestein@gmail.com
+    # ✅ Zet dit op false om te testen zonder SMTP
+    enabled: ${APP_MAIL_ENABLED:true}
+    from: ${MAIL_USERNAME:no-reply@villavredestein.local}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    com.villavredestein: DEBUG

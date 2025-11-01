@@ -30,6 +30,7 @@ public class DocumentService {
         this.userRepository = userRepository;
     }
 
+    /** ✅ Upload document */
     public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) throws IOException {
         User uploader = userRepository.findById(uploaderUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Uploader met id " + uploaderUserId + " niet gevonden"));
@@ -56,14 +57,27 @@ public class DocumentService {
         document.setUploadedBy(uploader);
 
         Document saved = documentRepository.save(document);
-
         return new UploadResponseDTO(saved.getId(), saved.getTitle(), saved.getUploadedAt().toString());
     }
 
-    public List<Document> listAll() {
-        return documentRepository.findAll();
+    /** ✅ Voor StudentController */
+    public List<Document> getDocumentsByOwnerEmail(String email) {
+        return documentRepository.findAll().stream()
+                .filter(doc -> doc.getUploadedBy() != null && email.equalsIgnoreCase(doc.getUploadedBy().getEmail()))
+                .toList();
     }
 
+    /** ✅ Voor StudentController */
+    public Document getDocumentForUser(Long id, String email) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Document niet gevonden"));
+        if (doc.getUploadedBy() == null || !doc.getUploadedBy().getEmail().equalsIgnoreCase(email)) {
+            throw new RuntimeException("Geen toegang tot dit document");
+        }
+        return doc;
+    }
+
+    /** ✅ Download & verwijder */
     public FileSystemResource download(Long id) {
         return documentRepository.findById(id)
                 .map(doc -> {
@@ -80,5 +94,9 @@ public class DocumentService {
             } catch (IOException ignored) {}
             documentRepository.deleteById(id);
         });
+    }
+
+    public List<Document> listAll() {
+        return documentRepository.findAll();
     }
 }

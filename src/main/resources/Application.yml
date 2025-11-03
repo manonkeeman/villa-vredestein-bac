@@ -1,5 +1,5 @@
 # ==========================================
-# Villa Vredestein - Secure Application Config (met HTTPS)
+# 🏠 Villa Vredestein - Application Configuration (HTTPS + Secure Defaults)
 # ==========================================
 
 spring:
@@ -7,7 +7,7 @@ spring:
     name: villa-vredestein-bac
 
   # =======================================
-  # Database (H2 - In-memory for development)
+  # 🗄️ Database (H2 - In-memory for development)
   # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
@@ -28,7 +28,7 @@ spring:
       data-locations: classpath:data.sql
 
   # =======================================
-  # H2 Web Console
+  # 💾 H2 Web Console
   # =======================================
   h2:
     console:
@@ -36,7 +36,7 @@ spring:
       path: /h2-console
 
   # =======================================
-  # File Uploads
+  # 📂 File Upload Configuration
   # =======================================
   servlet:
     multipart:
@@ -44,7 +44,7 @@ spring:
       max-request-size: 20MB
 
   # =======================================
-  # Mail (SMTP via Gmail)
+  # 📧 Mail (SMTP - secured via environment variables)
   # =======================================
   mail:
     host: smtp.gmail.com
@@ -55,21 +55,20 @@ spring:
       mail:
         smtp:
           auth: true
-          starttls:
-            enable: true
+          starttls.enable: true
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
 
   # =======================================
-  # Scheduling (facturen, reminders)
+  # ⏰ Scheduling (e.g. facturen, reminders)
   # =======================================
   task:
     scheduling:
       enabled: true
 
 # ==========================================
-# Server Settings (HTTPS ingeschakeld)
+# 🌐 Server (HTTPS enabled)
 # ==========================================
 server:
   port: 8443
@@ -77,15 +76,15 @@ server:
     enabled: true
     key-store: classpath:certificate.jks
     key-store-type: JKS
-    key-store-password: p4ssw0rd
-    key-password: p4ssw0rd
+    key-store-password: ${KEYSTORE_PASSWORD:p4ssw0rd}
+    key-password: ${KEY_PASSWORD:p4ssw0rd}
     key-alias: certificate
   error:
     include-message: always
     include-binding-errors: always
 
 # ==========================================
-# Applicatie Specifiek
+# ⚙️ Application Settings
 # ==========================================
 app:
   upload-dir: ./uploads
@@ -94,14 +93,14 @@ app:
     from: ${MAIL_USERNAME:no-reply@villavredestein.local}
 
 # ==========================================
-# JWT Security
+# 🔒 JWT Security
 # ==========================================
 jwt:
   secret: ${JWT_SECRET:superSecretKeyVoorDevGebruik}
-  expiration: 3600000
+  expiration: 3600000  # 1 hour
 
 # ==========================================
-# Logging
+# 🪵 Logging
 # ==========================================
 logging:
   level:

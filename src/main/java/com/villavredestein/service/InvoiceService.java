@@ -30,7 +30,7 @@ public class InvoiceService {
 
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
         User student = userRepository.findByEmail(dto.getStudentEmail())
-                .orElseThrow(() -> new RuntimeException("Student niet gevonden met e-mail: " + dto.getStudentEmail()));
+                .orElseThrow(() -> new RuntimeException("Student niet gevonden: " + dto.getStudentEmail()));
 
         Invoice invoice = new Invoice();
         invoice.setTitle(dto.getTitle());
@@ -41,8 +41,7 @@ public class InvoiceService {
         invoice.setStudent(student);
         invoice.setStatus("OPEN");
 
-        Invoice saved = invoiceRepository.save(invoice);
-        return toDTO(saved);
+        return toDTO(invoiceRepository.save(invoice));
     }
 
     public List<InvoiceResponseDTO> getInvoicesByStudentEmail(String email) {
@@ -54,24 +53,19 @@ public class InvoiceService {
 
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
         Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Factuur niet gevonden met ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Factuur niet gevonden: " + id));
 
         invoice.setStatus(newStatus);
-        Invoice updated = invoiceRepository.save(invoice);
-        return toDTO(updated);
+        return toDTO(invoiceRepository.save(invoice));
     }
 
     public void deleteInvoice(Long id) {
-        if (invoiceRepository.existsById(id)) {
-            invoiceRepository.deleteById(id);
-        } else {
-            throw new RuntimeException("Factuur niet gevonden met ID: " + id);
-        }
+        invoiceRepository.findById(id).ifPresent(invoiceRepository::delete);
     }
 
     private InvoiceResponseDTO toDTO(Invoice invoice) {
-        String studentName = (invoice.getStudent() != null) ? invoice.getStudent().getUsername() : null;
-        String studentEmail = (invoice.getStudent() != null) ? invoice.getStudent().getEmail() : null;
+        String studentName = invoice.getStudent() != null ? invoice.getStudent().getUsername() : null;
+        String studentEmail = invoice.getStudent() != null ? invoice.getStudent().getEmail() : null;
 
         return new InvoiceResponseDTO(
                 invoice.getId(),

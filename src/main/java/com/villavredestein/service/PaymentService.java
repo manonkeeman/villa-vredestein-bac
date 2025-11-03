@@ -18,15 +18,27 @@ public class PaymentService {
     }
 
     public List<Payment> getPaymentsForStudent(User student) {
-        return paymentRepository.findByStudent(student);
+        return paymentRepository.findByStudent(student).stream()
+                .peek(p -> p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")"))
+                .toList();
     }
 
     public List<Payment> getAllPayments() {
-        return paymentRepository.findAll();
+        return paymentRepository.findAll().stream()
+                .peek(p -> {
+                    if (p.getStudent() != null)
+                        p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")");
+                })
+                .toList();
     }
 
     public Optional<Payment> getPaymentById(Long id) {
-        return paymentRepository.findById(id);
+        return paymentRepository.findById(id)
+                .map(p -> {
+                    if (p.getStudent() != null)
+                        p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")");
+                    return p;
+                });
     }
 
     public Payment savePayment(Payment payment) {
@@ -38,11 +50,21 @@ public class PaymentService {
     }
 
     public List<Payment> getOpenPayments() {
-        return paymentRepository.findByStatus("OPEN");
+        return paymentRepository.findByStatus("OPEN").stream()
+                .peek(p -> {
+                    if (p.getStudent() != null)
+                        p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")");
+                })
+                .toList();
     }
 
     public List<Payment> getPaymentsByStudentEmail(String email) {
-        return paymentRepository.findByStudentEmail(email);
+        return paymentRepository.findByStudentEmail(email).stream()
+                .peek(p -> {
+                    if (p.getStudent() != null)
+                        p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")");
+                })
+                .toList();
     }
 
     public Payment updatePayment(Long id, Payment updated) {

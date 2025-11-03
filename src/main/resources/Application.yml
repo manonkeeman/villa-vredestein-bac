@@ -1,5 +1,5 @@
 # ==========================================
-# 🏠 Villa Vredestein - Application Configuration (HTTPS + Secure Defaults)
+# Villa Vredestein - Application Configuration
 # ==========================================
 
 spring:
@@ -7,7 +7,7 @@ spring:
     name: villa-vredestein-bac
 
   # =======================================
-  # 🗄️ Database (H2 - In-memory for development)
+  # Database (H2 - In-memory voor ontwikkeling)
   # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
@@ -25,10 +25,11 @@ spring:
   sql:
     init:
       mode: always
+      schema-locations: classpath:schema.sql
       data-locations: classpath:data.sql
 
   # =======================================
-  # 💾 H2 Web Console
+  # H2 Web Console
   # =======================================
   h2:
     console:
@@ -36,7 +37,7 @@ spring:
       path: /h2-console
 
   # =======================================
-  # 📂 File Upload Configuration
+  # File Uploads
   # =======================================
   servlet:
     multipart:
@@ -44,7 +45,7 @@ spring:
       max-request-size: 20MB
 
   # =======================================
-  # 📧 Mail (SMTP - secured via environment variables)
+  # Mail (veilig via environment variabelen)
   # =======================================
   mail:
     host: smtp.gmail.com
@@ -61,14 +62,14 @@ spring:
           writetimeout: 5000
 
   # =======================================
-  # ⏰ Scheduling (e.g. facturen, reminders)
+  # Scheduling (facturen/herinneringen)
   # =======================================
   task:
     scheduling:
       enabled: true
 
 # ==========================================
-# 🌐 Server (HTTPS enabled)
+# Server (HTTPS + error handling)
 # ==========================================
 server:
   port: 8443
@@ -84,7 +85,7 @@ server:
     include-binding-errors: always
 
 # ==========================================
-# ⚙️ Application Settings
+# App Settings
 # ==========================================
 app:
   upload-dir: ./uploads
@@ -93,17 +94,19 @@ app:
     from: ${MAIL_USERNAME:villavredestein@gmail.com}
 
 # ==========================================
-# 🔒 JWT Security
+# JWT Security (voor toekomstige authenticatie)
 # ==========================================
 jwt:
   secret: ${JWT_SECRET:superSecretKeyVoorDevGebruik}
-  expiration: 3600000
+  expiration: 3600000   # 1 uur
 
 # ==========================================
-# 🪵 Logging
+# Logging
 # ==========================================
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
     com.villavredestein: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

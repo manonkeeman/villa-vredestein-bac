@@ -26,6 +26,7 @@ public class AdminController {
         this.cleaningService = cleaningService;
     }
 
+    // === USERS ===
     @GetMapping("/users")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
@@ -38,10 +39,14 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/role")
-    public ResponseEntity<UserResponseDTO> changeRole(@PathVariable Long id, @RequestParam String newRole) {
+    public ResponseEntity<UserResponseDTO> changeRole(
+            @PathVariable Long id,
+            @RequestParam String newRole
+    ) {
         return ResponseEntity.ok(userService.changeRole(id, newRole));
     }
 
+    // === INVOICES ===
     @GetMapping("/invoices")
     public ResponseEntity<List<InvoiceResponseDTO>> getAllInvoices() {
         return ResponseEntity.ok(invoiceService.getAllInvoices());
@@ -66,38 +71,33 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/schedules")
-    public ResponseEntity<List<CleaningResponseDTO>> getAllSchedules() {
-        return ResponseEntity.ok(cleaningService.getAllSchedules());
+    @GetMapping("/cleaning/tasks")
+    public ResponseEntity<List<CleaningRequestDTO>> getCleaningTasks(
+            @RequestParam(required = false) Integer weekNumber) {
+        if (weekNumber != null) {
+            return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));
+        }
+        return ResponseEntity.ok(cleaningService.getAllTasks());
     }
 
-    @GetMapping("/schedules/week/{week}")
-    public ResponseEntity<CleaningResponseDTO> getScheduleByWeek(@PathVariable int week) {
-        return ResponseEntity.ok(cleaningService.getByWeek(week));
+    @PostMapping("/cleaning/tasks")
+    public ResponseEntity<CleaningRequestDTO> createTask(@RequestBody CleaningRequestDTO dto) {
+        return ResponseEntity.ok(cleaningService.addTask(dto));
     }
 
-    @PostMapping("/schedules")
-    public ResponseEntity<CleaningResponseDTO> createSchedule(@RequestParam int week) {
-        return ResponseEntity.ok(cleaningService.createSchedule(week));
-    }
-
-    @PostMapping("/schedules/{scheduleId}/tasks")
-    public ResponseEntity<CleaningRequestDTO> addTask(
-            @PathVariable Long scheduleId,
-            @RequestBody CleaningRequestDTO dto
-    ) {
-        return ResponseEntity.ok(cleaningService.addTask(scheduleId, dto));
-    }
-
-    @PutMapping("/tasks/{taskId}/note")
-    public ResponseEntity<CleaningRequestDTO> updateTaskNote(
+    @PutMapping("/cleaning/tasks/{taskId}")
+    public ResponseEntity<CleaningRequestDTO> updateTask(
             @PathVariable Long taskId,
-            @RequestParam String note
-    ) {
-        return ResponseEntity.ok(cleaningService.updateTaskNote(taskId, note));
+            @RequestBody CleaningRequestDTO dto) {
+        return ResponseEntity.ok(cleaningService.updateTask(taskId, dto));
     }
 
-    @DeleteMapping("/tasks/{taskId}")
+    @PutMapping("/cleaning/tasks/{taskId}/toggle")
+    public ResponseEntity<CleaningRequestDTO> toggleTask(@PathVariable Long taskId) {
+        return ResponseEntity.ok(cleaningService.toggleTask(taskId));
+    }
+
+    @DeleteMapping("/cleaning/tasks/{taskId}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
         cleaningService.deleteTask(taskId);
         return ResponseEntity.noContent().build();

@@ -1,6 +1,6 @@
 package com.villavredestein.controller;
 
-import com.villavredestein.dto.CleaningResponseDTO;
+import com.villavredestein.dto.CleaningRequestDTO;
 import com.villavredestein.dto.InvoiceResponseDTO;
 import com.villavredestein.model.Document;
 import com.villavredestein.service.CleaningService;
@@ -31,42 +31,43 @@ public class StudentController {
     }
 
     @GetMapping("/invoices")
-    public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices(
+            @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
-
-        List<InvoiceResponseDTO> invoices = invoiceService.getInvoicesByStudentEmail(email)
-                .stream()
-                .map(i -> new InvoiceResponseDTO(
-                        i.getId(),
-                        i.getTitle(),
-                        i.getAmount(),
-                        i.getDueDate(),
-                        i.getStatus(),
-                        i.isReminderSent(),
-                        i.getStudentName(),
-                        i.getStudentEmail()
-                ))
-                .toList();
-
-        return ResponseEntity.ok(invoices);
+        return ResponseEntity.ok(invoiceService.getInvoicesByStudentEmail(email));
     }
 
     @GetMapping("/documents")
-    public ResponseEntity<List<Document>> getMyDocuments(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<Document>> getMyDocuments(
+            @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
         return ResponseEntity.ok(documentService.getDocumentsByOwnerEmail(email));
     }
 
     @GetMapping("/documents/{id}")
-    public ResponseEntity<Document> getMyDocument(@PathVariable Long id,
-                                                  @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Document> getMyDocument(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
-        Document doc = documentService.getDocumentForUser(id, email);
-        return ResponseEntity.ok(doc);
+        return ResponseEntity.ok(documentService.getDocumentForUser(id, email));
     }
 
-    @GetMapping("/cleaning/week/{week}")
-    public ResponseEntity<CleaningResponseDTO> getCleaningSchedule(@PathVariable int week) {
-        return ResponseEntity.ok(cleaningService.getByWeek(week));
+    @GetMapping("/cleaning/tasks")
+    public ResponseEntity<List<CleaningRequestDTO>> getMyCleaningTasks(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) Integer weekNumber) {
+        String email = userDetails.getUsername();
+        if (weekNumber != null) {
+            return ResponseEntity.ok(cleaningService.getTasksForStudentByWeek(email, weekNumber));
+        }
+        return ResponseEntity.ok(cleaningService.getTasksForStudent(email));
+    }
+
+    @PutMapping("/cleaning/tasks/{taskId}/toggle")
+    public ResponseEntity<CleaningRequestDTO> toggleMyTask(
+            @PathVariable Long taskId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        return ResponseEntity.ok(cleaningService.toggleTaskForStudent(taskId, email));
     }
 }

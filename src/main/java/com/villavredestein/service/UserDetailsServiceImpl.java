@@ -7,10 +7,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-/**
- * 🔐 Implementeert Spring Security's UserDetailsService.
- * Zoekt gebruikers op e-mailadres (in plaats van username).
- */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
@@ -22,14 +18,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        // Optional netjes uitpakken
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Gebruiker niet gevonden: " + email));
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())
-                .roles(user.getRole()) // gebruik .name() als role een enum is
+                .roles(user.getRole())
                 .build();
     }
 }

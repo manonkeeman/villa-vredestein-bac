@@ -21,11 +21,21 @@ public class RoomService {
     }
 
     public List<Room> getAllRooms() {
-        return roomRepository.findAll();
+        return roomRepository.findAll().stream()
+                .peek(room -> {
+                    if (room.getOccupant() != null)
+                        room.setName(room.getName() + " (" + room.getOccupant().getUsername() + ")");
+                })
+                .toList();
     }
 
     public Optional<Room> getRoomById(Long id) {
-        return roomRepository.findById(id);
+        return roomRepository.findById(id)
+                .map(room -> {
+                    if (room.getOccupant() != null)
+                        room.setName(room.getName() + " (" + room.getOccupant().getUsername() + ")");
+                    return room;
+                });
     }
 
     public Room createRoom(Room room) {

@@ -1,14 +1,16 @@
 package com.villavredestein.controller;
 
-import com.villavredestein.dto.CleaningResponseDTO;
 import com.villavredestein.dto.CleaningRequestDTO;
 import com.villavredestein.service.CleaningService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/cleaning")
+@CrossOrigin(origins = "*")
 public class CleaningController {
 
     private final CleaningService cleaningService;
@@ -17,28 +19,46 @@ public class CleaningController {
         this.cleaningService = cleaningService;
     }
 
-    @GetMapping("/schedules")
-    public List<CleaningResponseDTO> getAllSchedules() {
-        return cleaningService.getAllSchedules();
+    @GetMapping("/tasks")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    public ResponseEntity<List<CleaningRequestDTO>> getTasks(
+            @RequestParam(required = false) Integer weekNumber) {
+        if (weekNumber != null) {
+            return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));
+        }
+        return ResponseEntity.ok(cleaningService.getAllTasks());
     }
 
-    @PostMapping("/schedules")
-    public CleaningResponseDTO createSchedule(@RequestParam int weekNumber) {
-        return cleaningService.createSchedule(weekNumber);
-    }
-
-    @PostMapping("/schedules/{scheduleId}/tasks")
-    public CleaningRequestDTO addTask(@PathVariable Long scheduleId, @RequestBody CleaningRequestDTO dto) {
-        return cleaningService.addTask(scheduleId, dto);
+    @PostMapping("/tasks")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CleaningRequestDTO> createTask(@RequestBody CleaningRequestDTO dto) {
+        return ResponseEntity.ok(cleaningService.addTask(dto));
     }
 
     @PutMapping("/tasks/{taskId}/toggle")
-    public CleaningRequestDTO toggleCompleted(@PathVariable Long taskId) {
-        return cleaningService.toggleTask(taskId); // ✅ juiste methode in service
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    public ResponseEntity<CleaningRequestDTO> toggleTask(@PathVariable Long taskId) {
+        return ResponseEntity.ok(cleaningService.toggleTask(taskId));
+    }
+
+    @PutMapping("/tasks/{taskId}/comment")
+    @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
+    public ResponseEntity<CleaningRequestDTO> addComment(
+            @PathVariable Long taskId, @RequestParam String comment) {
+        return ResponseEntity.ok(cleaningService.addComment(taskId, comment));
+    }
+
+    @PutMapping("/tasks/{taskId}/incident")
+    @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
+    public ResponseEntity<CleaningRequestDTO> addIncident(
+            @PathVariable Long taskId, @RequestParam String incident) {
+        return ResponseEntity.ok(cleaningService.addIncident(taskId, incident));
     }
 
     @DeleteMapping("/tasks/{taskId}")
-    public void deleteTask(@PathVariable Long taskId) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
         cleaningService.deleteTask(taskId);
+        return ResponseEntity.noContent().build();
     }
 }

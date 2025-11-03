@@ -53,4 +53,4 @@ src/main/resources/application.properties
 # ==========================================
 !*.postman_collection.json
 !postman/*.json
-!data.sql
+!data.sqlsrc/main/resources/application.yml

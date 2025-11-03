@@ -1,5 +1,5 @@
 # ==========================================
-# 🏠 Villa Vredestein - Secure Application Config
+# Villa Vredestein - Secure Application Config (met HTTPS)
 # ==========================================
 
 spring:
@@ -7,7 +7,7 @@ spring:
     name: villa-vredestein-bac
 
   # =======================================
-  # 🗄️ Database (H2 - In-memory for dev)
+  # Database (H2 - In-memory for development)
   # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
@@ -22,9 +22,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
 
   # =======================================
-  # 💾 H2 Web Console
+  # H2 Web Console
   # =======================================
   h2:
     console:
@@ -32,7 +36,7 @@ spring:
       path: /h2-console
 
   # =======================================
-  # 📂 File Uploads
+  # File Uploads
   # =======================================
   servlet:
     multipart:
@@ -40,12 +44,11 @@ spring:
       max-request-size: 20MB
 
   # =======================================
-  # 📧 Mail (SMTP via Gmail)
+  # Mail (SMTP via Gmail)
   # =======================================
   mail:
     host: smtp.gmail.com
     port: 587
-    # ✅ Gebruik env variabelen, met fallback voor lokale runs
     username: ${MAIL_USERNAME:no-reply@villavredestein.local}
     password: ${MAIL_PASSWORD:dummy-password}
     properties:
@@ -59,34 +62,49 @@ spring:
           writetimeout: 5000
 
   # =======================================
-  # ⏰ Scheduling (facturen, reminders)
+  # Scheduling (facturen, reminders)
   # =======================================
   task:
     scheduling:
       enabled: true
 
 # ==========================================
-# 🌐 Server Settings
+# Server Settings (HTTPS ingeschakeld)
 # ==========================================
 server:
-  port: 8080
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:certificate.jks
+    key-store-type: JKS
+    key-store-password: p4ssw0rd
+    key-password: p4ssw0rd
+    key-alias: certificate
   error:
     include-message: always
     include-binding-errors: always
 
 # ==========================================
-# ⚙️ Applicatie Specifiek
+# Applicatie Specifiek
 # ==========================================
 app:
   upload-dir: ./uploads
-
   mail:
-    # ✅ Zet dit op false om te testen zonder SMTP
     enabled: ${APP_MAIL_ENABLED:true}
     from: ${MAIL_USERNAME:no-reply@villavredestein.local}
 
+# ==========================================
+# JWT Security
+# ==========================================
+jwt:
+  secret: ${JWT_SECRET:superSecretKeyVoorDevGebruik}
+  expiration: 3600000
+
+# ==========================================
+# Logging
+# ==========================================
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
-    com.villavredestein: DEBUG
+    com.villavredestein: INFO

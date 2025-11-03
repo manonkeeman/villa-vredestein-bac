@@ -40,12 +40,10 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/h2-console/**"
                         ).permitAll()
-
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/cleaner/**").hasRole("CLEANER")
-
-                        .anyRequest().authenticated()
+                        .anyRequest().denyAll()
                 )
 
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))

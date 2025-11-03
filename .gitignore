@@ -28,6 +28,7 @@ nbdist/
 .DS_Store
 shelf/
 workspace.xml
+.env
 
 # ==========================================
 # Local/generated data

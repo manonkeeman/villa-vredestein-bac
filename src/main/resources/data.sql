@@ -16,7 +16,6 @@ VALUES
     ('cleaner', 'Cleaner',
      '$2a$10$4YW93z7bCkTkDLoOuzgqeeCekNQOEBo4B4KXdsTFoQ9sxV3Sl7OeC', 'CLEANER');
 
-
 -- =======================================
 -- 🏠 Kamers
 -- =======================================
@@ -46,9 +45,9 @@ VALUES
 -- =======================================
 INSERT INTO payments (amount, date, status, description, student_id)
 VALUES
-    (650.00, DATEADD('MONTH', -2, CURRENT_TIMESTAMP), 'PAID', 'Huur twee maanden terug', 2),
-    (650.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur vorige maand', 2),
-    (650.00, CURRENT_TIMESTAMP, 'OPEN', 'Huur huidige maand', 3);
+    (350.00, DATEADD('MONTH', -2, CURRENT_TIMESTAMP), 'PAID', 'Huur - Alvar (twee maanden terug)', 2),
+    (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Alvar (vorige maand)', 2),
+    (350.00, CURRENT_TIMESTAMP, 'OPEN', 'Huur - Desmond (huidige maand)', 3);
 
 -- =======================================
 -- 🧾 Facturen (huidige maand)

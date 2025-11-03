@@ -30,7 +30,7 @@ public class InvoiceService {
 
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
         User student = userRepository.findByEmail(dto.getStudentEmail())
-                .orElseThrow(() -> new RuntimeException("Student niet gevonden"));
+                .orElseThrow(() -> new RuntimeException("Student niet gevonden met e-mail: " + dto.getStudentEmail()));
 
         Invoice invoice = new Invoice();
         invoice.setTitle(dto.getTitle());
@@ -45,7 +45,6 @@ public class InvoiceService {
         return toDTO(saved);
     }
 
-    /** 🔹 Extra method voor StudentController */
     public List<InvoiceResponseDTO> getInvoicesByStudentEmail(String email) {
         return invoiceRepository.findAll().stream()
                 .filter(i -> i.getStudent() != null && email.equalsIgnoreCase(i.getStudent().getEmail()))
@@ -53,28 +52,36 @@ public class InvoiceService {
                 .collect(Collectors.toList());
     }
 
-    /** 🔹 Extra methods voor AdminController */
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
         Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Factuur niet gevonden"));
+                .orElseThrow(() -> new RuntimeException("Factuur niet gevonden met ID: " + id));
+
         invoice.setStatus(newStatus);
-        return toDTO(invoiceRepository.save(invoice));
+        Invoice updated = invoiceRepository.save(invoice);
+        return toDTO(updated);
     }
 
     public void deleteInvoice(Long id) {
         if (invoiceRepository.existsById(id)) {
             invoiceRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("Factuur niet gevonden met ID: " + id);
         }
     }
 
     private InvoiceResponseDTO toDTO(Invoice invoice) {
+        String studentName = (invoice.getStudent() != null) ? invoice.getStudent().getUsername() : null;
+        String studentEmail = (invoice.getStudent() != null) ? invoice.getStudent().getEmail() : null;
+
         return new InvoiceResponseDTO(
                 invoice.getId(),
                 invoice.getTitle(),
                 invoice.getAmount(),
                 invoice.getDueDate(),
                 invoice.getStatus(),
-                invoice.isReminderSent()
+                invoice.isReminderSent(),
+                studentName,
+                studentEmail
         );
     }
 }

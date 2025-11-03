@@ -76,8 +76,8 @@ server:
     enabled: true
     key-store: classpath:certificate.jks
     key-store-type: JKS
-    key-store-password: ${KEYSTORE_PASSWORD:changeit}
-    key-password: ${KEY_PASSWORD:changeit}
+    key-store-password: ${KEYSTORE_PASSWORD:p4ssw0rd}
+    key-password: ${KEY_PASSWORD:p4ssw0rd}
     key-alias: certificate
   error:
     include-message: always

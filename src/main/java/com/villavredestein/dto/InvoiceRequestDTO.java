@@ -8,8 +8,7 @@ public class InvoiceRequestDTO {
     private double amount;
     private LocalDate issueDate;
     private LocalDate dueDate;
-    private String studentEmail; // gebruiker die de factuur krijgt
-
+    private String studentEmail;
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 

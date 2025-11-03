@@ -15,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/student")
+@CrossOrigin(origins = "*")
 public class StudentController {
 
     private final InvoiceService invoiceService;
@@ -32,6 +33,7 @@ public class StudentController {
     @GetMapping("/invoices")
     public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices(@AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
+
         List<InvoiceResponseDTO> invoices = invoiceService.getInvoicesByStudentEmail(email)
                 .stream()
                 .map(i -> new InvoiceResponseDTO(
@@ -40,7 +42,9 @@ public class StudentController {
                         i.getAmount(),
                         i.getDueDate(),
                         i.getStatus(),
-                        i.isReminderSent()
+                        i.isReminderSent(),
+                        i.getStudentName(),
+                        i.getStudentEmail()
                 ))
                 .toList();
 

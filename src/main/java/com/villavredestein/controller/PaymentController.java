@@ -1,11 +1,11 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.model.Payment;
-import com.villavredestein.model.User;
 import com.villavredestein.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -20,11 +20,10 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-     @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/student/{email}")
     public ResponseEntity<List<Payment>> getPaymentsForStudent(@PathVariable String email) {
-        List<Payment> payments = paymentService.getPaymentsByStudentEmail(email);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentService.getPaymentsByStudentEmail(email));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -34,29 +33,15 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable Long id) {
-        Optional<Payment> payment = paymentService.getPaymentById(id);
-        return payment.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Payment> createPayment(@RequestBody Payment payment) {
-        Payment saved = paymentService.savePayment(payment);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(paymentService.savePayment(payment));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Payment> updatePayment(@PathVariable Long id, @RequestBody Payment updatedPayment) {
-        Optional<Payment> existing = paymentService.getPaymentById(id);
-        if (existing.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        Payment saved = paymentService.updatePayment(id, updatedPayment);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(paymentService.updatePayment(id, updatedPayment));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -64,11 +49,5 @@ public class PaymentController {
     public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
         paymentService.deletePayment(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/open")
-    public ResponseEntity<List<Payment>> getOpenPayments() {
-        return ResponseEntity.ok(paymentService.getOpenPayments());
     }
 }

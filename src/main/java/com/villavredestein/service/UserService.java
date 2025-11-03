@@ -6,7 +6,6 @@ import com.villavredestein.model.User;
 import com.villavredestein.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,15 +38,11 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    public UserResponseDTO changeRole(Long id, String role) {
+    public UserResponseDTO changeRole(Long id, String newRole) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setRole(role);
+        user.setRole(newRole.toUpperCase());
         return toDTO(userRepository.save(user));
-    }
-
-    public UserResponseDTO changeUserRole(Long id, String newRole) {
-        return changeRole(id, newRole);
     }
 
     public UserResponseDTO updateProfile(Long id, UserUpdateDTO dto) {

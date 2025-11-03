@@ -7,7 +7,6 @@ import com.villavredestein.model.User;
 import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.UserRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,18 +43,10 @@ public class InvoiceService {
         return toDTO(invoiceRepository.save(invoice));
     }
 
-    public List<InvoiceResponseDTO> getInvoicesByStudentEmail(String email) {
-        return invoiceRepository.findAll().stream()
-                .filter(i -> i.getStudent() != null && email.equalsIgnoreCase(i.getStudent().getEmail()))
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Factuur niet gevonden: " + id));
-
-        invoice.setStatus(newStatus);
+        invoice.setStatus(newStatus.toUpperCase());
         return toDTO(invoiceRepository.save(invoice));
     }
 

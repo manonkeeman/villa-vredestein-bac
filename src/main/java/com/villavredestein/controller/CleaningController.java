@@ -30,7 +30,7 @@ public class CleaningController {
     }
 
     @PostMapping("/tasks")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningRequestDTO> createTask(@RequestBody CleaningRequestDTO dto) {
         return ResponseEntity.ok(cleaningService.addTask(dto));
     }
@@ -44,14 +44,16 @@ public class CleaningController {
     @PutMapping("/tasks/{taskId}/comment")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningRequestDTO> addComment(
-            @PathVariable Long taskId, @RequestParam String comment) {
+            @PathVariable Long taskId,
+            @RequestParam String comment) {
         return ResponseEntity.ok(cleaningService.addComment(taskId, comment));
     }
 
     @PutMapping("/tasks/{taskId}/incident")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningRequestDTO> addIncident(
-            @PathVariable Long taskId, @RequestParam String incident) {
+            @PathVariable Long taskId,
+            @RequestParam String incident) {
         return ResponseEntity.ok(cleaningService.addIncident(taskId, incident));
     }
 

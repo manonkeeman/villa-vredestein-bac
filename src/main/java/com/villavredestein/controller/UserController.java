@@ -6,15 +6,18 @@ import com.villavredestein.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
-    public UserController(UserService userService) { this.userService = userService; }
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
@@ -44,10 +47,11 @@ public class UserController {
     public ResponseEntity<UserResponseDTO> changeRole(
             @PathVariable Long id,
             @RequestParam String newRole) {
-        return ResponseEntity.ok(userService.changeUserRole(id, newRole));
+        return ResponseEntity.ok(userService.changeRole(id, newRole));
     }
 
     @PutMapping("/{id}/profile")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<UserResponseDTO> updateProfile(
             @PathVariable Long id,
             @RequestBody UserUpdateDTO dto) {

@@ -5,7 +5,6 @@ import com.villavredestein.model.User;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +46,6 @@ public class RoomService {
                 .orElseThrow(() -> new RuntimeException("Room not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         room.setOccupant(user);
         return roomRepository.save(room);
     }

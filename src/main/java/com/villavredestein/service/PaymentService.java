@@ -4,7 +4,6 @@ import com.villavredestein.model.Payment;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -45,6 +44,18 @@ public class PaymentService {
         return paymentRepository.save(payment);
     }
 
+    public Payment updatePayment(Long id, Payment updated) {
+        return paymentRepository.findById(id)
+                .map(existing -> {
+                    existing.setAmount(updated.getAmount());
+                    existing.setDate(updated.getDate());
+                    existing.setStatus(updated.getStatus());
+                    existing.setDescription(updated.getDescription());
+                    return paymentRepository.save(existing);
+                })
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+    }
+
     public void deletePayment(Long id) {
         paymentRepository.deleteById(id);
     }
@@ -65,17 +76,5 @@ public class PaymentService {
                         p.setDescription(p.getDescription() + " (" + p.getStudent().getUsername() + ")");
                 })
                 .toList();
-    }
-
-    public Payment updatePayment(Long id, Payment updated) {
-        return paymentRepository.findById(id)
-                .map(existing -> {
-                    existing.setAmount(updated.getAmount());
-                    existing.setDate(updated.getDate());
-                    existing.setStatus(updated.getStatus());
-                    existing.setDescription(updated.getDescription());
-                    return paymentRepository.save(existing);
-                })
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
     }
 }

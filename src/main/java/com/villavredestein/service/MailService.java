@@ -7,6 +7,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,14 +32,26 @@ public class MailService {
         this.bccAdmin = bccAdmin;
     }
 
-    public void send(String to, String subject, String body, @Nullable String bcc) {
+    public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
+        switch (role.toUpperCase()) {
+            case "ADMIN" -> log.info("✅ ADMIN verstuurt mail aan {}", to);
+            case "CLEANER" -> {
+                if (!subject.toLowerCase().contains("incident") && !subject.toLowerCase().contains("schoonmaak")) {
+                    throw new AccessDeniedException("CLEANER mag alleen mails sturen over schoonmaaktaken of incidenten");
+                }
+                log.info("🧹 CLEANER verstuurt schoonmaakmail aan {}", to);
+            }
+            case "STUDENT" -> throw new AccessDeniedException("STUDENT mag geen e-mails verzenden");
+            default -> throw new AccessDeniedException("Onbekende rol: " + role);
+        }
+
         if (!mailEnabled) {
-            log.warn("✉️ [MAIL UITGESCHAKELD] To: {} | Subject: {}\n{}", to, subject, body);
+            log.warn("📧 [MAIL UITGESCHAKELD] To: {} | Subject: {}\n{}", to, subject, body);
             return;
         }
 
         if (to == null || to.isBlank()) {
-            log.error("❌ Geen geldig e-mailadres opgegeven: '{}'", to);
+            log.error("❌ Ongeldig e-mailadres: '{}'", to);
             return;
         }
 
@@ -46,23 +59,25 @@ public class MailService {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setFrom(from);
             msg.setTo(to);
+
             if (bcc != null && !bcc.isBlank()) {
                 msg.setBcc(bcc);
             } else if (bccAdmin != null && !bccAdmin.isBlank()) {
                 msg.setBcc(bccAdmin);
             }
+
             msg.setSubject(subject);
             msg.setText(body);
-
             mailSender.send(msg);
-            log.info("✅ E-mail succesvol verzonden naar {} met onderwerp '{}'", to, subject);
+
+            log.info("📨 E-mail succesvol verzonden door {} naar {} met onderwerp '{}'", role, to, subject);
 
         } catch (MailException e) {
-            log.error("⚠️ Fout bij verzenden van e-mail naar {}: {}", to, e.getMessage());
+            log.error("⚠️ Fout bij verzenden van e-mail ({}) door {}: {}", subject, role, e.getMessage());
         }
     }
 
-    public void send(String to, String subject, String body) {
-        send(to, subject, body, null);
+    public void sendMailWithRole(String role, String to, String subject, String body) {
+        sendMailWithRole(role, to, subject, body, null);
     }
 }

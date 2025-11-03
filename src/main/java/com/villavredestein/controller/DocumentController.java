@@ -8,11 +8,13 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/documents")
+@CrossOrigin(origins = "*")
 public class DocumentController {
 
     private final DocumentService documentService;
@@ -21,14 +23,12 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
-    // 👀 Studenten en Admins mogen lijst zien
-    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @GetMapping
     public ResponseEntity<List<Document>> getAllDocuments() {
         return ResponseEntity.ok(documentService.listAll());
     }
 
-    // 📥 Alleen Admin mag uploaden
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/upload")
     public ResponseEntity<UploadResponseDTO> uploadDocument(
@@ -38,8 +38,7 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.upload(uploaderId, file, roleAccess));
     }
 
-    // 📄 Studenten & Admins mogen downloaden
-    @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @GetMapping("/{id}/download")
     public ResponseEntity<FileSystemResource> downloadDocument(@PathVariable Long id) {
         FileSystemResource resource = documentService.download(id);
@@ -52,7 +51,6 @@ public class DocumentController {
                 .body(resource);
     }
 
-    // ❌ Alleen Admin mag verwijderen
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteDocument(@PathVariable Long id) {

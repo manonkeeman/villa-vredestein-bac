@@ -1,16 +1,15 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.dto.*;
-import com.villavredestein.model.User;
 import com.villavredestein.service.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
+@CrossOrigin(origins = "*")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
@@ -41,8 +40,7 @@ public class AdminController {
     @PutMapping("/users/{id}/role")
     public ResponseEntity<UserResponseDTO> changeRole(
             @PathVariable Long id,
-            @RequestParam String newRole
-    ) {
+            @RequestParam String newRole) {
         return ResponseEntity.ok(userService.changeRole(id, newRole));
     }
 
@@ -60,8 +58,7 @@ public class AdminController {
     @PutMapping("/invoices/{id}/status")
     public ResponseEntity<InvoiceResponseDTO> updateInvoiceStatus(
             @PathVariable Long id,
-            @RequestParam String status
-    ) {
+            @RequestParam String status) {
         return ResponseEntity.ok(invoiceService.updateStatus(id, status));
     }
 
@@ -71,6 +68,7 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // === CLEANING ===
     @GetMapping("/cleaning/tasks")
     public ResponseEntity<List<CleaningRequestDTO>> getCleaningTasks(
             @RequestParam(required = false) Integer weekNumber) {

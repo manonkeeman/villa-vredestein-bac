@@ -40,9 +40,9 @@ public class DocumentService {
         String originalName = Optional.ofNullable(file.getOriginalFilename())
                 .map(name -> name.replaceAll("[^a-zA-Z0-9._-]", "_"))
                 .orElse("unnamed.pdf");
+
         String safeFileName = System.currentTimeMillis() + "_" + originalName;
         Path targetPath = uploadDir.resolve(safeFileName);
-
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
         Document document = new Document();
@@ -63,8 +63,8 @@ public class DocumentService {
         return documentRepository.findAll().stream()
                 .filter(doc -> "ADMIN".equalsIgnoreCase(role)
                         || "ALL".equalsIgnoreCase(doc.getRoleAccess())
-                        || (("STUDENT".equalsIgnoreCase(role) && "STUDENT".equalsIgnoreCase(doc.getRoleAccess())))
-                        || (("CLEANER".equalsIgnoreCase(role) && "CLEANER".equalsIgnoreCase(doc.getRoleAccess()))))
+                        || ("STUDENT".equalsIgnoreCase(role) && "STUDENT".equalsIgnoreCase(doc.getRoleAccess()))
+                        || ("CLEANER".equalsIgnoreCase(role) && "CLEANER".equalsIgnoreCase(doc.getRoleAccess())))
                 .peek(doc -> {
                     if (doc.getUploadedBy() != null) {
                         doc.setDescription("Geüpload door " + doc.getUploadedBy().getUsername());
@@ -89,5 +89,15 @@ public class DocumentService {
             } catch (IOException ignored) {}
             documentRepository.delete(doc);
         });
+    }
+
+    public List<Document> listAll() {
+        return documentRepository.findAll().stream()
+                .peek(doc -> {
+                    if (doc.getUploadedBy() != null) {
+                        doc.setDescription("Geüpload door " + doc.getUploadedBy().getUsername());
+                    }
+                })
+                .toList();
     }
 }

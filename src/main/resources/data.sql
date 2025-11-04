@@ -1,33 +1,33 @@
 -- =======================================
--- 👥 GEBRUIKERS
+-- GEBRUIKERS
 -- =======================================
 INSERT INTO users (email, username, password, role) VALUES
-                                                        ('villavredestein@gmail.com', 'Admin',
-                                                         '$2a$10$EixZaYVK1fsbw1Zfbx3OXePaWxn96p36DdxEnCYZ5oOJj0ksN8DAG', 'ADMIN'),
-                                                        ('ikheetalvar@gmail.com', 'Alvar',
-                                                         '$2a$10$dJeoIo6yCZyD/6jzA1X7IuzwzQhKyCMLoE/CS6BHFJSfUVc3glXOG', 'STUDENT'),
-                                                        ('desmondstaal@gmail.com', 'Desmond',
-                                                         '$2a$10$ZvnfY.xgj4euJWJZfQpsqe6sHhFvBk4yAT7PvJYvBe4v4U7j6vYy6', 'STUDENT'),
-                                                        ('medocstaal@gmail.com', 'Medoc',
-                                                         '$2a$10$WCuN6WfYpRLN4fQfHYxKVuF88tW9TR0mStJjEYoDDr8g77nm6k6Ei', 'STUDENT'),
-                                                        ('simontalsma2@gmail.com', 'Simon',
-                                                         '$2a$10$hBRdhNvI.vcjcAoPO9x4GuWpEKavAtB5Jmx.1Y8FPh3yDFZW29UMO', 'STUDENT'),
-                                                        ('cleaner', 'Cleaner',
-                                                         '$2a$10$4YW93z7bCkTkDLoOuzgqeeCekNQOEBo4B4KXdsTFoQ9sxV3Sl7OeC', 'CLEANER');
+    ('villavredestein@gmail.com', 'Admin',
+    '$2a$10$EixZaYVK1fsbw1Zfbx3OXePaWxn96p36DdxEnCYZ5oOJj0ksN8DAG', 'ADMIN'),
+    ('ikheetalvar@gmail.com', 'Alvar',
+    '$2a$10$dJeoIo6yCZyD/6jzA1X7IuzwzQhKyCMLoE/CS6BHFJSfUVc3glXOG', 'STUDENT'),
+    ('desmondstaal@gmail.com', 'Desmond',
+    '$2a$10$ZvnfY.xgj4euJWJZfQpsqe6sHhFvBk4yAT7PvJYvBe4v4U7j6vYy6', 'STUDENT'),
+    ('medocstaal@gmail.com', 'Medoc',
+    '$2a$10$WCuN6WfYpRLN4fQfHYxKVuF88tW9TR0mStJjEYoDDr8g77nm6k6Ei', 'STUDENT'),
+    ('simontalsma2@gmail.com', 'Simon',
+    '$2a$10$hBRdhNvI.vcjcAoPO9x4GuWpEKavAtB5Jmx.1Y8FPh3yDFZW29UMO', 'STUDENT'),
+    ('cleaner', 'Cleaner',
+    '$2a$10$4YW93z7bCkTkDLoOuzgqeeCekNQOEBo4B4KXdsTFoQ9sxV3Sl7OeC', 'CLEANER');
 
 -- =======================================
--- 🏠 KAMERS
+-- KAMERS
 -- =======================================
 INSERT INTO rooms (name, occupant_id) VALUES
-                                          ('Japan', NULL),
-                                          ('Argentinië', (SELECT id FROM users WHERE email='simontalsma2@gmail.com')),
-                                          ('Thailand', (SELECT id FROM users WHERE email='desmondstaal@gmail.com')),
-                                          ('Italië', NULL),
-                                          ('Frankrijk', (SELECT id FROM users WHERE email='medocstaal@gmail.com')),
-                                          ('Oekraïne', (SELECT id FROM users WHERE email='ikheetalvar@gmail.com'));
+    ('Japan', NULL),
+    ('Argentinië', (SELECT id FROM users WHERE email='simontalsma2@gmail.com')),
+    ('Thailand', (SELECT id FROM users WHERE email='desmondstaal@gmail.com')),
+    ('Italië', NULL),
+    ('Frankrijk', (SELECT id FROM users WHERE email='medocstaal@gmail.com')),
+    ('Oekraïne', (SELECT id FROM users WHERE email='ikheetalvar@gmail.com'));
 
 -- =======================================
--- 📄 DOCUMENTEN
+-- DOCUMENTEN
 -- =======================================
 INSERT INTO documents
 (title, description, storage_path, content_type, size, uploaded_at, role_access, uploaded_by_id)
@@ -39,24 +39,24 @@ VALUES
     ('Veiligheidsinstructies',
      'Brandveiligheid en noodprocedures.',
      'uploads/Veiligheid.pdf', 'application/pdf', 38912, CURRENT_TIMESTAMP, 'ALL',
-     (SELECT id FROM users WHERE email='villavredestein@gmail.com')),
+    (SELECT id FROM users WHERE email='villavredestein@gmail.com')),
     ('Pensionovereenkomst',
      'Modelovereenkomst voor huur.',
      'uploads/Pensionovereenkomst.pdf', 'application/pdf', 32768, CURRENT_TIMESTAMP, 'STUDENT',
      (SELECT id FROM users WHERE email='villavredestein@gmail.com'));
 
 -- =======================================
--- 💶 BETALINGEN
+-- BETALINGEN
 -- =======================================
 INSERT INTO payments (amount, date, status, description, student_id) VALUES
-                                                                         (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Alvar (vorige maand)',
-                                                                          (SELECT id FROM users WHERE email='ikheetalvar@gmail.com')),
-                                                                         (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Medoc (vorige maand)',
-                                                                          (SELECT id FROM users WHERE email='medocstaal@gmail.com')),
-                                                                         (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Simon (vorige maand)',
-                                                                          (SELECT id FROM users WHERE email='simontalsma2@gmail.com')),
-                                                                         (350.00, CURRENT_TIMESTAMP, 'OPEN', 'Huur - Desmond (huidige maand)',
-                                                                          (SELECT id FROM users WHERE email='desmondstaal@gmail.com'));
+    (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Alvar (vorige maand)',
+    (SELECT id FROM users WHERE email='ikheetalvar@gmail.com')),
+    (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Medoc (vorige maand)',
+    (SELECT id FROM users WHERE email='medocstaal@gmail.com')),
+    (350.00, DATEADD('MONTH', -1, CURRENT_TIMESTAMP), 'PAID', 'Huur - Simon (vorige maand)',
+    (SELECT id FROM users WHERE email='simontalsma2@gmail.com')),
+    (350.00, CURRENT_TIMESTAMP, 'OPEN', 'Huur - Desmond (huidige maand)',
+    (SELECT id FROM users WHERE email='desmondstaal@gmail.com'));
 
 -- =======================================
 -- 🧾 FACTUREN (H2-compatible)

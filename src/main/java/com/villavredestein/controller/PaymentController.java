@@ -20,12 +20,14 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
+    // === STUDENT & ADMIN ===
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/student/{email}")
     public ResponseEntity<List<Payment>> getPaymentsForStudent(@PathVariable String email) {
         return ResponseEntity.ok(paymentService.getPaymentsByStudentEmail(email));
     }
 
+    // === ADMIN ONLY ===
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<Payment>> getAllPayments() {
@@ -33,15 +35,29 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<Payment> getPaymentById(@PathVariable Long id) {
+        Optional<Payment> payment = paymentService.getPaymentById(id);
+        return payment.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Payment> createPayment(@RequestBody Payment payment) {
-        return ResponseEntity.ok(paymentService.savePayment(payment));
+        Payment created = paymentService.savePayment(payment);
+        return ResponseEntity.ok(created);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Payment> updatePayment(@PathVariable Long id, @RequestBody Payment updatedPayment) {
-        return ResponseEntity.ok(paymentService.updatePayment(id, updatedPayment));
+        try {
+            Payment updated = paymentService.updatePayment(id, updatedPayment);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -49,5 +65,11 @@ public class PaymentController {
     public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
         paymentService.deletePayment(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/open")
+    public ResponseEntity<List<Payment>> getOpenPayments() {
+        return ResponseEntity.ok(paymentService.getOpenPayments());
     }
 }

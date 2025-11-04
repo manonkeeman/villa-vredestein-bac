@@ -7,7 +7,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 public class VredesteinApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(VredesteinApplication.class, args);
+
+        public static void main(String[] args) {
+            SpringApplication.run(VredesteinApplication.class, args);
+            System.out.println("🚀 Villa Vredestein backend is gestart met automatische jobs!");
+        }
     }
-}

@@ -6,12 +6,18 @@ import com.villavredestein.model.Invoice;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class InvoiceService {
+
+    private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
 
     private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
@@ -39,19 +45,43 @@ public class InvoiceService {
         invoice.setDueDate(dto.getDueDate());
         invoice.setStudent(student);
         invoice.setStatus("OPEN");
+        invoice.setReminderSent(false);
 
-        return toDTO(invoiceRepository.save(invoice));
+        Invoice saved = invoiceRepository.save(invoice);
+        log.info("📄 Nieuwe factuur aangemaakt voor {}: €{}", student.getUsername(), dto.getAmount());
+        return toDTO(saved);
     }
 
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Factuur niet gevonden: " + id));
+
         invoice.setStatus(newStatus.toUpperCase());
-        return toDTO(invoiceRepository.save(invoice));
+        Invoice updated = invoiceRepository.save(invoice);
+
+        log.info("🔄 Factuur {} status gewijzigd naar {}", id, updated.getStatus());
+        return toDTO(updated);
     }
 
     public void deleteInvoice(Long id) {
-        invoiceRepository.findById(id).ifPresent(invoiceRepository::delete);
+        invoiceRepository.findById(id).ifPresent(inv -> {
+            invoiceRepository.delete(inv);
+            log.info("🗑️ Factuur {} verwijderd", id);
+        });
+    }
+
+    public List<Invoice> getAllOpenInvoices() {
+        return invoiceRepository.findByStatusIgnoreCase("OPEN");
+    }
+
+    public List<Invoice> getOverdueInvoices() {
+        return invoiceRepository.findByStatusIgnoreCaseAndDueDateBefore("OPEN", LocalDate.now());
+    }
+
+    public List<Invoice> getUpcomingInvoices() {
+        LocalDate today = LocalDate.now();
+        LocalDate inFourDays = today.plusDays(4);
+        return invoiceRepository.findByStatusIgnoreCaseAndDueDateBetween("OPEN", today, inFourDays);
     }
 
     private InvoiceResponseDTO toDTO(Invoice invoice) {

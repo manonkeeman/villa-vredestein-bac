@@ -1,13 +1,12 @@
 # ==========================================
-# Villa Vredestein - Application Configuration
+# Villa Vredestein - Spring Boot Config
 # ==========================================
-
 spring:
   application:
     name: villa-vredestein-bac
 
   # =======================================
-  # Database (H2 - In-memory voor ontwikkeling)
+  # Database (H2 in-memory - development)
   # =======================================
   datasource:
     url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
@@ -16,7 +15,7 @@ spring:
     password: ""
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create-drop          # H2 herbouwt DB bij elke run
     defer-datasource-initialization: true
     show-sql: true
     properties:
@@ -30,7 +29,7 @@ spring:
       data-locations: classpath:data.sql
 
   # =======================================
-  # H2 Web Console
+  # H2 Console
   # =======================================
   h2:
     console:
@@ -46,7 +45,7 @@ spring:
       max-request-size: 20MB
 
   # =======================================
-  # Mail (veilig via environment variabelen)
+  # Mail Configuratie (via env vars)
   # =======================================
   mail:
     host: smtp.gmail.com
@@ -63,14 +62,14 @@ spring:
           writetimeout: 5000
 
   # =======================================
-  # Scheduling (facturen/herinneringen)
+  # Scheduling (facturen & herinneringen)
   # =======================================
   task:
     scheduling:
       enabled: true
 
 # ==========================================
-# Server (HTTPS + error handling)
+# Server + SSL Config
 # ==========================================
 server:
   port: 8443
@@ -86,28 +85,30 @@ server:
     include-binding-errors: always
 
 # ==========================================
-# App Settings
+# App Instellingen
 # ==========================================
 app:
   upload-dir: ./uploads
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
     from: ${MAIL_USERNAME:villavredestein@gmail.com}
+    bcc:
+      admin: ${MAIL_ADMIN_BCC:villavredestein@gmail.com}
 
 # ==========================================
-# JWT Security (voor toekomstige authenticatie)
+# JWT Security (voor authenticatie)
 # ==========================================
 jwt:
   secret: ${JWT_SECRET:superSecretKeyVoorDevGebruik}
-  expiration: 3600000   # 1 uur
+  expiration: 3600000   # 1 uur in milliseconden
 
 # ==========================================
-# Logging
+# Logging Niveau
 # ==========================================
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
-    com.villavredestein: INFO
+    com.villavredestein: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE

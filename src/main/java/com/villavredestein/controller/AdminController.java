@@ -1,10 +1,13 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.dto.*;
+import com.villavredestein.jobs.InvoiceReminderJob;
+import com.villavredestein.jobs.OverdueInvoiceJob;
 import com.villavredestein.service.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -16,13 +19,19 @@ public class AdminController {
     private final UserService userService;
     private final InvoiceService invoiceService;
     private final CleaningService cleaningService;
+    private final InvoiceReminderJob invoiceReminderJob;
+    private final OverdueInvoiceJob overdueInvoiceJob;
 
     public AdminController(UserService userService,
                            InvoiceService invoiceService,
-                           CleaningService cleaningService) {
+                           CleaningService cleaningService,
+                           InvoiceReminderJob invoiceReminderJob,
+                           OverdueInvoiceJob overdueInvoiceJob) {
         this.userService = userService;
         this.invoiceService = invoiceService;
         this.cleaningService = cleaningService;
+        this.invoiceReminderJob = invoiceReminderJob;
+        this.overdueInvoiceJob = overdueInvoiceJob;
     }
 
     // === USERS ===
@@ -66,6 +75,19 @@ public class AdminController {
     public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // === MAIL REMINDERS ===
+    @PostMapping("/invoices/remind")
+    public ResponseEntity<String> sendManualReminders() {
+        invoiceReminderJob.sendReminders();
+        return ResponseEntity.ok("📬 Handmatige huurherinneringen verstuurd.");
+    }
+
+    @PostMapping("/invoices/remind-overdue")
+    public ResponseEntity<String> sendManualOverdueReminders() {
+        overdueInvoiceJob.sendOverdueReminders();
+        return ResponseEntity.ok("📬 Handmatige vervallen herinneringen verstuurd.");
     }
 
     // === CLEANING ===

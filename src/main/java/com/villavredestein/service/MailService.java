@@ -33,7 +33,6 @@ public class MailService {
     }
 
     public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
-        // ✅ Rolgebaseerde controle
         switch (role.toUpperCase()) {
             case "ADMIN" -> log.info("✅ ADMIN verstuurt mail aan {}", to);
             case "CLEANER" -> {

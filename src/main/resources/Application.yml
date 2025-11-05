@@ -5,7 +5,7 @@ spring:
   application:
     name: villa-vredestein-bac
 
-  # =======================================
+  # =======================================a
   # Database (H2 in-memory - development)
   # =======================================
   datasource:
@@ -112,3 +112,10 @@ logging:
     com.villavredestein: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+    # ==========================================
+    # Profiel (dev of prod)
+    # ==========================================
+    spring:
+      profiles:
+        active: dev

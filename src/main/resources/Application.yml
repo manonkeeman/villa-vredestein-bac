@@ -5,7 +5,7 @@ spring:
   application:
     name: villa-vredestein-bac
 
-  # =======================================a
+  # =======================================
   # Database (H2 in-memory - development)
   # =======================================
   datasource:
@@ -15,7 +15,7 @@ spring:
     password: ""
   jpa:
     hibernate:
-      ddl-auto: create-drop          # H2 herbouwt DB bij elke run
+      ddl-auto: create-drop
     defer-datasource-initialization: true
     show-sql: true
     properties:
@@ -68,6 +68,12 @@ spring:
     scheduling:
       enabled: true
 
+  # =======================================
+  # Actieve Profielinstelling
+  # =======================================
+  profiles:
+    active: dev
+
 # ==========================================
 # Server + SSL Config
 # ==========================================
@@ -112,10 +118,3 @@ logging:
     com.villavredestein: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
-    # ==========================================
-    # Profiel (dev of prod)
-    # ==========================================
-    spring:
-      profiles:
-        active: dev

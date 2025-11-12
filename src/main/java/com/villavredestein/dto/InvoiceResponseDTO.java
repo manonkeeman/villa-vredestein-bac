@@ -2,6 +2,13 @@ package com.villavredestein.dto;
 
 import java.time.LocalDate;
 
+/**
+ * Data Transfer Object (DTO) voor het versturen van factuurgegevens
+ * vanuit de backend naar de frontend.
+ *
+ * Bevat samenvattende informatie over een factuur, inclusief
+ * status, betalingsherinnering en studentgegevens.
+ */
 public class InvoiceResponseDTO {
 
     private Long id;
@@ -13,7 +20,13 @@ public class InvoiceResponseDTO {
     private String studentName;
     private String studentEmail;
 
-    public InvoiceResponseDTO(Long id, String title, double amount, LocalDate dueDate, String status,
+    /** Lege constructor (vereist door frameworks zoals Jackson). */
+    public InvoiceResponseDTO() {
+    }
+
+    /** Constructor met alle velden. */
+    public InvoiceResponseDTO(Long id, String title, double amount,
+                              LocalDate dueDate, String status,
                               boolean reminderSent, String studentName, String studentEmail) {
         this.id = id;
         this.title = title;
@@ -26,11 +39,26 @@ public class InvoiceResponseDTO {
     }
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
     public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
     public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
+
     public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+
     public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
     public boolean isReminderSent() { return reminderSent; }
+    public void setReminderSent(boolean reminderSent) { this.reminderSent = reminderSent; }
+
     public String getStudentName() { return studentName; }
+    public void setStudentName(String studentName) { this.studentName = studentName; }
+
     public String getStudentEmail() { return studentEmail; }
+    public void setStudentEmail(String studentEmail) { this.studentEmail = studentEmail; }
 }

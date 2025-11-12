@@ -18,6 +18,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * {@code AuthController} verzorgt authenticatie en validatie van JWT-tokens
+ * binnen de Villa Vredestein web-API.
+ *
+ * <p>Deze controller behandelt login-aanvragen, genereert tokens bij geldige
+ * inlogpogingen en controleert bestaande tokens op geldigheid. De controller
+ * werkt samen met {@link JwtService} en het Spring Security framework om
+ * gebruikers veilig te authenticeren.</p>
+ *
+ * <p>Toegankelijk voor alle clients (CORS open) via het pad {@code /api/auth}.</p>
+ */
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
@@ -29,6 +40,13 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
 
+    /**
+     * Constructor voor {@link AuthController}.
+     *
+     * @param authenticationManager verwerkt authenticatiepogingen
+     * @param userDetailsService laadt gebruikersgegevens uit de database
+     * @param jwtService verzorgt het genereren en valideren van JWT-tokens
+     */
     public AuthController(AuthenticationManager authenticationManager,
                           UserDetailsService userDetailsService,
                           JwtService jwtService) {
@@ -37,6 +55,15 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Verwerkt een loginverzoek en genereert een JWT-token bij geldige credentials.
+     *
+     * <p>Bij een succesvolle login retourneert dit endpoint de gebruikersnaam, e-mailadres,
+     * toegewezen rol en een nieuw gegenereerd JWT-token.</p>
+     *
+     * @param request {@link LoginRequestDTO} met e-mail en wachtwoord
+     * @return {@link LoginResponseDTO} bij succes of een foutmelding bij mislukking
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
         try {
@@ -76,6 +103,15 @@ public class AuthController {
         }
     }
 
+    /**
+     * Valideert een bestaand JWT-token en controleert of deze nog geldig is.
+     *
+     * <p>Geeft bij een geldige token de gebruikersnaam en rol terug. Indien de token ongeldig
+     * of verlopen is, wordt een foutmelding met {@code 401 Unauthorized} geretourneerd.</p>
+     *
+     * @param token de JWT-token die gecontroleerd moet worden
+     * @return {@code valid: true} bij succes of foutinformatie bij mislukking
+     */
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestParam String token) {
         try {

@@ -11,12 +11,12 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;           // "Huisregels"
-    private String description;     // "Huisregels 2025.pdf"
-    private String storagePath;     // Pad naar opgeslagen bestand op schijf
-    private String contentType;     // "application/pdf"
-    private String roleAccess;      // "STUDENT", "ADMIN" of "ALL"
-    private long size;              // Bestandsgrootte in bytes
+    private String title;
+    private String description;
+    private String storagePath;
+    private String contentType;
+    private String roleAccess;
+    private long size;
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
     @ManyToOne

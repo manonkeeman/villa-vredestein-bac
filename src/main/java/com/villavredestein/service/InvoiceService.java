@@ -14,6 +14,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service die verantwoordelijk is voor het aanmaken, beheren en ophalen van facturen.
+ */
 @Service
 public class InvoiceService {
 
@@ -27,67 +30,70 @@ public class InvoiceService {
         this.userRepository = userRepository;
     }
 
-    public List<InvoiceResponseDTO> getAllInvoices() {
-        return invoiceRepository.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
+    /** Maak een nieuwe factuur aan voor een student. */
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
         User student = userRepository.findByEmail(dto.getStudentEmail())
-                .orElseThrow(() -> new RuntimeException("Student niet gevonden: " + dto.getStudentEmail()));
+                .orElseThrow(() -> new IllegalArgumentException("Student niet gevonden: " + dto.getStudentEmail()));
 
         Invoice invoice = new Invoice();
         invoice.setTitle(dto.getTitle());
         invoice.setDescription(dto.getDescription());
         invoice.setAmount(dto.getAmount());
-        invoice.setIssueDate(dto.getIssueDate());
+        invoice.setIssueDate(dto.getIssueDate() != null ? dto.getIssueDate() : LocalDate.now());
         invoice.setDueDate(dto.getDueDate());
-        invoice.setStudent(student);
         invoice.setStatus("OPEN");
-        invoice.setReminderSent(false);
+        invoice.setStudent(student);
 
         Invoice saved = invoiceRepository.save(invoice);
-        log.info("📄 Nieuwe factuur aangemaakt voor {}: €{}", student.getUsername(), dto.getAmount());
+        log.info("📄 Nieuwe factuur aangemaakt voor {}: €{}", student.getEmail(), saved.getAmount());
         return toDTO(saved);
     }
 
+    /** Haal alle facturen op. */
+    public List<InvoiceResponseDTO> getAllInvoices() {
+        return invoiceRepository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /** Update de status van een factuur. */
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
         Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Factuur niet gevonden: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Factuur niet gevonden: " + id));
 
         invoice.setStatus(newStatus.toUpperCase());
         Invoice updated = invoiceRepository.save(invoice);
-
-        log.info("🔄 Factuur {} status gewijzigd naar {}", id, updated.getStatus());
         return toDTO(updated);
     }
 
+    /** Verwijder een factuur. */
     public void deleteInvoice(Long id) {
-        invoiceRepository.findById(id).ifPresent(inv -> {
-            invoiceRepository.delete(inv);
-            log.info("🗑️ Factuur {} verwijderd", id);
-        });
+        if (!invoiceRepository.existsById(id)) {
+            throw new IllegalArgumentException("Factuur niet gevonden: " + id);
+        }
+        invoiceRepository.deleteById(id);
     }
 
+    /** Haal alle openstaande facturen op. */
     public List<Invoice> getAllOpenInvoices() {
         return invoiceRepository.findByStatusIgnoreCase("OPEN");
     }
 
-    public List<Invoice> getOverdueInvoices() {
-        return invoiceRepository.findByStatusIgnoreCaseAndDueDateBefore("OPEN", LocalDate.now());
-    }
-
+    /** Haal facturen op die binnen 4 dagen vervallen. */
     public List<Invoice> getUpcomingInvoices() {
         LocalDate today = LocalDate.now();
         LocalDate inFourDays = today.plusDays(4);
         return invoiceRepository.findByStatusIgnoreCaseAndDueDateBetween("OPEN", today, inFourDays);
     }
 
-    private InvoiceResponseDTO toDTO(Invoice invoice) {
-        String studentName = invoice.getStudent() != null ? invoice.getStudent().getUsername() : null;
-        String studentEmail = invoice.getStudent() != null ? invoice.getStudent().getEmail() : null;
-
+    InvoiceResponseDTO toDTO(Invoice invoice) {
+        if (invoice == null) {
+            throw new IllegalArgumentException("Invoice mag niet null zijn");
+        }
+        if (invoice.getStudent() == null) {
+            throw new IllegalArgumentException("Invoice heeft geen gekoppelde student");
+        }
         return new InvoiceResponseDTO(
                 invoice.getId(),
                 invoice.getTitle(),
@@ -95,8 +101,8 @@ public class InvoiceService {
                 invoice.getDueDate(),
                 invoice.getStatus(),
                 invoice.isReminderSent(),
-                studentName,
-                studentEmail
+                invoice.getStudent().getUsername(),
+                invoice.getStudent().getEmail()
         );
     }
 }

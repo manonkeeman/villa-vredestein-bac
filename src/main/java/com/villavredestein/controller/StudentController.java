@@ -24,7 +24,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/student")
-@CrossOrigin(origins = "*")
+@CrossOrigin
 @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
 public class StudentController {
 
@@ -46,6 +46,15 @@ public class StudentController {
         this.documentService = documentService;
         this.cleaningService = cleaningService;
     }
+
+    /**
+     * Test endpoint voor POSTMAN
+     */
+    @GetMapping("/dashboard")
+    public ResponseEntity<String> studentDashboardTest() {
+        return ResponseEntity.ok("STUDENT OK");
+    }
+
 
     /**
      * Haalt alle facturen op die relevant zijn voor de ingelogde student.

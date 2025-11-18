@@ -21,7 +21,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/cleaning")
-@CrossOrigin(origins = "*")
+@CrossOrigin
 public class CleaningController {
 
     private final CleaningService cleaningService;
@@ -34,6 +34,22 @@ public class CleaningController {
     public CleaningController(CleaningService cleaningService) {
         this.cleaningService = cleaningService;
     }
+
+    /**
+     * Test-endpoint voor CLEANER toegangscontrole.
+     */
+    @GetMapping("/tasks-test-cleaner")
+    @PreAuthorize("hasRole('CLEANER')")
+    public ResponseEntity<String> cleanerTestTasks() {
+        return ResponseEntity.ok("CLEANER OK");
+    }
+
+    @GetMapping("/../cleaner/tasks")
+    @PreAuthorize("hasRole('CLEANER')")
+    public ResponseEntity<String> cleanerTasksAlias() {
+        return ResponseEntity.ok("CLEANER OK");
+    }
+
 
     /**
      * Haalt alle schoonmaaktaken op, eventueel gefilterd op weeknummer.

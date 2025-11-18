@@ -23,7 +23,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/payments")
-@CrossOrigin(origins = "*")
+@CrossOrigin
 public class PaymentController {
 
     private final PaymentService paymentService;

@@ -16,6 +16,18 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * JWT-filter die elke request onderschept en controleert op geldige JWT-tokens.
+ *
+ * <p>Deze filter zorgt uitsluitend voor:
+ * <ul>
+ *     <li>Token extraheren uit de Authorization header</li>
+ *     <li>Validatie van token</li>
+ *     <li>Setten van Authentication in de SecurityContext</li>
+ * </ul>
+ *
+ * <p>Foutcodes (401 / 403) worden afgehandeld door SecurityConfig.</p>
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -36,34 +48,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        String path = request.getRequestURI();
 
-        if (request.getRequestURI().startsWith("/api/auth") ||
-                request.getRequestURI().startsWith("/h2-console")) {
+        // Open endpoints overslaan
+        if (path.startsWith("/api/auth") || path.startsWith("/h2-console")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        final String authHeader = request.getHeader("Authorization");
+
+        // Geen token → doorgeven aan SecurityConfig → 401
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         final String jwtToken = authHeader.substring(7);
-        final String username;
 
+        String username;
         try {
             username = jwtService.extractUsername(jwtToken);
         } catch (Exception e) {
-            log.warn("Kon username niet extraheren uit token: {}", e.getMessage());
+            log.warn("JWT parsing mislukt: {}", e.getMessage());
+            // Slechte token → SecurityConfig → 401
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Als er nog geen Authentication bestaat, valideren en zetten
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (jwtService.validateToken(jwtToken, userDetails.getUsername())) {
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(username);
+            } catch (Exception e) {
+                log.warn("Gebruiker in token bestaat niet: {}", username);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            boolean isValid = jwtService.validateToken(jwtToken, userDetails.getUsername());
+
+            if (isValid) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
@@ -71,10 +98,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 userDetails.getAuthorities()
                         );
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.debug("Gebruiker {} is geauthenticeerd met rol {}", username,
-                        userDetails.getAuthorities());
+
+                log.debug("JWT geldig → gebruiker {} is geauthenticeerd met rollen {}",
+                        username, userDetails.getAuthorities());
+            } else {
+                log.warn("Ongeldige JWT token voor gebruiker {}", username);
             }
         }
 

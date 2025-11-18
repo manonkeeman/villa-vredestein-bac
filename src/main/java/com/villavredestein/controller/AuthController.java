@@ -19,19 +19,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * {@code AuthController} verzorgt authenticatie en validatie van JWT-tokens
- * binnen de Villa Vredestein web-API.
+ * {@code AuthController} verzorgt authenticatie, token-generatie en token-validatie
+ * binnen de Villa Vredestein API.
  *
- * <p>Deze controller behandelt login-aanvragen, genereert tokens bij geldige
- * inlogpogingen en controleert bestaande tokens op geldigheid. De controller
- * werkt samen met {@link JwtService} en het Spring Security framework om
- * gebruikers veilig te authenticeren.</p>
- *
- * <p>Toegankelijk voor alle clients (CORS open) via het pad {@code /api/auth}.</p>
+ * <p>Endpoints onder /api/auth zijn openbaar toegankelijk. Andere endpoints
+ * vereisen een geldige JWT-token.</p>
  */
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -40,13 +36,6 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
 
-    /**
-     * Constructor voor {@link AuthController}.
-     *
-     * @param authenticationManager verwerkt authenticatiepogingen
-     * @param userDetailsService laadt gebruikersgegevens uit de database
-     * @param jwtService verzorgt het genereren en valideren van JWT-tokens
-     */
     public AuthController(AuthenticationManager authenticationManager,
                           UserDetailsService userDetailsService,
                           JwtService jwtService) {
@@ -55,14 +44,16 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+
+    // =====================================================================
+    // LOGIN
+    // =====================================================================
+
     /**
-     * Verwerkt een loginverzoek en genereert een JWT-token bij geldige credentials.
+     * Verwerkt een loginpoging en geeft bij succes een JWT-token terug.
      *
-     * <p>Bij een succesvolle login retourneert dit endpoint de gebruikersnaam, e-mailadres,
-     * toegewezen rol en een nieuw gegenereerd JWT-token.</p>
-     *
-     * @param request {@link LoginRequestDTO} met e-mail en wachtwoord
-     * @return {@link LoginResponseDTO} bij succes of een foutmelding bij mislukking
+     * @param request bevat e-mail en wachtwoord
+     * @return loginresultaat inclusief token of foutmelding
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
@@ -76,14 +67,15 @@ public class AuthController {
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            String role = userDetails.getAuthorities().stream()
+            String role = userDetails.getAuthorities()
+                    .stream()
                     .map(GrantedAuthority::getAuthority)
                     .findFirst()
                     .orElse("ROLE_STUDENT");
 
             String jwtToken = jwtService.generateToken(userDetails.getUsername(), role);
 
-            log.info("Ingelogd: {} met rol {}", userDetails.getUsername(), role);
+            log.info("Login succesvol voor {} met rol {}", userDetails.getUsername(), role);
 
             return ResponseEntity.ok(new LoginResponseDTO(
                     userDetails.getUsername(),
@@ -93,49 +85,65 @@ public class AuthController {
             ));
 
         } catch (BadCredentialsException e) {
-            log.warn("Onjuiste inloggegevens voor gebruiker: {}", request.getEmail());
+            log.warn("❌ Ongeldige login poging voor {}", request.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Ongeldige gebruikersnaam of wachtwoord"));
         } catch (Exception e) {
-            log.error("Fout tijdens login voor {}: {}", request.getEmail(), e.getMessage());
+            log.error("💥 Interne fout bij login voor {}: {}", request.getEmail(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Er is een fout opgetreden tijdens het inloggen"));
         }
     }
 
+
+    // =====================================================================
+    // TOKEN VALIDATIE
+    // =====================================================================
+
     /**
-     * Valideert een bestaand JWT-token en controleert of deze nog geldig is.
+     * Valideert een meegegeven JWT-token.
      *
-     * <p>Geeft bij een geldige token de gebruikersnaam en rol terug. Indien de token ongeldig
-     * of verlopen is, wordt een foutmelding met {@code 401 Unauthorized} geretourneerd.</p>
-     *
-     * @param token de JWT-token die gecontroleerd moet worden
-     * @return {@code valid: true} bij succes of foutinformatie bij mislukking
+     * @param token JWT-token
+     * @return tokenstatus + gebruikersinfo
      */
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestParam String token) {
         try {
             String username = jwtService.extractUsername(token);
-            boolean isValid = jwtService.validateToken(token, username);
+            boolean valid = jwtService.validateToken(token, username);
 
-            if (isValid) {
-                String role = jwtService.extractRole(token);
-                log.info("Geldige token voor {} met rol {}", username, role);
-                return ResponseEntity.ok(Map.of(
-                        "valid", true,
-                        "username", username,
-                        "role", role
-                ));
-            } else {
-                log.warn("Ongeldige of verlopen token voor {}", username);
+            if (!valid) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("valid", false, "error", "Token is verlopen of ongeldig"));
             }
 
+            String role = jwtService.extractRole(token);
+
+            return ResponseEntity.ok(Map.of(
+                    "valid", true,
+                    "username", username,
+                    "role", role
+            ));
+
         } catch (Exception e) {
-            log.error("Fout bij tokenvalidatie: {}", e.getMessage());
+            log.warn("❌ Token validatie mislukt: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Ongeldige of verlopen token"));
+                    .body(Map.of("error", "Ongeldige of beschadigde token"));
         }
+    }
+
+
+    // =====================================================================
+    // INTERNAL SERVER ERROR 500 (testing)
+    // =====================================================================
+
+    /**
+     * Forceert bewust een 500-fout voor testdoeleinden.
+     *
+     * @return nooit een succesvol resultaat — altijd 500.
+     */
+    @GetMapping("/force-error")
+    public ResponseEntity<?> forceError() {
+        throw new RuntimeException("Geforceerde serverfout voor test");
     }
 }

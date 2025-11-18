@@ -26,7 +26,7 @@ spring:
       mode: always
       encoding: UTF-8
       platform: h2
-      data-locations: classpath:data.sql
+      data-locations: classpath:data.sql   # <----- DIT IS DE JUISTE REGEL
 
   # =======================================
   # H2 Console
@@ -45,7 +45,7 @@ spring:
       max-request-size: 20MB
 
   # =======================================
-  # Mail Configuratie (via env vars)
+  # Mail Configuratie
   # =======================================
   mail:
     host: smtp.gmail.com
@@ -61,21 +61,15 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
-  # =======================================
-  # Scheduling (facturen & herinneringen)
-  # =======================================
   task:
     scheduling:
       enabled: true
 
-  # =======================================
-  # Actieve Profielinstelling
-  # =======================================
   profiles:
     active: dev
 
 # ==========================================
-# Server + SSL Config
+# HTTPS / SSL Config
 # ==========================================
 server:
   port: 8443
@@ -102,14 +96,14 @@ app:
       admin: ${MAIL_ADMIN_BCC:villavredestein@gmail.com}
 
 # ==========================================
-# JWT Security (voor authenticatie)
+# JWT Config
 # ==========================================
 jwt:
-  secret: ${JWT_SECRET:superSecretKeyVoorDevGebruik}
-  expiration: 3600000   # 1 uur in milliseconden
+  secret: "f4a3c42d03e9bc77f102e4fc9a88dd723497b7e2cd15f593a5ef67db3b9128af"
+  expiration: 86400000
 
 # ==========================================
-# Logging Niveau
+# Logging
 # ==========================================
 logging:
   level:

@@ -30,6 +30,7 @@ De applicatie is gebouwd in **Spring Boot 3 (Java 21)** met **JWT-authenticatie*
 JWT-tokens bevatten:
 •	sub → e-mailadres
 •	role → ROLE_ADMIN / ROLE_STUDENT / ROLE_CLEANER
+
 ---
 
 ## Start de applicatie lokaal
@@ -41,10 +42,11 @@ De API draait standaard op:
 **H2-console: https://localhost:8443/h2-console**
 (JDBC URL: jdbc:h2:mem:villa)
 
-Testen kan via:
-•	Postman (importeer de .postman_collection.json)
-•	Je eigen frontend
-⸻
+## POSTMAN COLLECTIE
+Voor het testen van alle endpoints is een complete Postman-collectie beschikbaar:
+•	/postman/villa-vredestein-backend.postman_collection.json)
+
+---
 
 ## API ENDPOINTS 
 
@@ -83,8 +85,9 @@ CLEANER
 | GET	    | /api/cleaning/tasks	          | Eigen taken ophalen           |
 | PUT	    | /api/cleaning/tasks/{id}/toggle |	Markeer taak als voltooid     |
 
+---
 
-DTO Structuur
+## DTO STRUCTUUR
 
 	•	LoginRequestDTO    / LoginResponseDTO
 	•	UserResponseDTO    / UserUpdateDTO
@@ -92,16 +95,16 @@ DTO Structuur
 	•	CleaningRequestDTO / CleaningResponseDTO
 	•	UploadResponseDTO
 
-⸻
+---
 
-Automatische e-mails
+## AUTOMATISCHE E-MAILS
 
 De backend verstuurt automatisch:
 | Type                    | Trigger         |Ontvanger                           | Beschrijving               |
 |-------------------------|-----------------|------------------------------------|----------------------------|
 | Huurherinnering         | 28e (09:00)     | Studenten met openstaande facturen | Betaal vóór de vervaldatum |
 | Achterstallige betaling | Dagelijks 09:15 | Studenten met verlopen facturen    | Termijn verstreken         |
-| Betalingsbevestiging    | Status = PAID   | Student                            | ONtvangstbevestiging       |
+| Betalingsbevestiging    | Status = PAID   | Student                            | Ontvangstbevestiging       |
 
 
 Belangrijke klassen:
@@ -116,6 +119,7 @@ app:
   mail:
     enabled: true
 
+---
 
 ## PROJECTSTRUCTUUR
 
@@ -128,6 +132,8 @@ com.villavredestein
  ┣ 📁 repository     → JPA repositories
  ┣ 📁 security       → JwtService, JwtAuthenticationFilter
  ┗ 📁 service        → Businesslogica laag
+
+---
 
 ## ONTWIKKELAAR
 

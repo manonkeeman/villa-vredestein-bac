@@ -147,7 +147,7 @@ public class PaymentService {
     private void sendPaymentConfirmationIfPaid(Payment payment) {
         if ("PAID".equalsIgnoreCase(payment.getStatus()) && payment.getStudent() != null) {
             User student = payment.getStudent();
-            String subject = "✅ Bevestiging huurbetaling ontvangen";
+            String subject = "Bevestiging huurbetaling ontvangen";
             String body = String.format("""
                     Beste %s,
 

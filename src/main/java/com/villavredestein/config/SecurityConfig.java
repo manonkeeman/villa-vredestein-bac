@@ -37,10 +37,9 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
-    // =====================================================================
-    // CORS CONFIGURATIE
-    // =====================================================================
-
+/**
+    *CORS CONFIGURATIE
+**/
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -56,9 +55,9 @@ public class SecurityConfig {
         return source;
     }
 
-    // =====================================================================
-    // 401 HANDLER (NO TOKEN / INVALID TOKEN)
-    // =====================================================================
+/**
+ *401 HANDLER (NO TOKEN / INVALID TOKEN)
+**/
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
@@ -75,9 +74,9 @@ public class SecurityConfig {
         };
     }
 
-    // =====================================================================
-    // 403 HANDLER (VERKEERDE ROL)
-    // =====================================================================
+/**
+ *     403 HANDLER (VERKEERDE ROL)
+ */
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
@@ -94,9 +93,9 @@ public class SecurityConfig {
         };
     }
 
-    // =====================================================================
-    // SECURITY FILTER CHAIN
-    // =====================================================================
+    /**
+     *     SECURITY FILTER CHAIN
+      */
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -104,8 +103,6 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
-                // Deze twee FIXEN jouw verkeerde error codes
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint())  // 401 handler
                         .accessDeniedHandler(accessDeniedHandler())            // 403 handler
@@ -113,7 +110,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ---------- PUBLIC ENDPOINTS ----------
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
@@ -123,7 +119,6 @@ public class SecurityConfig {
                                 "/h2-console/**"
                         ).permitAll()
 
-                        // ---------- ROL-GEBASEERDE ENDPOINTS ----------
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/cleaner/**").hasRole("CLEANER")
@@ -131,23 +126,17 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // H2 console fix
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-
-                // JWT = stateless, dus geen sessies
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
                 .userDetailsService(userDetailsService)
-
-                // JWT filter vóór standaard UsernamePassword authentication
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // =====================================================================
-    // AUTH / PASSWORD BEANS
-    // =====================================================================
+    /**
+     * AUTH / PASSWORD BEANS
+     */
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config)

@@ -2,13 +2,6 @@ package com.villavredestein.dto;
 
 import java.time.LocalDate;
 
-/**
- * Data Transfer Object (DTO) voor het versturen van factuurgegevens
- * vanuit de backend naar de frontend.
- *
- * Bevat samenvattende informatie over een factuur, inclusief
- * status, betalingsherinnering en studentgegevens.
- */
 public class InvoiceResponseDTO {
 
     private Long id;
@@ -20,11 +13,9 @@ public class InvoiceResponseDTO {
     private String studentName;
     private String studentEmail;
 
-    /** Lege constructor (vereist door frameworks zoals Jackson). */
     public InvoiceResponseDTO() {
     }
 
-    /** Constructor met alle velden. */
     public InvoiceResponseDTO(Long id, String title, double amount,
                               LocalDate dueDate, String status,
                               boolean reminderSent, String studentName, String studentEmail) {

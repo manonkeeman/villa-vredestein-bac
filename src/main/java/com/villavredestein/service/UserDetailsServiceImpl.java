@@ -12,18 +12,6 @@ import org.springframework.stereotype.Service;
 /**
  * {@code UserDetailsServiceImpl} vormt de brug tussen de applicatie en
  * het authenticatiemechanisme van Spring Security.
- *
- * <p>Deze service implementeert de {@link UserDetailsService}-interface
- * en wordt door Spring Security gebruikt om gebruikers op te halen
- * tijdens het inlogproces. Op basis van het ingevoerde e-mailadres
- * laadt de service het bijbehorende {@link User}-object en vertaalt
- * dit naar een {@link org.springframework.security.core.userdetails.User}-object
- * dat Spring kan gebruiken voor authenticatie en autorisatie.</p>
- *
- * <p>De service zorgt er ook voor dat alle rollen worden genormaliseerd:
- * Spring Security vereist dat elke rol het prefix <b>ROLE_</b> heeft.
- * Dit wordt automatisch toegevoegd of aangepast indien nodig.</p>
- *
  * <p>Wordt aangeroepen door de {@code AuthenticationManager} binnen de
  * {@link com.villavredestein.controller.AuthController} tijdens login.</p>
  */
@@ -57,11 +45,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.warn("❌ Login mislukt: gebruiker '{}' niet gevonden", email);
+                    log.warn("Login mislukt: gebruiker '{}' niet gevonden", email);
                     return new UsernameNotFoundException("Gebruiker niet gevonden: " + email);
                 });
 
-        log.info("✅ Gebruiker '{}' geladen met rol '{}'", user.getEmail(), user.getRole());
+        log.info("Gebruiker '{}' geladen met rol '{}'", user.getEmail(), user.getRole());
 
         String sanitizedRole = user.getRole().startsWith("ROLE_")
                 ? user.getRole().substring(5)

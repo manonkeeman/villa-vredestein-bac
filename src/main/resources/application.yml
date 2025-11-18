@@ -99,7 +99,7 @@ app:
 # JWT Config
 # ==========================================
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:fallbackSecretKeyForLocalDev123!}
   expiration: 86400000
 
 # ==========================================

@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex) {
-        log.warn("❌ Niet gevonden: {}", ex.getMessage());
+        log.warn(" Niet gevonden: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleForbidden(AccessDeniedException ex) {
-        log.warn("🚫 Toegang geweigerd: {}", ex.getMessage());
+        log.warn(" Toegang geweigerd: {}", ex.getMessage());
         return buildResponse(HttpStatus.FORBIDDEN, "Toegang geweigerd tot deze resource");
     }
 
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
-        log.warn("⚠️ Ongeldige invoer: {}", ex.getMessage());
+        log.warn(" Ongeldige invoer: {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        log.error("💥 Onverwachte fout opgetreden", ex);
+        log.error(" Onverwachte fout opgetreden", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Er is een interne fout opgetreden");
     }
 

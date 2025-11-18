@@ -86,7 +86,7 @@ public class MailService {
      */
     public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
         switch (role.toUpperCase()) {
-            case "ADMIN" -> log.info("✅ ADMIN verstuurt mail aan {}", to);
+            case "ADMIN" -> log.info("ADMIN verstuurt mail aan {}", to);
             case "CLEANER" -> {
                 if (!subject.toLowerCase().contains("incident") && !subject.toLowerCase().contains("schoonmaak")) {
                     throw new AccessDeniedException("CLEANER mag alleen mails sturen over schoonmaaktaken of incidenten");
@@ -103,7 +103,7 @@ public class MailService {
         }
 
         if (to == null || to.isBlank()) {
-            log.error("❌ Ongeldig e-mailadres: '{}'", to);
+            log.error("Ongeldig e-mailadres: '{}'", to);
             return;
         }
 
@@ -122,10 +122,10 @@ public class MailService {
             msg.setText(body);
             mailSender.send(msg);
 
-            log.info("📨 E-mail succesvol verzonden door {} naar {} met onderwerp '{}'", role, to, subject);
+            log.info("E-mail succesvol verzonden door {} naar {} met onderwerp '{}'", role, to, subject);
 
         } catch (MailException e) {
-            log.error("⚠️ Fout bij verzenden van e-mail ({}) door {}: {}", subject, role, e.getMessage());
+            log.error("Fout bij verzenden van e-mail ({}) door {}: {}", subject, role, e.getMessage());
         }
     }
 

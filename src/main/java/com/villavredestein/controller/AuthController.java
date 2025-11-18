@@ -85,11 +85,11 @@ public class AuthController {
             ));
 
         } catch (BadCredentialsException e) {
-            log.warn("❌ Ongeldige login poging voor {}", request.getEmail());
+            log.warn(" Ongeldige login poging voor {}", request.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Ongeldige gebruikersnaam of wachtwoord"));
         } catch (Exception e) {
-            log.error("💥 Interne fout bij login voor {}: {}", request.getEmail(), e.getMessage());
+            log.error(" Interne fout bij login voor {}: {}", request.getEmail(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Er is een fout opgetreden tijdens het inloggen"));
         }
@@ -126,7 +126,7 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
-            log.warn("❌ Token validatie mislukt: {}", e.getMessage());
+            log.warn(" Token validatie mislukt: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Ongeldige of beschadigde token"));
         }

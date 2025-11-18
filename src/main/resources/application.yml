@@ -26,7 +26,7 @@ spring:
       mode: always
       encoding: UTF-8
       platform: h2
-      data-locations: classpath:data.sql   # <----- DIT IS DE JUISTE REGEL
+      data-locations: classpath:data.sql
 
   # =======================================
   # H2 Console
@@ -99,7 +99,7 @@ app:
 # JWT Config
 # ==========================================
 jwt:
-  secret: "f4a3c42d03e9bc77f102e4fc9a88dd723497b7e2cd15f593a5ef67db3b9128af"
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
 # ==========================================

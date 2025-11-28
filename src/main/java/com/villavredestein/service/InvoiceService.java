@@ -192,7 +192,7 @@ public class InvoiceService {
      * @return de factuur in DTO-formaat
      * @throws IllegalArgumentException als de factuur of student ontbreekt
      */
-    private InvoiceResponseDTO toDTO(Invoice invoice) {
+    InvoiceResponseDTO toDTO(Invoice invoice) {
 
         if (invoice == null) {
             throw new IllegalArgumentException("Invoice mag niet null zijn");

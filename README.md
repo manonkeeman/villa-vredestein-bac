@@ -150,7 +150,7 @@ Een eventueel `.env`-bestand wordt *alleen* gebruikt door tooling/deployment en 
 
 Standaard wordt een in-memory H2 database gebruikt:
 
-- H2-console: `http://localhost:8080/h2-console`  
+- H2-console: `http://localhost:80334/h2-console`  
 - JDBC URL: `jdbc:h2:mem:villa`  
 - User: `sa`  
 - Password: *(leeg)*  
@@ -165,7 +165,7 @@ mvn spring-boot:run
 
 De API draait vervolgens op:
 
-- `http://localhost:8080`
+- `http://localhost:8443`
 
 ---
 
@@ -273,7 +273,7 @@ Uitgebreide API-documentatie met:
 
 - alle endpoints  
 - vereiste rollen per endpoint  
-- request- en responsevoorbeelden  
+- request- en response voorbeelden  
 - foutcodes en validatie  
 
 is opgenomen als:
@@ -296,7 +296,7 @@ Deze collectie kan direct worden geïmporteerd in Postman voor het testen van de
 
 **Manon Keeman**  
 Full Stack Developer & Scrummaster (PSM‑1)  
-[www.manonkeeman.com](https://www.manonkeeman.com)  
+(https://www.manonkeeman.com)  
 manonkeeman@gmail.com  
 
 > “Villa Vredestein – bouwen, leven en leren onder één dak.”

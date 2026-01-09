@@ -1,23 +1,57 @@
 package com.villavredestein.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+
 import java.time.LocalDate;
 
+/**
+ * DTO voor het aanmaken en updaten van schoonmaaktaken.
+ *
+ * <p>Deze DTO wordt gebruikt als request body richting de API.
+ * Validaties zorgen ervoor dat foutieve input vroeg wordt afgevangen,
+ * voordat data de service- of persistence-laag bereikt.</p>
+ */
 public class CleaningRequestDTO {
+
     private Long id;
+
+    @Min(value = 1, message = "Weeknummer moet minimaal 1 zijn")
+    @Max(value = 53, message = "Weeknummer mag maximaal 53 zijn")
     private int weekNumber;
+
+    @NotBlank(message = "Naam van de taak is verplicht")
     private String name;
+
     private String description;
+
     private LocalDate dueDate;
+
     private boolean completed;
+
+    /**
+     * We houden dit bewust simpel als String (bijv. username/email),
+     * zodat de client geen User-object hoeft te kennen.
+     */
     private String assignedTo;
+
     private String comment;
+
     private String incidentReport;
 
-    public CleaningRequestDTO() {}
+    public CleaningRequestDTO() {
+    }
 
-    public CleaningRequestDTO(Long id, int weekNumber, String name, String description,
-                              LocalDate dueDate, boolean completed, String assignedTo,
-                              String comment, String incidentReport) {
+    public CleaningRequestDTO(Long id,
+                              int weekNumber,
+                              String name,
+                              String description,
+                              LocalDate dueDate,
+                              boolean completed,
+                              String assignedTo,
+                              String comment,
+                              String incidentReport) {
         this.id = id;
         this.weekNumber = weekNumber;
         this.name = name;
@@ -29,30 +63,75 @@ public class CleaningRequestDTO {
         this.incidentReport = incidentReport;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public int getWeekNumber() { return weekNumber; }
-    public void setWeekNumber(int weekNumber) { this.weekNumber = weekNumber; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public int getWeekNumber() {
+        return weekNumber;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public void setWeekNumber(int weekNumber) {
+        this.weekNumber = weekNumber;
+    }
 
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public String getName() {
+        return name;
+    }
 
-    public boolean isCompleted() { return completed; }
-    public void setCompleted(boolean completed) { this.completed = completed; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getAssignedTo() { return assignedTo; }
-    public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+    public String getDescription() {
+        return description;
+    }
 
-    public String getComment() { return comment; }
-    public void setComment(String comment) { this.comment = comment; }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-    public String getIncidentReport() { return incidentReport; }
-    public void setIncidentReport(String incidentReport) { this.incidentReport = incidentReport; }
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDate dueDate) {
+        this.dueDate = dueDate;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public String getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(String assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public String getIncidentReport() {
+        return incidentReport;
+    }
+
+    public void setIncidentReport(String incidentReport) {
+        this.incidentReport = incidentReport;
+    }
 }

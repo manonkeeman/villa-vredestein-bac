@@ -1,7 +1,10 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.dto.CleaningRequestDTO;
+import com.villavredestein.dto.CleaningResponseDTO;
 import com.villavredestein.service.CleaningService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -9,15 +12,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * {@code CleaningController} beheert alle API-endpoints rondom schoonmaaktaken
- * binnen de Villa Vredestein webapplicatie.
+ * REST-controller voor het beheren van schoonmaaktaken binnen Villa Vredestein.
  *
- * <p>De controller maakt het mogelijk om schoonmaaktaken op te vragen, aan te maken,
- * te toggelen, van opmerkingen of incidenten te voorzien, en te verwijderen.
- * Afhankelijk van de gebruikersrol (ADMIN, CLEANER, STUDENT) zijn verschillende acties toegestaan.</p>
+ * <p>Deze controller exposeert endpoints om schoonmaaktaken op te vragen,
+ * aan te maken, bij te werken (toggle, comment, incident) en te verwijderen.
+ * Autorisatie wordt afgedwongen via {@link PreAuthorize} op basis van
+ * de rollen ADMIN, CLEANER en STUDENT.</p>
  *
- * <p>Deze controller maakt gebruik van {@link CleaningService} voor alle
- * businesslogica en database-interacties.</p>
+ * <p>Alle businesslogica is ondergebracht in {@link CleaningService}.</p>
  */
 @RestController
 @RequestMapping("/api/cleaning")
@@ -26,118 +28,104 @@ public class CleaningController {
 
     private final CleaningService cleaningService;
 
-    /**
-     * Constructor voor {@link CleaningController}.
-     *
-     * @param cleaningService service die schoonmaaktaken beheert
-     */
     public CleaningController(CleaningService cleaningService) {
         this.cleaningService = cleaningService;
     }
 
     /**
-     * Test-endpoint voor CLEANER toegangscontrole.
+     * Gezondheidscheck voor rolgebaseerde toegang.
+     *
+     * <p>Handig tijdens development of Postman-tests om te verifiëren
+     * dat een CLEANER-token correct werkt.</p>
      */
-    @GetMapping("/tasks-test-cleaner")
+    @GetMapping("/tasks/test-cleaner")
     @PreAuthorize("hasRole('CLEANER')")
-    public ResponseEntity<String> cleanerTestTasks() {
+    public ResponseEntity<String> cleanerAccessCheck() {
         return ResponseEntity.ok("CLEANER OK");
     }
-
-    @GetMapping("/../cleaner/tasks")
-    @PreAuthorize("hasRole('CLEANER')")
-    public ResponseEntity<String> cleanerTasksAlias() {
-        return ResponseEntity.ok("CLEANER OK");
-    }
-
 
     /**
-     * Haalt alle schoonmaaktaken op, eventueel gefilterd op weeknummer.
+     * Haalt alle schoonmaaktaken op, optioneel gefilterd op weeknummer.
      *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN, STUDENT of CLEANER.</p>
-     *
-     * @param weekNumber optioneel weeknummer om te filteren
-     * @return lijst van {@link CleaningRequestDTO} met schoonmaaktaken
+     * @param weekNumber optioneel weeknummer (1-53)
+     * @return lijst met schoonmaaktaken
      */
     @GetMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    public ResponseEntity<List<CleaningRequestDTO>> getTasks(
-            @RequestParam(required = false) Integer weekNumber) {
-        if (weekNumber != null) {
-            return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));
-        }
-        return ResponseEntity.ok(cleaningService.getAllTasks());
+    public ResponseEntity<List<CleaningResponseDTO>> getTasks(
+            @RequestParam(required = false) Integer weekNumber
+    ) {
+        List<CleaningResponseDTO> result = (weekNumber == null)
+                ? cleaningService.getAllTasks()
+                : cleaningService.getTasksByWeek(weekNumber);
+
+        return ResponseEntity.ok(result);
     }
 
     /**
      * Maakt een nieuwe schoonmaaktaak aan.
      *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN of CLEANER.</p>
-     *
-     * @param dto gegevens van de nieuwe taak
-     * @return aangemaakte {@link CleaningRequestDTO}
+     * @param dto taakgegevens
+     * @return aangemaakte taak
      */
     @PostMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
-    public ResponseEntity<CleaningRequestDTO> createTask(@RequestBody CleaningRequestDTO dto) {
-        return ResponseEntity.ok(cleaningService.addTask(dto));
+    public ResponseEntity<CleaningResponseDTO> createTask(
+            @Valid @RequestBody CleaningRequestDTO dto
+    ) {
+        CleaningResponseDTO created = cleaningService.addTask(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     /**
-     * Wisselt de status van een taak (bijv. open ↔ afgerond).
+     * Zet een taak op afgerond of weer open.
      *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN, STUDENT of CLEANER.</p>
-     *
-     * @param taskId ID van de taak
-     * @return bijgewerkte {@link CleaningRequestDTO}
+     * @param taskId id van de taak
+     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    public ResponseEntity<CleaningRequestDTO> toggleTask(@PathVariable Long taskId) {
+    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable Long taskId) {
         return ResponseEntity.ok(cleaningService.toggleTask(taskId));
     }
 
     /**
-     * Voegt een opmerking toe aan een bestaande schoonmaaktaak.
+     * Voegt of wijzigt een opmerking bij een taak.
      *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN of CLEANER.</p>
-     *
-     * @param taskId ID van de taak
-     * @param comment opmerking die aan de taak toegevoegd wordt
-     * @return bijgewerkte {@link CleaningRequestDTO}
+     * @param taskId id van de taak
+     * @param comment opmerkingstekst
+     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/comment")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
-    public ResponseEntity<CleaningRequestDTO> addComment(
+    public ResponseEntity<CleaningResponseDTO> addComment(
             @PathVariable Long taskId,
-            @RequestParam String comment) {
+            @RequestParam String comment
+    ) {
         return ResponseEntity.ok(cleaningService.addComment(taskId, comment));
     }
 
     /**
-     * Registreert een incident dat tijdens het schoonmaken is opgetreden.
+     * Registreert een incidentrapport bij een taak.
      *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN of CLEANER.</p>
-     *
-     * @param taskId ID van de taak
+     * @param taskId id van de taak
      * @param incident omschrijving van het incident
-     * @return bijgewerkte {@link CleaningRequestDTO}
+     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/incident")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
-    public ResponseEntity<CleaningRequestDTO> addIncident(
+    public ResponseEntity<CleaningResponseDTO> addIncident(
             @PathVariable Long taskId,
-            @RequestParam String incident) {
+            @RequestParam String incident
+    ) {
         return ResponseEntity.ok(cleaningService.addIncident(taskId, incident));
     }
 
     /**
      * Verwijdert een schoonmaaktaak.
      *
-     * <p>Alleen toegankelijk voor gebruikers met de rol ADMIN.</p>
-     *
-     * @param taskId ID van de taak
-     * @return HTTP 204 No Content bij succes
+     * @param taskId id van de taak
+     * @return 204 No Content
      */
     @DeleteMapping("/tasks/{taskId}")
     @PreAuthorize("hasRole('ADMIN')")

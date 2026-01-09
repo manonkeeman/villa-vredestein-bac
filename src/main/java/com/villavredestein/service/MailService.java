@@ -9,29 +9,15 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import java.util.Locale;
 
 /**
  * {@code MailService} verzorgt de functionaliteit voor het versturen van e-mails
  * binnen de Villa Vredestein-applicatie.
  *
- * <p>Deze service wordt gebruikt voor notificaties, herinneringen en interne
+ * Deze service wordt gebruikt voor notificaties, herinneringen en interne
  * communicatie. De toegangsrechten voor het verzenden van e-mails zijn
- * afhankelijk van de gebruikersrol (ADMIN, CLEANER of STUDENT).</p>
- *
- * <ul>
- *   <li><b>ADMIN</b> mag alle e-mails verzenden.</li>
- *   <li><b>CLEANER</b> mag uitsluitend e-mails versturen die betrekking hebben
- *       op schoonmaaktaken of incidenten.</li>
- *   <li><b>STUDENT</b> mag geen e-mails versturen.</li>
- * </ul>
- *
- * <p>De klasse maakt gebruik van {@link JavaMailSender} voor het verzenden van
- * e-mails en logt alle gebeurtenissen voor transparantie en foutdiagnose.</p>
- *
- * <p>Mailfunctionaliteit kan worden uitgeschakeld via de configuratieproperty
- * {@code app.mail.enabled} in <code>application.yml</code>, bijvoorbeeld voor
- * test- of ontwikkelomgevingen.</p>
- *
+ * afhankelijk van de gebruikersrol (ADMIN, CLEANER of STUDENT).
  */
 @Service
 public class MailService {
@@ -42,6 +28,16 @@ public class MailService {
     private final boolean mailEnabled;
     private final String from;
     private final String bccAdmin;
+
+    /**
+     * Categorisatie van uitgaande e-mail.
+     */
+    public enum MailCategory {
+        CLEANING_TASK,
+        INCIDENT,
+        INVOICE_REMINDER,
+        GENERIC
+    }
 
     /**
      * Constructor voor {@link MailService}.
@@ -65,45 +61,119 @@ public class MailService {
 
     /**
      * Verstuurt een e-mail namens een gebruiker met een bepaalde rol.
-     *
-     * <p>Controleert eerst de toegangsrechten op basis van de rol:</p>
-     * <ul>
-     *   <li>ADMIN – mag alle e-mails verzenden.</li>
-     *   <li>CLEANER – mag alleen e-mails verzenden die betrekking hebben op
-     *       schoonmaaktaken of incidenten.</li>
-     *   <li>STUDENT – heeft geen verzendrechten.</li>
-     * </ul>
-     *
-     * <p>Als mailfunctionaliteit is uitgeschakeld, wordt de mailinhoud gelogd
-     * maar niet verzonden.</p>
+     */
+    public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
+        String safeTo = maskEmail(to);
+        String normalizedRole = normalizeRole(role);
+
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject is verplicht");
+        }
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Body is verplicht");
+        }
+
+        MailCategory category = MailCategory.GENERIC;
+        String s = subject.trim().toLowerCase(Locale.ROOT);
+
+        // Basic categorization (also useful for logging / filtering later)
+        if (s.contains("factuur") || s.contains("huur") || s.contains("invoice") || s.contains("herinner")) {
+            category = MailCategory.INVOICE_REMINDER;
+        }
+
+        if ("CLEANER".equals(normalizedRole)) {
+            if (s.contains("incident")) {
+                category = MailCategory.INCIDENT;
+            } else if (s.contains("schoonmaak") || s.contains("cleaning")) {
+                category = MailCategory.CLEANING_TASK;
+            }
+        }
+
+        sendInternal(normalizedRole, category, to, subject, body, bcc, safeTo);
+    }
+
+    /**
+     * Overload van {@link #sendMailWithRole(String, String, String, String, String)}
+     * zonder BCC.
      *
      * @param role    gebruikersrol van de afzender
      * @param to      e-mailadres van de ontvanger
-     * @param subject onderwerpregel van de e-mail
+     * @param subject onderwerp van de e-mail
      * @param body    inhoud van het bericht
-     * @param bcc     optioneel bcc-adres (kan {@code null} zijn)
-     * @throws AccessDeniedException als de rol geen toestemming heeft om te verzenden
      */
-    public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
-        switch (role.toUpperCase()) {
-            case "ADMIN" -> log.info("ADMIN verstuurt mail aan {}", to);
+    public void sendMailWithRole(String role, String to, String subject, String body) {
+        sendMailWithRole(role, to, subject, body, null);
+    }
+
+    /**
+     * CLEANER: verstuurt een incidentmail.
+     */
+    public void sendCleanerIncidentMail(String to, String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Body is verplicht");
+        }
+        String safeTo = maskEmail(to);
+        sendInternal("CLEANER", MailCategory.INCIDENT, to, "Incidentmelding", body, null, safeTo);
+    }
+
+    /**
+     * CLEANER: verstuurt een mail over een schoonmaaktaak.
+     */
+    public void sendCleanerCleaningTaskMail(String to, String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Body is verplicht");
+        }
+        String safeTo = maskEmail(to);
+        sendInternal("CLEANER", MailCategory.CLEANING_TASK, to, "Schoonmaaktaak", body, null, safeTo);
+    }
+
+    /**
+     * SYSTEEM: verstuurt een factuurherinnering (huur) naar een student.
+     *
+     * <p>Wordt gebruikt door scheduled jobs. Dit valt onder ADMIN-achtig systeemgedrag
+     * en gebruikt daarom de interne afzender (from) en optioneel BCC naar admin.</p>
+     */
+    public void sendInvoiceReminderMail(String to, String subject, String body) {
+        String safeTo = maskEmail(to);
+
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject is verplicht");
+        }
+        if (body == null || body.isBlank()) {
+            throw new IllegalArgumentException("Body is verplicht");
+        }
+
+        // Jobs draaien zonder 'user role', maar functioneel is dit systeem/ADMIN-mail.
+        sendInternal("ADMIN", MailCategory.INVOICE_REMINDER, to, subject, body, null, safeTo);
+    }
+
+    private void sendInternal(String normalizedRole,
+                              MailCategory category,
+                              String to,
+                              String subject,
+                              String body,
+                              @Nullable String bcc,
+                              String safeTo) {
+
+        switch (normalizedRole) {
+            case "ADMIN" -> log.info("ADMIN verstuurt mail (cat={}, to={})", category, safeTo);
             case "CLEANER" -> {
-                if (!subject.toLowerCase().contains("incident") && !subject.toLowerCase().contains("schoonmaak")) {
+                if (category != MailCategory.INCIDENT && category != MailCategory.CLEANING_TASK) {
                     throw new AccessDeniedException("CLEANER mag alleen mails sturen over schoonmaaktaken of incidenten");
                 }
-                log.info("🧹 CLEANER verstuurt schoonmaakmail aan {}", to);
+                log.info("🧹 CLEANER verstuurt mail (cat={}, to={})", category, safeTo);
             }
             case "STUDENT" -> throw new AccessDeniedException("STUDENT mag geen e-mails verzenden");
-            default -> throw new AccessDeniedException("Onbekende rol: " + role);
+            default -> throw new AccessDeniedException("Onbekende rol");
         }
 
         if (!mailEnabled) {
-            log.warn("📧 [MAIL UITGESCHAKELD] To: {} | Subject: {}\n{}", to, subject, body);
+            log.warn("📧 [MAIL UITGESCHAKELD] cat={} | to={} | subject={} | body={}...", category, safeTo, subject, body.substring(0, Math.min(body.length(), 200)));
             return;
         }
 
         if (to == null || to.isBlank()) {
-            log.error("Ongeldig e-mailadres: '{}'", to);
+            log.error("Ongeldig e-mailadres: {}", safeTo);
             return;
         }
 
@@ -122,23 +192,24 @@ public class MailService {
             msg.setText(body);
             mailSender.send(msg);
 
-            log.info("E-mail succesvol verzonden door {} naar {} met onderwerp '{}'", role, to, subject);
+            log.info("E-mail succesvol verzonden (role={}, cat={}, to={}, subject={})", normalizedRole, category, safeTo, subject);
 
         } catch (MailException e) {
-            log.error("Fout bij verzenden van e-mail ({}) door {}: {}", subject, role, e.getMessage());
+            log.error("Fout bij verzenden van e-mail (role={}, cat={}, to={}, subject={}): {}", normalizedRole, category, safeTo, subject, e.getMessage());
         }
     }
 
-    /**
-     * Overload van {@link #sendMailWithRole(String, String, String, String, String)}
-     * zonder BCC-parameter.
-     *
-     * @param role    gebruikersrol van de afzender
-     * @param to      e-mailadres van de ontvanger
-     * @param subject onderwerp van de e-mail
-     * @param body    inhoud van het bericht
-     */
-    public void sendMailWithRole(String role, String to, String subject, String body) {
-        sendMailWithRole(role, to, subject, body, null);
+    private String normalizeRole(String role) {
+        if (role == null) {
+            throw new AccessDeniedException("Rol ontbreekt");
+        }
+        return role.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) return "(no-email)";
+        int at = email.indexOf('@');
+        if (at <= 1) return "***";
+        return email.charAt(0) + "***" + email.substring(at);
     }
 }

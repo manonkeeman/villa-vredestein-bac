@@ -6,26 +6,47 @@ import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Job die maandelijks huurherinneringen verstuurt voor facturen die bijna vervallen.
+ * Job die periodiek huurherinneringen verstuurt voor facturen die (bijna) vervallen.
+ *
+ * <p>Anti-spam regels:</p>
+ * <ul>
+ *   <li>Maximaal aantal reminders per factuur</li>
+ *   <li>Minimale tijd tussen reminders (uren)</li>
+ *   <li>Alleen versturen binnen window (daysBeforeDue)</li>
+ * </ul>
  */
 @Component
 @ConditionalOnProperty(value = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class InvoiceReminderJob {
 
     private static final Logger log = LoggerFactory.getLogger(InvoiceReminderJob.class);
-    private static final Locale NL = new Locale("nl", "NL");
+
+    private static final Locale NL = Locale.forLanguageTag("nl-NL");
     private static final NumberFormat EUR = NumberFormat.getCurrencyInstance(NL);
     private static final DateTimeFormatter DATE_NL = DateTimeFormatter.ofPattern("d MMMM yyyy", NL);
+
+    @Value("${app.invoice.reminder.days-before-due:4}")
+    private int daysBeforeDue;
+
+    @Value("${app.invoice.reminder.max-reminders:3}")
+    private int maxReminders;
+
+    @Value("${app.invoice.reminder.min-hours-between:24}")
+    private int minHoursBetween;
 
     private final InvoiceService invoiceService;
     private final MailService mailService;
@@ -35,38 +56,107 @@ public class InvoiceReminderJob {
         this.mailService = mailService;
     }
 
-    @Scheduled(cron = "0 0 9 28 * *", zone = "Europe/Amsterdam")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Europe/Amsterdam")
     public void sendReminders() {
-        log.info("Start mailherinnering-job");
-        List<Invoice> upcoming = invoiceService.getUpcomingInvoices();
-        log.info("📆 Herinneringen verwerken: {} open facturen binnen 4 dagen vervaldatum", upcoming.size());
+        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
 
-        for (Invoice invoice : upcoming) {
-            if (invoice == null || invoice.getStudent() == null) {
-                log.warn("Overgeslagen: factuur of student ontbreekt (id: {}).",
-                        invoice != null ? invoice.getId() : null);
-                continue;
-            }
-            sendReminder(invoice);
+        log.info("Start invoice reminder job (daysBeforeDue={}, maxReminders={}, minHoursBetween={})",
+                daysBeforeDue, maxReminders, minHoursBetween);
+
+        List<Invoice> candidates = invoiceService.getUpcomingInvoices();
+        log.info("📆 Kandidaten ontvangen: {} facturen", candidates.size());
+
+        for (Invoice invoice : candidates) {
+            processInvoice(invoice, today, now);
         }
-        log.info("Alle herinneringen verwerkt");
+
+        log.info("Invoice reminder job klaar");
     }
 
-    private void sendReminder(Invoice invoice) {
-        User student = invoice.getStudent();
-        String to = student.getEmail();
-
-        if (to == null || to.isBlank()) {
-            log.warn("Geen geldig e-mailadres voor factuur {} (student: {}).",
-                    invoice.getId(), student.getUsername());
+    private void processInvoice(Invoice invoice, LocalDate today, LocalDateTime now) {
+        if (invoice == null) {
+            log.warn("Skip: invoice is null");
             return;
         }
 
-        String amount = EUR.format(invoice.getAmount());
-        String due = invoice.getDueDate() != null ? invoice.getDueDate().format(DATE_NL) : "(onbekend)";
-        String beschrijving = invoice.getDescription() != null ? invoice.getDescription() : "Huur";
+        Long invoiceId = invoice.getId();
 
-        String subject = "Herinnering: huurbetaling Villa Vredestein";
+        User student = invoice.getStudent();
+        if (student == null) {
+            log.warn("Skip: student ontbreekt (invoiceId={})", invoiceId);
+            return;
+        }
+
+        if (invoice.getDueDate() == null) {
+            log.warn("Skip: dueDate ontbreekt (invoiceId={})", invoiceId);
+            return;
+        }
+
+        if (!passesAntiSpamRules(invoice, now)) {
+            return;
+        }
+
+        if (!withinDueWindow(invoice, today)) {
+            return;
+        }
+
+        String to = student.getEmail();
+        if (to == null || to.isBlank()) {
+            log.warn("Skip: geen geldig e-mailadres (invoiceId={}, student={})", invoiceId, safeName(student));
+            return;
+        }
+
+        sendReminderMail(invoice, student, to, now);
+    }
+
+    private boolean passesAntiSpamRules(Invoice invoice, LocalDateTime now) {
+        Long invoiceId = invoice.getId();
+
+        if (invoice.getReminderCount() >= maxReminders) {
+            log.info("Skip reminder: maxReminders bereikt (invoiceId={}, reminderCount={})",
+                    invoiceId, invoice.getReminderCount());
+            return false;
+        }
+
+        LocalDateTime last = invoice.getLastReminderSentAt();
+        if (last == null) {
+            return true;
+        }
+
+        long hoursSinceLast = ChronoUnit.HOURS.between(last, now);
+        if (hoursSinceLast < minHoursBetween) {
+            log.info("Skip reminder: laatste reminder {} uur geleden (invoiceId={})", hoursSinceLast, invoiceId);
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean withinDueWindow(Invoice invoice, LocalDate today) {
+        Long invoiceId = invoice.getId();
+
+        long daysToDue = ChronoUnit.DAYS.between(today, invoice.getDueDate());
+        if (daysToDue < 0 || daysToDue > daysBeforeDue) {
+            log.info("Skip reminder: dueDate buiten venster (invoiceId={}, daysToDue={}, window={})",
+                    invoiceId, daysToDue, daysBeforeDue);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void sendReminderMail(Invoice invoice, User student, String to, LocalDateTime now) {
+        Long invoiceId = invoice.getId();
+
+        String amount = EUR.format(invoice.getAmount());
+        String due = invoice.getDueDate().format(DATE_NL);
+        String description = (invoice.getDescription() == null || invoice.getDescription().isBlank())
+                ? "Huur"
+                : invoice.getDescription().trim();
+
+        String subject = "Herinnering huurbetaling Villa Vredestein – betaal vóór " + due;
+
         String body = String.format("""
                 Beste %s,
 
@@ -75,23 +165,36 @@ public class InvoiceReminderJob {
                 Beschrijving: %s
 
                 Met vriendelijke groet,
-                Maxim Staal
                 Villa Vredestein
-                """, safe(student.getUsername()), amount, due, beschrijving);
+                """, safeName(student), amount, due, description);
 
-        log.info("Opbouwen e-mail voor {} (student: {}, bedrag: {}, vervaldatum: {}):\nSubject: {}\nBody (eerste regels):\n{}",
-                to, safe(student.getUsername()), amount, due, subject, body.lines().limit(5).reduce("", (a, b) -> a + b + "\n"));
+        log.info("Reminder opgebouwd (invoiceId={}, to={}, student={}, amount={}, due={})",
+                invoiceId, maskEmail(to), safeName(student), amount, due);
 
         try {
-            mailService.sendMailWithRole("ADMIN", to, subject, body);
-            log.info("Mailherinnering verzonden aan '{}' (student: '{}', bedrag: {}, vervaldatum: {}) voor factuur {} → {}",
-                    safe(student.getUsername()), safe(student.getUsername()), amount, due, invoice.getId(), to);
+            mailService.sendInvoiceReminderMail(to, subject, body);
+
+            invoice.markReminderSentNow();          // zet lastReminderSentAt + increment reminderCount
+            invoiceService.saveReminderMeta(invoice); // persist reminder meta
+
+            log.info("Reminder verzonden (invoiceId={}, to={}, reminderCount={})",
+                    invoiceId, maskEmail(to), invoice.getReminderCount());
+
         } catch (Exception e) {
-            log.error("Verzenden mislukt voor factuur {} → {}: {}", invoice.getId(), to, e.getMessage());
+            log.error("Verzenden mislukt (invoiceId={}, to={}): {}", invoiceId, maskEmail(to), e.getMessage());
         }
     }
 
-    private String safe(String s) {
-        return (s == null || s.isBlank()) ? "student" : s;
+    private String safeName(User user) {
+        if (user == null) return "student";
+        String u = user.getUsername();
+        return (u == null || u.isBlank()) ? "student" : u.trim();
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) return "(no-email)";
+        int at = email.indexOf('@');
+        if (at <= 1) return "***";
+        return email.charAt(0) + "***" + email.substring(at);
     }
 }

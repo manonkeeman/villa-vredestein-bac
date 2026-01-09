@@ -1,21 +1,53 @@
 package com.villavredestein.dto;
 
+import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Request DTO voor het aanmaken van een nieuwe factuur.
+ *
+ * <p>Wordt gebruikt door ADMIN-gebruikers om facturen aan te maken
+ * voor studenten. Bevat uitsluitend invoervelden en validatieregels,
+ * geen businesslogica.</p>
+ */
 public class InvoiceRequestDTO {
 
+    @NotBlank(message = "Titel is verplicht")
+    @Size(max = 120, message = "Titel mag maximaal 120 tekens bevatten")
     private String title;
+
+    @Size(max = 1000, message = "Omschrijving mag maximaal 1000 tekens bevatten")
     private String description;
-    private double amount;
+
+    @NotNull(message = "Bedrag is verplicht")
+    @DecimalMin(value = "0.01", message = "Bedrag moet groter zijn dan 0")
+    @Digits(integer = 8, fraction = 2, message = "Bedrag mag maximaal 8 cijfers en 2 decimalen bevatten")
+    private BigDecimal amount;
+
+    @NotNull(message = "Factuurdatum is verplicht")
     private LocalDate issueDate;
+
+    @NotNull(message = "Vervaldatum is verplicht")
+    @FutureOrPresent(message = "Vervaldatum mag niet in het verleden liggen")
     private LocalDate dueDate;
+
+    @NotBlank(message = "Student e-mailadres is verplicht")
+    @Email(message = "Ongeldig e-mailadres")
     private String studentEmail;
 
-    public InvoiceRequestDTO() {
+    protected InvoiceRequestDTO() {
+        // for deserialization
     }
 
-    public InvoiceRequestDTO(String title, String description, double amount,
-                             LocalDate issueDate, LocalDate dueDate, String studentEmail) {
+    public InvoiceRequestDTO(
+            String title,
+            String description,
+            BigDecimal amount,
+            LocalDate issueDate,
+            LocalDate dueDate,
+            String studentEmail
+    ) {
         this.title = title;
         this.description = description;
         this.amount = amount;
@@ -24,21 +56,31 @@ public class InvoiceRequestDTO {
         this.studentEmail = studentEmail;
     }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    // =========================
+    // Getters & Setters
+    // =========================
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getTitle() {
+        return title;
+    }
 
-    public double getAmount() { return amount; }
-    public void setAmount(double amount) { this.amount = amount; }
+    public String getDescription() {
+        return description;
+    }
 
-    public LocalDate getIssueDate() { return issueDate; }
-    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+    public BigDecimal getAmount() {
+        return amount;
+    }
 
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public LocalDate getIssueDate() {
+        return issueDate;
+    }
 
-    public String getStudentEmail() { return studentEmail; }
-    public void setStudentEmail(String studentEmail) { this.studentEmail = studentEmail; }
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public String getStudentEmail() {
+        return studentEmail;
+    }
 }

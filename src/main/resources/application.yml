@@ -1,114 +1,138 @@
-# ==========================================
-# Villa Vredestein - Spring Boot Config
-# ==========================================
+# ==================================================
+# Villa Vredestein – Spring Boot Configuration
+# ==================================================
+
 spring:
   application:
     name: villa-vredestein-bac
 
-  # =======================================
-  # Database (H2 in-memory - development)
-  # =======================================
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ------------------------------------------------
+  # Database – PostgreSQL
+  # ------------------------------------------------
   datasource:
-    url: jdbc:h2:mem:villa;DB_CLOSE_DELAY=-1;MODE=LEGACY
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/villavredestein}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
   jpa:
+    open-in-view: false
+    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: create-drop
-    defer-datasource-initialization: true
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
         format_sql: true
-  sql:
-    init:
-      mode: always
-      encoding: UTF-8
-      platform: h2
-      data-locations: classpath:data.sql
 
-  # =======================================
-  # H2 Console
-  # =======================================
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  # =======================================
-  # File Uploads
-  # =======================================
+  # ------------------------------------------------
+  # File Upload Configuration
+  # ------------------------------------------------
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
 
-  # =======================================
-  # Mail Configuratie
-  # =======================================
+  # ------------------------------------------------
+  # Mail – Gmail SMTP (App Password)
+  # ------------------------------------------------
   mail:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME:villavredestein@gmail.com}
-    password: ${MAIL_PASSWORD:dummy-password}
+    password: ${MAIL_APP_PASSWORD:}
     properties:
-      mail:
-        smtp:
-          auth: true
-          starttls.enable: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+      mail.smtp:
+        auth: true
+        starttls:
+          enable: true
+          required: true
+        connectiontimeout: 5000
+        timeout: 5000
+        writetimeout: 5000
 
+  # ------------------------------------------------
+  # Scheduled Jobs
+  # ------------------------------------------------
   task:
     scheduling:
       enabled: true
 
-  profiles:
-    active: dev
-
-# ==========================================
-# HTTPS / SSL Config
-# ==========================================
+# ==================================================
+# Server / SSL Configuration
+# ==================================================
 server:
-  port: 8443
+  port: ${SERVER_PORT:8443}
   ssl:
-    enabled: true
+    enabled: ${SSL_ENABLED:true}
     key-store: classpath:certificate.jks
     key-store-type: JKS
-    key-store-password: ${KEYSTORE_PASSWORD:p4ssw0rd}
-    key-password: ${KEY_PASSWORD:p4ssw0rd}
+    key-store-password: ${KEYSTORE_PASSWORD}
+    key-password: ${KEY_PASSWORD}
     key-alias: certificate
   error:
     include-message: always
     include-binding-errors: always
 
-# ==========================================
-# App Instellingen
-# ==========================================
+# ==================================================
+# Application Settings
+# ==================================================
 app:
-  upload-dir: ./uploads
+  upload-dir: ${APP_UPLOAD_DIR:./uploads}
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
-    from: ${MAIL_USERNAME:villavredestein@gmail.com}
+    from: ${MAIL_FROM:${MAIL_USERNAME:villavredestein@gmail.com}}
     bcc:
-      admin: ${MAIL_ADMIN_BCC:villavredestein@gmail.com}
+      admin: ${MAIL_ADMIN_BCC:${MAIL_USERNAME:villavredestein@gmail.com}}
+  invoice:
+    reminder:
+      days-before-due: ${INVOICE_REMINDER_DAYS_BEFORE_DUE:4}
+      max-reminders: ${INVOICE_REMINDER_MAX:3}
+      min-hours-between: ${INVOICE_REMINDER_MIN_HOURS_BETWEEN:24}
+    overdue:
+      max-reminders: ${INVOICE_OVERDUE_MAX:5}
+      min-hours-between: ${INVOICE_OVERDUE_MIN_HOURS_BETWEEN:24}
 
-# ==========================================
-# JWT Config
-# ==========================================
+# ==================================================
+# JWT Configuration
+# ==================================================
 jwt:
   secret: ${JWT_SECRET:fallbackSecretKeyForLocalDev123!}
-  expiration: 86400000
+  expiration: ${JWT_EXPIRATION_MS:86400000}
 
-# ==========================================
+# ==================================================
 # Logging
-# ==========================================
+# ==================================================
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
     com.villavredestein: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:DEBUG}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_BIND_LOG_LEVEL:TRACE}
+
+---
+# ==================================================
+# Production Profile (strict)
+# ==================================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+server:
+  ssl:
+    enabled: true
+
+logging:
+  level:
+    com.villavredestein: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN

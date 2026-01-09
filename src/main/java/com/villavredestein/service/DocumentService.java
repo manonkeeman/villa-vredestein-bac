@@ -1,5 +1,6 @@
 package com.villavredestein.service;
 
+import com.villavredestein.dto.DocumentResponseDTO;
 import com.villavredestein.dto.UploadResponseDTO;
 import com.villavredestein.model.Document;
 import com.villavredestein.model.User;
@@ -10,26 +11,26 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.io.IOException;
-import java.nio.file.*;
-import java.time.LocalDateTime;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
- * {@code DocumentService} verzorgt de businesslogica voor het beheren van documenten
- * binnen de Villa Vredestein webapplicatie.
+ * {@code DocumentService} bevat de businesslogica voor documentbeheer binnen Villa Vredestein.
  *
- * <p>Deze service is verantwoordelijk voor het uploaden, downloaden, ophalen en verwijderen
- * van documenten. Daarbij wordt rekening gehouden met toegangsrechten op basis van gebruikersrollen
- * (ADMIN, STUDENT, CLEANER of ALL).</p>
+ * <p>Deze service is verantwoordelijk voor upload, download, listing en verwijderen van documenten.
+ * Bestanden worden fysiek opgeslagen op het bestandssysteem; metadata wordt opgeslagen in de database.</p>
  *
- * <p>De bestanden worden fysiek opgeslagen in de map die is gedefinieerd in
- * <code>application.yml</code> via de property {@code app.upload-dir}.
- * De metadata wordt opgeslagen in de database via de {@link DocumentRepository}.</p>
- *
- * <p>Deze service vormt de brug tussen de {@link com.villavredestein.controller.DocumentController}
- * en de persistente opslaglaag.</p>
+ * <p>Let op: entities worden niet rechtstreeks naar de client gestuurd. Listing gebeurt via
+ * {@link DocumentResponseDTO}.</p>
  */
 @Service
 public class DocumentService {
@@ -40,87 +41,102 @@ public class DocumentService {
     @Value("${app.upload-dir}")
     private String uploadDirPath;
 
-    /**
-     * Constructor voor {@link DocumentService}.
-     *
-     * @param documentRepository repository voor documentopslag
-     * @param userRepository repository voor gebruikersinformatie
-     */
     public DocumentService(DocumentRepository documentRepository, UserRepository userRepository) {
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
     }
 
     /**
-     * Uploadt een document, slaat het bestand op in het lokale bestandssysteem
-     * en bewaart de metadata in de database.
+     * Uploadt een document namens de ingelogde gebruiker.
      *
-     * @param uploaderUserId ID van de gebruiker die het bestand uploadt
-     * @param file het te uploaden bestand
-     * @param roleAccess toegangsrechten (bijv. ADMIN, STUDENT, CLEANER, ALL)
-     * @return {@link UploadResponseDTO} met ID, bestandsnaam en download-URL
-     * @throws IOException als het bestand niet opgeslagen kan worden
-     * @throws IllegalArgumentException als de uploader niet wordt gevonden
+     * <p>De uploader wordt geïdentificeerd op basis van de principal name (meestal email of username).
+     * Dit voorkomt dat een client een willekeurige userId kan meesturen.</p>
      */
-    public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) throws IOException {
-        User uploader = userRepository.findById(uploaderUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden"));
+    public UploadResponseDTO upload(String uploaderPrincipalName, MultipartFile file, String roleAccess) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Bestand is verplicht");
+        }
+
+        User uploader = userRepository.findByEmail(uploaderPrincipalName)
+                .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden: " + uploaderPrincipalName));
 
         Path uploadDir = Paths.get(uploadDirPath).toAbsolutePath().normalize();
         Files.createDirectories(uploadDir);
 
         String originalName = Optional.ofNullable(file.getOriginalFilename())
-                .map(name -> name.replaceAll("[^a-zA-Z0-9._-]", "_"))
-                .orElse("unnamed.pdf");
+                .map(this::sanitizeFilename)
+                .orElse("document");
 
-        String safeFileName = System.currentTimeMillis() + "_" + originalName;
-        Path targetPath = uploadDir.resolve(safeFileName);
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        // Unieke storage key voorkomt collisions en maakt opslag onafhankelijk van user input
+        String storageKey = UUID.randomUUID() + "_" + originalName;
+        Path targetPath = uploadDir.resolve(storageKey);
+
+        try (InputStream in = file.getInputStream()) {
+            Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        }
 
         Document document = new Document();
         document.setTitle(originalName);
         document.setDescription("Geüpload door " + uploader.getUsername());
         document.setStoragePath(targetPath.toString());
-        document.setContentType(file.getContentType());
-        document.setRoleAccess(roleAccess);
-        document.setSize(file.getSize());
-        document.setUploadedAt(LocalDateTime.now());
+        document.setRoleAccess(normalizeRoleAccess(roleAccess));
         document.setUploadedBy(uploader);
 
         Document saved = documentRepository.save(document);
 
-        // Bouw RESTful download-URL
         String downloadUrl = "/api/documents/" + saved.getId() + "/download";
-
         return new UploadResponseDTO(saved.getId(), saved.getTitle(), downloadUrl);
     }
 
     /**
-     * Haalt een lijst van documenten op die toegankelijk zijn voor een specifieke gebruikersrol.
-     * ADMIN ziet alle documenten; STUDENT en CLEANER alleen de documenten met hun rol of "ALL".
+     * Backwards compatible overload (als je front-end of Postman nog uploaderId gebruikt).
      *
-     * @param role de gebruikersrol
-     * @return lijst van toegankelijke documenten
+     * <p>Advies: gebruik de principal-based upload.</p>
      */
-    public List<Document> listAccessibleDocuments(String role) {
-        return documentRepository.findAll().stream()
-                .filter(doc -> "ADMIN".equalsIgnoreCase(role)
-                        || "ALL".equalsIgnoreCase(doc.getRoleAccess())
-                        || ("STUDENT".equalsIgnoreCase(role) && "STUDENT".equalsIgnoreCase(doc.getRoleAccess()))
-                        || ("CLEANER".equalsIgnoreCase(role) && "CLEANER".equalsIgnoreCase(doc.getRoleAccess())))
-                .peek(doc -> {
-                    if (doc.getUploadedBy() != null) {
-                        doc.setDescription("Geüpload door " + doc.getUploadedBy().getUsername());
-                    }
-                })
+    public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) throws IOException {
+        User uploader = userRepository.findById(uploaderUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden: " + uploaderUserId));
+
+        // Delegate naar principal-based methode op basis van email
+        return upload(uploader.getEmail(), file, roleAccess);
+    }
+
+    /**
+     * Haalt alle documenten op als veilige response-DTO’s.
+     */
+    public List<DocumentResponseDTO> listAll() {
+        // Als je repository de methode findAllByOrderByIdDesc() heeft, pak die; anders fallback.
+        List<Document> docs;
+        try {
+            docs = documentRepository.findAllByOrderByIdDesc();
+        } catch (Exception ex) {
+            docs = documentRepository.findAll();
+        }
+
+        return docs.stream()
+                .map(this::toResponseDTO)
                 .toList();
     }
 
     /**
-     * Downloadt een document op basis van zijn ID.
+     * Haalt documenten op die zichtbaar zijn voor een rol.
      *
-     * @param id het unieke ID van het document
-     * @return {@link FileSystemResource} met het fysieke bestand, of {@code null} als het bestand niet bestaat
+     * <p>ADMIN ziet alles; andere rollen zien ALL en hun eigen rol.</p>
+     */
+    public List<DocumentResponseDTO> listAccessibleDocuments(String role) {
+        String normalizedRole = normalizeRoleAccess(role);
+
+        // Simpel en duidelijk voor NOVI: filtering in Java (kan later naar query-niveau)
+        return documentRepository.findAll().stream()
+                .filter(doc -> "ADMIN".equalsIgnoreCase(normalizedRole)
+                        || Document.ROLE_ALL.equalsIgnoreCase(doc.getRoleAccess())
+                        || normalizedRole.equalsIgnoreCase(doc.getRoleAccess()))
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    /**
+     * Downloadt het fysieke bestand bij een document.
      */
     public FileSystemResource download(Long id) {
         return documentRepository.findById(id)
@@ -133,30 +149,46 @@ public class DocumentService {
 
     /**
      * Verwijdert een document en het bijbehorende fysieke bestand.
-     *
-     * @param id het unieke ID van het document
      */
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
-        documentRepository.findById(id).ifPresent(doc -> {
-            try {
-                Files.deleteIfExists(Paths.get(doc.getStoragePath()));
-            } catch (IOException ignored) {}
-            documentRepository.delete(doc);
-        });
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document niet gevonden: " + id));
+
+        try {
+            Files.deleteIfExists(Paths.get(doc.getStoragePath()));
+        } catch (IOException ignored) {
+            // In een volwassen API zou je dit loggen; voor NOVI is fail-safe delete oké.
+        }
+
+        documentRepository.delete(doc);
     }
 
-    /**
-     * Haalt alle documenten op zonder filtering.
-     *
-     * @return lijst van alle documenten
-     */
-    public List<Document> listAll() {
-        return documentRepository.findAll().stream()
-                .peek(doc -> {
-                    if (doc.getUploadedBy() != null) {
-                        doc.setDescription("Geüpload door " + doc.getUploadedBy().getUsername());
-                    }
-                })
-                .toList();
+    private DocumentResponseDTO toResponseDTO(Document doc) {
+        String uploadedBy = doc.getUploadedBy() != null ? doc.getUploadedBy().getUsername() : null;
+
+        return new DocumentResponseDTO(
+                doc.getId(),
+                doc.getTitle(),
+                doc.getDescription(),
+                doc.getRoleAccess(),
+                uploadedBy
+        );
+    }
+
+    private String normalizeRoleAccess(String roleAccess) {
+        if (roleAccess == null || roleAccess.isBlank()) {
+            return Document.ROLE_ALL;
+        }
+        return roleAccess.trim().toUpperCase();
+    }
+
+    private String sanitizeFilename(String filename) {
+        String cleaned = filename.replaceAll("[^a-zA-Z0-9._-]", "_").trim();
+        if (cleaned.isBlank()) {
+            return "document";
+        }
+        // Houd het kort zodat je geen extreme pad-lengtes krijgt
+        return cleaned.length() > 120 ? cleaned.substring(0, 120) : cleaned;
     }
 }

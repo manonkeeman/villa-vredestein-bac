@@ -3,14 +3,6 @@ package com.villavredestein.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
-/**
- * DTO voor het bijwerken van een gebruikersprofiel.
- *
- * <p>LET OP:
- * - Rol-wijzigingen verlopen via een apart ADMIN-endpoint
- * - Daarom bevat deze DTO GEEN 'role' veld
- * - Geschikt voor partial updates (velden mogen null zijn)</p>
- */
 public class UserUpdateDTO {
 
     @Size(min = 2, max = 50, message = "Username moet tussen 2 en 50 tekens zijn")

@@ -42,10 +42,6 @@ public class SecurityConfig {
     // CORS
     // =====================================================================
 
-    /**
-     * Dev-vriendelijk, maar niet ideaal voor productie.
-     * Voor productie: vervang "*" door je echte frontend origins (bijv. https://villavredestein.com).
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -99,12 +95,6 @@ public class SecurityConfig {
     // SECURITY FILTER CHAIN
     // =====================================================================
 
-    /**
-     * Belangrijk:
-     * - Rollen worden hier globaal afgedwongen.
-     * - Eigenaarschap (student mag alleen eigen profiel) wordt afgedwongen in de service-laag
-     *   via checks op de ingelogde gebruiker (SecurityContext).
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -119,7 +109,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public auth endpoints
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/validate",
@@ -128,48 +117,39 @@ public class SecurityConfig {
                                 "/h2-console/**"
                         ).permitAll()
 
-                        // Admin: alles onder /api/admin is uitsluitend voor ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Users: iedereen ingelogd mag eigen gegevens benaderen; admin beheert alles
                         .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
 
-                        // Rooms: admin/student/cleaner mogen lezen; mutaties alleen ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
 
-                        // Cleaning tasks: zichtbaar voor ingelogde rollen; mutaties beperkt
                         .requestMatchers(HttpMethod.GET, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.POST, "/api/cleaning/**").hasAnyRole("ADMIN", "CLEANER")
                         .requestMatchers(HttpMethod.PUT, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.PATCH, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.DELETE, "/api/cleaning/**").hasRole("ADMIN")
 
-                        // Documents: lijst/download voor ingelogde rollen; upload/delete admin
                         .requestMatchers(HttpMethod.GET, "/api/documents/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.POST, "/api/documents/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/documents/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/documents/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/documents/**").hasRole("ADMIN")
 
-                        // Alles wat overblijft moet ingelogd zijn
                         .anyRequest().authenticated()
                 )
 
-                // H2 console in frames toestaan (dev)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
-                // Spring Security moet jouw users kunnen laden
                 .userDetailsService(userDetailsService)
 
-                // JWT filter vóór username/password filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

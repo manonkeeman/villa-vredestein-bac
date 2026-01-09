@@ -19,16 +19,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Job die periodiek huurherinneringen verstuurt voor facturen die (bijna) vervallen.
- *
- * <p>Anti-spam regels:</p>
- * <ul>
- *   <li>Maximaal aantal reminders per factuur</li>
- *   <li>Minimale tijd tussen reminders (uren)</li>
- *   <li>Alleen versturen binnen window (daysBeforeDue)</li>
- * </ul>
- */
 @Component
 @ConditionalOnProperty(value = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class InvoiceReminderJob {

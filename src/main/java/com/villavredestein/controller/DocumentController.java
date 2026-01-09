@@ -18,13 +18,6 @@ import java.util.List;
 
 /**
  * REST-controller voor documentbeheer binnen Villa Vredestein.
- *
- * <p>Deze controller biedt endpoints om documenten te uploaden, te downloaden,
- * op te vragen en te verwijderen. Toegang wordt afgedwongen op basis van
- * gebruikersrollen (ADMIN, STUDENT, CLEANER).</p>
- *
- * <p>De daadwerkelijke opslag en retrieval van bestanden is ondergebracht in
- * {@link DocumentService}.</p>
  */
 @RestController
 @RequestMapping("/api/documents")
@@ -48,11 +41,6 @@ public class DocumentController {
 
     /**
      * Uploadt een document en slaat dit op in de serveromgeving.
-     *
-     * <p>Alleen toegankelijk voor ADMIN.</p>
-     *
-     * <p>De uploader wordt afgeleid uit de ingelogde gebruiker (JWT/Principal),
-     * zodat de client geen userId kan spoof'en.</p>
      */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

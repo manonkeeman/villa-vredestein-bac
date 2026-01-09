@@ -6,14 +6,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-/**
- * {@code CleaningTask} representeert een schoonmaak- of huishoudelijke taak
- * binnen Villa Vredestein.
- *
- * <p>Deze class is een JPA-entity en vormt het domeinmodel voor de
- * schoonmaak- en takenplanning. De entity wordt uitsluitend intern gebruikt
- * en nooit direct naar de client gestuurd; communicatie verloopt via DTO’s.</p>
- */
 @Entity
 @Table(
         name = "cleaning_tasks",
@@ -60,21 +52,12 @@ public class CleaningTask {
 
     /**
      * De gebruiker aan wie deze taak is toegewezen.
-     *
-     * <p>Lazy loading voorkomt onnodige database queries.
-     * Gevoelige velden worden expliciet genegeerd bij serialisatie.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
     @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
     private User assignedTo;
 
-    /**
-     * Publieke no-args constructor.
-     *
-     * <p>Vereist door JPA én nodig omdat de service-laag zelf
-     * {@code CleaningTask} instanties aanmaakt.</p>
-     */
     public CleaningTask() {
     }
 
@@ -87,9 +70,6 @@ public class CleaningTask {
                 : roleAccess;
     }
 
-    /**
-     * Normaliseert invoer vóór opslaan of updaten.
-     */
     @PrePersist
     @PreUpdate
     private void normalize() {

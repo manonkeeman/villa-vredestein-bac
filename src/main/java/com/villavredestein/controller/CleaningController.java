@@ -13,13 +13,6 @@ import java.util.List;
 
 /**
  * REST-controller voor het beheren van schoonmaaktaken binnen Villa Vredestein.
- *
- * <p>Deze controller exposeert endpoints om schoonmaaktaken op te vragen,
- * aan te maken, bij te werken (toggle, comment, incident) en te verwijderen.
- * Autorisatie wordt afgedwongen via {@link PreAuthorize} op basis van
- * de rollen ADMIN, CLEANER en STUDENT.</p>
- *
- * <p>Alle businesslogica is ondergebracht in {@link CleaningService}.</p>
  */
 @RestController
 @RequestMapping("/api/cleaning")
@@ -34,9 +27,6 @@ public class CleaningController {
 
     /**
      * Gezondheidscheck voor rolgebaseerde toegang.
-     *
-     * <p>Handig tijdens development of Postman-tests om te verifiëren
-     * dat een CLEANER-token correct werkt.</p>
      */
     @GetMapping("/tasks/test-cleaner")
     @PreAuthorize("hasRole('CLEANER')")
@@ -46,9 +36,6 @@ public class CleaningController {
 
     /**
      * Haalt alle schoonmaaktaken op, optioneel gefilterd op weeknummer.
-     *
-     * @param weekNumber optioneel weeknummer (1-53)
-     * @return lijst met schoonmaaktaken
      */
     @GetMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
@@ -64,9 +51,6 @@ public class CleaningController {
 
     /**
      * Maakt een nieuwe schoonmaaktaak aan.
-     *
-     * @param dto taakgegevens
-     * @return aangemaakte taak
      */
     @PostMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
@@ -79,9 +63,6 @@ public class CleaningController {
 
     /**
      * Zet een taak op afgerond of weer open.
-     *
-     * @param taskId id van de taak
-     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
@@ -91,10 +72,6 @@ public class CleaningController {
 
     /**
      * Voegt of wijzigt een opmerking bij een taak.
-     *
-     * @param taskId id van de taak
-     * @param comment opmerkingstekst
-     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/comment")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
@@ -107,10 +84,6 @@ public class CleaningController {
 
     /**
      * Registreert een incidentrapport bij een taak.
-     *
-     * @param taskId id van de taak
-     * @param incident omschrijving van het incident
-     * @return bijgewerkte taak
      */
     @PutMapping("/tasks/{taskId}/incident")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
@@ -123,9 +96,6 @@ public class CleaningController {
 
     /**
      * Verwijdert een schoonmaaktaak.
-     *
-     * @param taskId id van de taak
-     * @return 204 No Content
      */
     @DeleteMapping("/tasks/{taskId}")
     @PreAuthorize("hasRole('ADMIN')")

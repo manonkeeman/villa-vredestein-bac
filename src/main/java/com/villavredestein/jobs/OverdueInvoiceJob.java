@@ -20,10 +20,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Job die periodiek controleert op facturen waarvan de vervaldatum is verstreken
- * en (binnen anti-spam regels) automatisch een herinnering verstuurt.
- */
 @Component
 @ConditionalOnProperty(value = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class OverdueInvoiceJob {
@@ -83,12 +79,10 @@ public class OverdueInvoiceJob {
             return;
         }
 
-        // Alleen vervallen facturen
         if (!invoice.getDueDate().isBefore(today)) {
             return;
         }
 
-        // Alleen OPEN/OVERDUE
         if (invoice.getStatus() != InvoiceStatus.OPEN && invoice.getStatus() != InvoiceStatus.OVERDUE) {
             return;
         }
@@ -103,7 +97,6 @@ public class OverdueInvoiceJob {
             return;
         }
 
-        // Markeer status idempotent als OVERDUE
         if (invoice.getStatus() != InvoiceStatus.OVERDUE) {
             invoice.setStatus(InvoiceStatus.OVERDUE);
         }

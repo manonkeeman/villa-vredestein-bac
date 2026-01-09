@@ -11,14 +11,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import java.util.Locale;
 
-/**
- * {@code MailService} verzorgt de functionaliteit voor het versturen van e-mails
- * binnen de Villa Vredestein-applicatie.
- *
- * Deze service wordt gebruikt voor notificaties, herinneringen en interne
- * communicatie. De toegangsrechten voor het verzenden van e-mails zijn
- * afhankelijk van de gebruikersrol (ADMIN, CLEANER of STUDENT).
- */
 @Service
 public class MailService {
 
@@ -41,11 +33,6 @@ public class MailService {
 
     /**
      * Constructor voor {@link MailService}.
-     *
-     * @param mailSender  mailcomponent voor het versturen van berichten
-     * @param mailEnabled bepaalt of e-mails daadwerkelijk worden verzonden
-     * @param from        afzenderadres dat in de e-mail wordt gebruikt
-     * @param bccAdmin    optioneel bcc-adres voor administratieve kopieën
      */
     public MailService(
             JavaMailSender mailSender,
@@ -76,7 +63,6 @@ public class MailService {
         MailCategory category = MailCategory.GENERIC;
         String s = subject.trim().toLowerCase(Locale.ROOT);
 
-        // Basic categorization (also useful for logging / filtering later)
         if (s.contains("factuur") || s.contains("huur") || s.contains("invoice") || s.contains("herinner")) {
             category = MailCategory.INVOICE_REMINDER;
         }
@@ -92,15 +78,6 @@ public class MailService {
         sendInternal(normalizedRole, category, to, subject, body, bcc, safeTo);
     }
 
-    /**
-     * Overload van {@link #sendMailWithRole(String, String, String, String, String)}
-     * zonder BCC.
-     *
-     * @param role    gebruikersrol van de afzender
-     * @param to      e-mailadres van de ontvanger
-     * @param subject onderwerp van de e-mail
-     * @param body    inhoud van het bericht
-     */
     public void sendMailWithRole(String role, String to, String subject, String body) {
         sendMailWithRole(role, to, subject, body, null);
     }
@@ -129,9 +106,6 @@ public class MailService {
 
     /**
      * SYSTEEM: verstuurt een factuurherinnering (huur) naar een student.
-     *
-     * <p>Wordt gebruikt door scheduled jobs. Dit valt onder ADMIN-achtig systeemgedrag
-     * en gebruikt daarom de interne afzender (from) en optioneel BCC naar admin.</p>
      */
     public void sendInvoiceReminderMail(String to, String subject, String body) {
         String safeTo = maskEmail(to);
@@ -143,7 +117,6 @@ public class MailService {
             throw new IllegalArgumentException("Body is verplicht");
         }
 
-        // Jobs draaien zonder 'user role', maar functioneel is dit systeem/ADMIN-mail.
         sendInternal("ADMIN", MailCategory.INVOICE_REMINDER, to, subject, body, null, safeTo);
     }
 

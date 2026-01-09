@@ -2,24 +2,17 @@ package com.villavredestein.controller;
 
 import com.villavredestein.dto.InvoiceRequestDTO;
 import com.villavredestein.dto.InvoiceResponseDTO;
+import com.villavredestein.model.Invoice;
 import com.villavredestein.service.InvoiceService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * {@code InvoiceController} beheert alle API-endpoints voor het aanmaken, ophalen,
- * bijwerken en verwijderen van facturen binnen de Villa Vredestein webapplicatie.
- *
- * <p>De controller maakt gebruik van {@link InvoiceService} om de businesslogica
- * rondom facturatie te verwerken. Toegang tot deze endpoints is beperkt tot
- * gebruikers met de juiste rol (ADMIN of STUDENT).</p>
- *
- * <p>ADMIN-gebruikers kunnen facturen aanmaken, wijzigen en verwijderen;
- * STUDENT-gebruikers kunnen hun facturen enkel bekijken.</p>
- */
 @RestController
 @RequestMapping("/api/invoices")
 @CrossOrigin
@@ -27,35 +20,49 @@ public class InvoiceController {
 
     private final InvoiceService invoiceService;
 
-    /** Constructor voor {@link InvoiceController}. */
     public InvoiceController(InvoiceService invoiceService) {
         this.invoiceService = invoiceService;
     }
 
-    /** Haalt een lijst op van alle facturen. */
+    /**
+     * ADMIN: alle facturen
+     * STUDENT: alleen eigen facturen
+     */
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping
-    public ResponseEntity<List<InvoiceResponseDTO>> getAllInvoices() {
-        return ResponseEntity.ok(invoiceService.getAllInvoices());
+    public ResponseEntity<List<InvoiceResponseDTO>> getInvoices(Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isAdmin) {
+            return ResponseEntity.ok(invoiceService.getAllInvoices());
+        }
+
+        // JWT subject / username / email (afhankelijk van jouw implementatie)
+        String currentUsernameOrEmail = authentication.getName();
+        return ResponseEntity.ok(invoiceService.getInvoicesForStudent(currentUsernameOrEmail));
     }
 
-    /** Maakt een nieuwe factuur aan (alleen ADMIN). */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<InvoiceResponseDTO> createInvoice(@RequestBody InvoiceRequestDTO request) {
-        return ResponseEntity.ok(invoiceService.createInvoice(request));
+    public ResponseEntity<InvoiceResponseDTO> createInvoice(@Valid @RequestBody InvoiceRequestDTO request) {
+        InvoiceResponseDTO created = invoiceService.createInvoice(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    /** Wijzigt de status van een factuur (alleen ADMIN). */
+    /**
+     * Voorbeeld: PUT /api/invoices/{id}/status?status=PAID
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/status")
-    public ResponseEntity<InvoiceResponseDTO> updateStatus(
+    public ResponseEntity<InvoiceResponseDTO> updateInvoiceStatus(
             @PathVariable Long id,
-            @RequestParam String status) {
+            @RequestParam Invoice.InvoiceStatus status
+    ) {
         return ResponseEntity.ok(invoiceService.updateStatus(id, status));
     }
 
-    /** Verwijdert een factuur uit de database (alleen ADMIN). */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {

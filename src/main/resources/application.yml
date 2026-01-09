@@ -14,8 +14,8 @@ spring:
   # ------------------------------------------------
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/villavredestein}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -41,17 +41,18 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:villavredestein@gmail.com}
-    password: ${MAIL_APP_PASSWORD:}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_APP_PASSWORD}
     properties:
-      mail.smtp:
-        auth: true
-        starttls:
-          enable: true
-          required: true
-        connectiontimeout: 5000
-        timeout: 5000
-        writetimeout: 5000
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   # ------------------------------------------------
   # Scheduled Jobs
@@ -83,9 +84,9 @@ app:
   upload-dir: ${APP_UPLOAD_DIR:./uploads}
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
-    from: ${MAIL_FROM:${MAIL_USERNAME:villavredestein@gmail.com}}
+    from: ${MAIL_FROM:${MAIL_USERNAME}}
     bcc:
-      admin: ${MAIL_ADMIN_BCC:${MAIL_USERNAME:villavredestein@gmail.com}}
+      admin: ${MAIL_ADMIN_BCC:${MAIL_USERNAME}}
   invoice:
     reminder:
       days-before-due: ${INVOICE_REMINDER_DAYS_BEFORE_DUE:4}
@@ -99,7 +100,7 @@ app:
 # JWT Configuration
 # ==================================================
 jwt:
-  secret: ${JWT_SECRET:fallbackSecretKeyForLocalDev123!}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION_MS:86400000}
 
 # ==================================================

@@ -5,28 +5,27 @@ import com.villavredestein.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 /**
- * {@code UserDetailsServiceImpl} vormt de brug tussen de applicatie en
+ * {@code UserDetailsService} vormt de brug tussen de applicatie en
  * het authenticatiemechanisme van Spring Security.
  * <p>Wordt aangeroepen door de {@code AuthenticationManager} binnen de
  * {@link com.villavredestein.controller.AuthController} tijdens login.</p>
  */
 @Service
-public class UserDetailsServiceImpl implements UserDetailsService {
+public class UserDetailsService implements org.springframework.security.core.userdetails.UserDetailsService {
 
-    private static final Logger log = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(UserDetailsService.class);
     private final UserRepository userRepository;
 
     /**
-     * Constructor voor {@link UserDetailsServiceImpl}.
+     * Constructor voor {@link UserDetailsService}.
      *
      * @param userRepository repository voor gebruikersbeheer
      */
-    public UserDetailsServiceImpl(UserRepository userRepository) {
+    public UserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

@@ -1,10 +1,11 @@
 package com.villavredestein.config;
 
 import com.villavredestein.security.JwtAuthenticationFilter;
-import com.villavredestein.service.UserDetailsServiceImpl;
+import com.villavredestein.service.UserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -28,25 +29,30 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthFilter;
 
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService,
+    public SecurityConfig(UserDetailsService userDetailsService,
                           JwtAuthenticationFilter jwtAuthFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
-/**
-    *CORS CONFIGURATIE
-**/
+    // =====================================================================
+    // CORS
+    // =====================================================================
+
+    /**
+     * Dev-vriendelijk, maar niet ideaal voor productie.
+     * Voor productie: vervang "*" door je echte frontend origins (bijv. https://villavredestein.com).
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
 
@@ -55,48 +61,50 @@ public class SecurityConfig {
         return source;
     }
 
-/**
- *401 HANDLER (NO TOKEN / INVALID TOKEN)
-**/
+    // =====================================================================
+    // 401 / 403 HANDLERS
+    // =====================================================================
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, exception) -> {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);  // 401
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  "status": 401,
-                  "error": "Unauthorized",
-                  "message": "Authenticatie vereist of token ongeldig"
+                  \"status\": 401,
+                  \"error\": \"Unauthorized\",
+                  \"message\": \"Authenticatie vereist of token ongeldig\"
                 }
                 """);
         };
     }
-
-/**
- *     403 HANDLER (VERKEERDE ROL)
- */
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, exception) -> {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);    // 403
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  "status": 403,
-                  "error": "Forbidden",
-                  "message": "Je hebt geen toegang tot deze resource"
+                  \"status\": 403,
+                  \"error\": \"Forbidden\",
+                  \"message\": \"Je hebt geen toegang tot deze resource\"
                 }
                 """);
         };
     }
 
-    /**
-     *     SECURITY FILTER CHAIN
-      */
+    // =====================================================================
+    // SECURITY FILTER CHAIN
+    // =====================================================================
 
+    /**
+     * Belangrijk:
+     * - Rollen worden hier globaal afgedwongen.
+     * - Eigenaarschap (student mag alleen eigen profiel) wordt afgedwongen in de service-laag
+     *   via checks op de ingelogde gebruiker (SecurityContext).
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -104,43 +112,53 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(authenticationEntryPoint())  // 401 handler
-                        .accessDeniedHandler(accessDeniedHandler())            // 403 handler
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
                 )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Public auth endpoints
                         .requestMatchers(
                                 "/api/auth/login",
-                                "/api/auth/register",
                                 "/api/auth/validate",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/h2-console/**"
                         ).permitAll()
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/student/**").hasRole("STUDENT")
-                        .requestMatchers("/api/cleaner/**").hasRole("CLEANER")
+                        // Users: alleen ingelogde rollen (ownership per userId gebeurt in service)
+                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
 
+                        // Rooms (voorbeeld): admin/student mogen lezen, admin beheert
+                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("ADMIN", "STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
+
+                        // Alles wat overblijft moet ingelogd zijn
                         .anyRequest().authenticated()
                 )
 
+                // H2 console in frames toestaan (dev)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Spring Security moet jouw users kunnen laden
                 .userDetailsService(userDetailsService)
+
+                // JWT filter vóór username/password filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * AUTH / PASSWORD BEANS
-     */
+    // =====================================================================
+    // AUTH / PASSWORD BEANS
+    // =====================================================================
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 

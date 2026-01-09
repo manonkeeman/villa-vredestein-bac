@@ -76,7 +76,7 @@ De API is ontworpen volgens:
 - `jobs` – Scheduled jobs (factuur herinneringen)  
 - `model` – Entiteiten: `User`, `Invoice`, `Payment`, `CleaningTask`, `Document`, `Room`  
 - `repository` – Spring Data JPA repositories  
-- `security` – JWT-filter, `JwtService`, `UserDetailsServiceImpl`  
+- `security` – JWT-filter, `JwtService`, `UserDetailsService`  
 - `service` – Domeinlogica per module  
 
 ---

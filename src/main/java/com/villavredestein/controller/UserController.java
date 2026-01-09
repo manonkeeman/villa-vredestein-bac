@@ -3,44 +3,109 @@ package com.villavredestein.controller;
 import com.villavredestein.dto.UserResponseDTO;
 import com.villavredestein.dto.UserUpdateDTO;
 import com.villavredestein.service.UserService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 /**
- * {@code UserController} beheert alle API-endpoints die betrekking hebben op gebruikersbeheer
- * binnen de Villa Vredestein webapplicatie.
+ * {@code UserController} beheert alle API-endpoints voor gebruikersbeheer.
  *
- * <p>De controller maakt het mogelijk om gebruikers op te halen, te verwijderen, hun rol te wijzigen
- * en profielinformatie bij te werken. Toegang tot deze functies is afhankelijk van de gebruikersrol:
- * ADMIN heeft volledige beheertoegang, terwijl STUDENT en CLEANER hun eigen profiel kunnen bijwerken.</p>
+ * <ul>
+ *   <li>ADMIN: kan users aanmaken/verwijderen, rollen beheren en alle users bekijken.</li>
+ *   <li>STUDENT/CLEANER: kunnen alleen hun eigen profiel bekijken/bijwerken via /me en /me/profile.</li>
+ * </ul>
  *
- * <p>De controller werkt samen met {@link UserService} om de businesslogica uit te voeren en
- * gegevens te beheren in de database.</p>
+ * <p>Eigenaarschap ("student mag alleen zichzelf") wordt enforced in de service-laag.</p>
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping(value = "/api/users", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin
 public class UserController {
 
     private final UserService userService;
 
-    /**
-     * Constructor voor {@link UserController}.
-     *
-     * @param userService service die gebruikersbeheer verzorgt
-     */
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
+    // =====================================================================
+    // REQUEST DTOs
+    // =====================================================================
+
     /**
-     * Haalt een lijst op van alle geregistreerde gebruikers.
-     *
-     * <p>Alleen toegankelijk voor gebruikers met de rol ADMIN.</p>
-     *
-     * @return lijst van {@link UserResponseDTO} objecten
+     * Request body voor het aanmaken van een STUDENT.
+     */
+    public static class CreateStudentRequest {
+
+        @NotBlank(message = "username is verplicht")
+        @Size(min = 2, max = 50, message = "username moet tussen 2 en 50 tekens zijn")
+        private String username;
+
+        @Email(message = "email moet geldig zijn")
+        @NotBlank(message = "email is verplicht")
+        @Size(max = 255, message = "email mag maximaal 255 tekens zijn")
+        private String email;
+
+        @NotBlank(message = "password is verplicht")
+        @Size(min = 6, max = 72, message = "password moet tussen 6 en 72 tekens zijn")
+        private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+    }
+
+    /**
+     * Request body voor het wijzigen van een rol (ADMIN-only).
+     */
+    public static class ChangeRoleRequest {
+
+        @NotBlank(message = "newRole is verplicht")
+        @Pattern(regexp = "^(ADMIN|STUDENT|CLEANER)$", message = "newRole moet ADMIN, STUDENT of CLEANER zijn")
+        private String newRole;
+
+        public String getNewRole() { return newRole; }
+        public void setNewRole(String newRole) { this.newRole = newRole; }
+    }
+
+    // =====================================================================
+    // CREATE
+    // =====================================================================
+
+    /**
+     * ADMIN maakt een nieuwe STUDENT aan.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(value = "/students", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> createStudent(@Valid @RequestBody CreateStudentRequest request) {
+        UserResponseDTO created = userService.createStudent(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    // =====================================================================
+    // READ
+    // =====================================================================
+
+    /**
+     * ADMIN haalt alle users op.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
@@ -49,70 +114,81 @@ public class UserController {
     }
 
     /**
-     * Zoekt een gebruiker op basis van e-mailadres.
-     *
-     * <p>Alleen toegankelijk voor gebruikers met de rol ADMIN.</p>
-     *
-     * @param email het e-mailadres van de gebruiker
-     * @return {@link UserResponseDTO} met gebruikersinformatie of 404 Not Found als niet gevonden
+     * ADMIN haalt een user op via email.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/email/{email}")
     public ResponseEntity<UserResponseDTO> getByEmail(@PathVariable String email) {
         return userService.getUserByEmail(email)
-                .map(user -> ResponseEntity.ok(
-                        new UserResponseDTO(user.getId(), user.getUsername(), user.getEmail(), user.getRole())
-                ))
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     /**
-     * Verwijdert een gebruiker op basis van het ID.
-     *
-     * <p>Alleen toegankelijk voor gebruikers met de rol ADMIN.</p>
-     *
-     * @param id het unieke ID van de gebruiker
-     * @return HTTP 204 No Content bij succesvolle verwijdering
+     * Profiel van ingelogde gebruiker.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDTO> me() {
+        return ResponseEntity.ok(userService.getMe());
+    }
+
+    /**
+     * ADMIN haalt user op via id.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> getById(@PathVariable Long id) {
+        return userService.getUserById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // =====================================================================
+    // UPDATE
+    // =====================================================================
+
+    /**
+     * ADMIN wijzigt de rol van een user.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping(value = "/{id}/role", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> changeRole(@PathVariable Long id, @Valid @RequestBody ChangeRoleRequest request) {
+        return ResponseEntity.ok(userService.changeRole(id, request.getNewRole()));
+    }
+
+    /**
+     * Ingelogde gebruiker (ADMIN/STUDENT/CLEANER) update zijn/haar eigen profiel.
+     * Dit endpoint voorkomt dat studenten ids hoeven te gokken.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    @PutMapping(value = "/me/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> updateMyProfile(@Valid @RequestBody UserUpdateDTO dto) {
+        // userService.getMe() haalt huidige gebruiker op; daarna updaten we op basis van het eigen id
+        Long myId = userService.getMe().getId();
+        return ResponseEntity.ok(userService.updateProfile(myId, dto));
+    }
+
+    /**
+     * ADMIN kan het profiel van elke user updaten via id.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping(value = "/{id}/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> updateAnyProfile(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO dto) {
+        return ResponseEntity.ok(userService.updateProfile(id, dto));
+    }
+
+    // =====================================================================
+    // DELETE
+    // =====================================================================
+
+    /**
+     * ADMIN verwijdert een user.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Wijzigt de rol van een gebruiker.
-     *
-     * <p>Alleen toegankelijk voor gebruikers met de rol ADMIN.</p>
-     *
-     * @param id het unieke ID van de gebruiker
-     * @param newRole de nieuwe rol (bijv. ADMIN, STUDENT of CLEANER)
-     * @return bijgewerkte {@link UserResponseDTO} met nieuwe rol
-     */
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}/role")
-    public ResponseEntity<UserResponseDTO> changeRole(
-            @PathVariable Long id,
-            @RequestParam String newRole) {
-        return ResponseEntity.ok(userService.changeRole(id, newRole));
-    }
-
-    /**
-     * Werkt het gebruikersprofiel bij op basis van opgegeven gegevens.
-     *
-     * <p>Beschikbaar voor gebruikers met de rollen ADMIN, STUDENT en CLEANER.
-     * Studenten en schoonmakers kunnen hiermee hun eigen profielinformatie wijzigen.</p>
-     *
-     * @param id het unieke ID van de gebruiker
-     * @param dto {@link UserUpdateDTO} met de nieuwe profielgegevens
-     * @return bijgewerkte {@link UserResponseDTO}
-     */
-    @PutMapping("/{id}/profile")
-    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    public ResponseEntity<UserResponseDTO> updateProfile(
-            @PathVariable Long id,
-            @RequestBody UserUpdateDTO dto) {
-        return ResponseEntity.ok(userService.updateProfile(id, dto));
     }
 }

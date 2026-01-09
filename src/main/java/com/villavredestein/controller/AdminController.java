@@ -52,10 +52,6 @@ public class AdminController {
     // ============================================================
     // TEST ENDPOINT
     // ============================================================
-
-    /**
-     * Test om admin toegang te verifiëren.
-     */
     @GetMapping("/panel")
     public ResponseEntity<String> adminPanelTest() {
         return ResponseEntity.ok("ADMIN OK");

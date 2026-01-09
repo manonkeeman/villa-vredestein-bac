@@ -13,7 +13,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -33,17 +32,12 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
-    private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
 
-    public AuthController(AuthenticationManager authenticationManager,
-                          UserDetailsService userDetailsService,
-                          JwtService jwtService) {
+    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
-        this.userDetailsService = userDetailsService;
         this.jwtService = jwtService;
     }
-
 
     // =====================================================================
     // LOGIN
@@ -85,16 +79,15 @@ public class AuthController {
             ));
 
         } catch (BadCredentialsException e) {
-            log.warn(" Ongeldige login poging voor {}", request.getEmail());
+            log.warn("Ongeldige login poging voor {}", request.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Ongeldige gebruikersnaam of wachtwoord"));
         } catch (Exception e) {
-            log.error(" Interne fout bij login voor {}: {}", request.getEmail(), e.getMessage());
+            log.error("Interne fout bij login voor {}: {}", request.getEmail(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Er is een fout opgetreden tijdens het inloggen"));
         }
     }
-
 
     // =====================================================================
     // TOKEN VALIDATIE
@@ -126,12 +119,11 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
-            log.warn(" Token validatie mislukt: {}", e.getMessage());
+            log.warn("Token validatie mislukt: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Ongeldige of beschadigde token"));
         }
     }
-
 
     // =====================================================================
     // INTERNAL SERVER ERROR 500 (testing)

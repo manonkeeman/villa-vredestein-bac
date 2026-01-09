@@ -1,121 +1,111 @@
 package com.villavredestein.service;
 
+import com.villavredestein.dto.RoomResponseDTO;
 import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
 /**
- * {@code RoomService} beheert de logica rondom kamers binnen het Villa Vredestein-systeem.
+ * {@code RoomService} beheert de businesslogica rondom kamers binnen
+ * de Villa Vredestein applicatie.
  *
- * <p>Deze service is verantwoordelijk voor het aanmaken, ophalen, bijwerken en verwijderen van kamers,
- * en voor het toewijzen of verwijderen van bewoners (occupants). De klasse vormt de schakel
- * tussen de database-repositories {@link RoomRepository} en {@link UserRepository}.</p>
- *
- * <p>Elke kamer kan één bewoner (student) bevatten. De naam van de kamer wordt dynamisch
- * aangevuld met de naam van de bewoner wanneer deze aanwezig is, zodat lijsten
- * direct inzicht geven in de bezetting.</p>
- *
- * <p>De {@link RoomService} wordt gebruikt door de {@code RoomController} en door
- * beheerdersfuncties in de applicatie.</p>
+ * <p>Deze service werkt intern met {@link Room} entities,
+ * maar exposeert uitsluitend {@link RoomResponseDTO} richting controllers.</p>
  */
 @Service
+@Transactional
 public class RoomService {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Constructor voor {@link RoomService}.
-     *
-     * @param roomRepository repository voor kamerbeheer
-     * @param userRepository repository voor gebruikersbeheer
-     */
     public RoomService(RoomRepository roomRepository, UserRepository userRepository) {
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
     }
 
-    /**
-     * Haalt alle kamers op en voegt — indien aanwezig — de naam van de bewoner toe aan de kamernaam.
-     *
-     * @return lijst van alle {@link Room}-objecten, inclusief occupantinformatie
-     */
-    public List<Room> getAllRooms() {
-        return roomRepository.findAll().stream()
-                .peek(room -> {
-                    if (room.getOccupant() != null)
-                        room.setName(room.getName() + " (" + room.getOccupant().getUsername() + ")");
-                })
+    // =====================================================================
+    // CREATE
+    // =====================================================================
+
+    public RoomResponseDTO createRoomDTO(String name) {
+        if (roomRepository.existsByName(name)) {
+            throw new IllegalArgumentException("Room name already exists");
+        }
+
+        Room room = roomRepository.save(new Room(name));
+        return toDTO(room);
+    }
+
+    // =====================================================================
+    // READ
+    // =====================================================================
+
+    public List<RoomResponseDTO> getAllRoomsDTO() {
+        return roomRepository.findAll()
+                .stream()
+                .map(this::toDTO)
                 .toList();
     }
 
-    /**
-     * Haalt één kamer op aan de hand van het unieke ID.
-     * Als de kamer een bewoner heeft, wordt de naam uitgebreid met de gebruikersnaam.
-     *
-     * @param id het unieke ID van de kamer
-     * @return optioneel {@link Room}-object
-     */
-    public Optional<Room> getRoomById(Long id) {
-        return roomRepository.findById(id)
-                .map(room -> {
-                    if (room.getOccupant() != null)
-                        room.setName(room.getName() + " (" + room.getOccupant().getUsername() + ")");
-                    return room;
-                });
+    public Optional<RoomResponseDTO> getRoomByIdDTO(Long id) {
+        return roomRepository.findById(id).map(this::toDTO);
     }
 
-    /**
-     * Maakt een nieuwe kamer aan in de database.
-     *
-     * @param room het {@link Room}-object dat moet worden aangemaakt
-     * @return de opgeslagen {@link Room}
-     */
-    public Room createRoom(Room room) {
-        return roomRepository.save(room);
-    }
+    // =====================================================================
+    // UPDATE
+    // =====================================================================
 
-    /**
-     * Wijs een bestaande gebruiker toe als bewoner van een kamer.
-     *
-     * @param roomId het unieke ID van de kamer
-     * @param userId het unieke ID van de gebruiker
-     * @return de bijgewerkte {@link Room} met toegewezen bewoner
-     * @throws RuntimeException als kamer of gebruiker niet wordt gevonden
-     */
-    public Room assignOccupant(Long roomId, Long userId) {
+    public RoomResponseDTO assignOccupantDTO(Long roomId, Long userId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        room.setOccupant(user);
-        return roomRepository.save(room);
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        room.assignOccupant(user);
+        return toDTO(roomRepository.save(room));
     }
 
-    /**
-     * Verwijdert de bewoner (occupant) uit een kamer zonder de kamer zelf te verwijderen.
-     *
-     * @param roomId het unieke ID van de kamer
-     * @return de bijgewerkte {@link Room} zonder occupant
-     * @throws RuntimeException als de kamer niet wordt gevonden
-     */
-    public Room removeOccupant(Long roomId) {
+    public RoomResponseDTO removeOccupantDTO(Long roomId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
-        room.setOccupant(null);
-        return roomRepository.save(room);
+                .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+
+        room.removeOccupant();
+        return toDTO(roomRepository.save(room));
     }
 
-    /**
-     * Verwijdert een kamer uit de database op basis van ID.
-     *
-     * @param id het unieke ID van de kamer die moet worden verwijderd
-     */
+    // =====================================================================
+    // DELETE
+    // =====================================================================
+
     public void deleteRoom(Long id) {
+        if (!roomRepository.existsById(id)) {
+            throw new EntityNotFoundException("Room not found");
+        }
         roomRepository.deleteById(id);
+    }
+
+    // =====================================================================
+    // MAPPER
+    // =====================================================================
+
+    private RoomResponseDTO toDTO(Room room) {
+        Long occupantId = room.getOccupant() != null ? room.getOccupant().getId() : null;
+        String occupantUsername = room.getOccupant() != null ? room.getOccupant().getUsername() : null;
+
+        return new RoomResponseDTO(
+                room.getId(),
+                room.getName(),
+                occupantId,
+                occupantUsername
+        );
     }
 }

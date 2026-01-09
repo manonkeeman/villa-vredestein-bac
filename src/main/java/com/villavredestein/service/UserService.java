@@ -4,123 +4,189 @@ import com.villavredestein.dto.UserResponseDTO;
 import com.villavredestein.dto.UserUpdateDTO;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * {@code UserService} beheert de businesslogica rondom gebruikers binnen
- * de Villa Vredestein webapplicatie.
+ * {@code UserService} bevat businesslogica rondom gebruikers.
  *
- * <p>De service is verantwoordelijk voor het ophalen, bijwerken en verwijderen
- * van gebruikers, evenals het wijzigen van rollen en profielgegevens.
- * De klasse vormt de brug tussen de {@link com.villavredestein.controller.UserController}
- * en de {@link UserRepository} en zorgt voor dataoverdracht via DTO’s.</p>
- *
- * <p>Alle methoden zijn transactiegericht ({@link Transactional}) om de
- * consistentie van gegevens in de database te waarborgen.</p>
- *
- * <p>Deze service is essentieel voor beheerfunctionaliteit, zoals het
- * wijzigen van gebruikersrollen of het updaten van studentprofielen.</p>
- *
+ * <p>Belangrijk security-principe:
+ * STUDENT/CLEANER mogen alleen zichzelf wijzigen (ownership).
+ * ADMIN mag iedereen wijzigen.</p>
  */
 @Service
 @Transactional
 public class UserService {
 
-    private final UserRepository userRepository;
+    private static final Set<String> ALLOWED_ROLES = Set.of("ADMIN", "STUDENT", "CLEANER");
 
-    /**
-     * Constructor voor {@link UserService}.
-     *
-     * @param userRepository repository voor gebruikersbeheer
-     */
-    public UserService(UserRepository userRepository) {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
+    // =====================================================================
+    // CREATE
+    // =====================================================================
+
     /**
-     * Haalt alle gebruikers op uit de database en zet deze om naar {@link UserResponseDTO}-objecten.
-     *
-     * @return lijst van {@link UserResponseDTO}-objecten
+     * Maakt een nieuwe student aan met rol STUDENT en een gehashte password.
      */
+    public UserResponseDTO createStudent(String username, String email, String rawPassword) {
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email bestaat al");
+        }
+
+        User user = new User(
+                username,
+                email,
+                passwordEncoder.encode(rawPassword),
+                "STUDENT"
+        );
+
+        return toDTO(userRepository.save(user));
+    }
+
+    // =====================================================================
+    // READ
+    // =====================================================================
+
     public List<UserResponseDTO> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Haalt een gebruiker op aan de hand van het unieke ID.
-     *
-     * @param id het unieke ID van de gebruiker
-     * @return optioneel {@link User}-object
-     */
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    public Optional<UserResponseDTO> getUserById(Long id) {
+        return userRepository.findById(id).map(this::toDTO);
+    }
+
+    public Optional<UserResponseDTO> getUserByEmail(String email) {
+        return userRepository.findByEmail(email).map(this::toDTO);
     }
 
     /**
-     * Zoekt een gebruiker op basis van e-mailadres.
-     *
-     * @param email het e-mailadres van de gebruiker
-     * @return optioneel {@link User}-object
+     * Geeft het profiel van de ingelogde gebruiker terug.
      */
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public UserResponseDTO getMe() {
+        return toDTO(currentUser());
+    }
+
+    // =====================================================================
+    // UPDATE
+    // =====================================================================
+
+    public UserResponseDTO changeRole(Long id, String newRole) {
+        String normalized = normalizeRole(newRole);
+        if (!ALLOWED_ROLES.contains(normalized)) {
+            throw new IllegalArgumentException("newRole moet ADMIN, STUDENT of CLEANER zijn");
+        }
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        user.setRole(normalized);
+        return toDTO(userRepository.save(user));
     }
 
     /**
-     * Verwijdert een gebruiker uit de database.
-     *
-     * @param id het unieke ID van de gebruiker
+     * STUDENT/CLEANER mogen alleen hun eigen profiel aanpassen.
+     * ADMIN mag iedereen aanpassen.
      */
+    public UserResponseDTO updateProfile(Long id, UserUpdateDTO dto) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        assertOwnerOrAdmin(target.getId());
+
+        if (dto.getUsername() != null) {
+            target.setUsername(dto.getUsername());
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().equalsIgnoreCase(target.getEmail())) {
+            if (userRepository.existsByEmail(dto.getEmail())) {
+                throw new IllegalArgumentException("Email bestaat al");
+            }
+            target.setEmail(dto.getEmail());
+        }
+
+        return toDTO(userRepository.save(target));
+    }
+
+    // =====================================================================
+    // DELETE
+    // =====================================================================
+
     public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new EntityNotFoundException("User not found");
+        }
         userRepository.deleteById(id);
     }
 
-    /**
-     * Wijzigt de rol van een bestaande gebruiker.
-     *
-     * <p>De nieuwe rol wordt automatisch omgezet naar hoofdletters,
-     * bijvoorbeeld ‘ADMIN’, ‘STUDENT’ of ‘CLEANER’.</p>
-     *
-     * @param id het unieke ID van de gebruiker
-     * @param newRole de nieuwe rol
-     * @return bijgewerkte {@link UserResponseDTO}
-     * @throws RuntimeException als de gebruiker niet wordt gevonden
-     */
-    public UserResponseDTO changeRole(Long id, String newRole) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setRole(newRole.toUpperCase());
-        return toDTO(userRepository.save(user));
+    // =====================================================================
+    // SECURITY HELPERS
+    // =====================================================================
+
+    private User currentUser() {
+        String email = currentEmail();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
     }
 
-    /**
-     * Werkt de profielgegevens van een gebruiker bij, zoals naam en e-mailadres.
-     *
-     * @param id het unieke ID van de gebruiker
-     * @param dto {@link UserUpdateDTO} met nieuwe profielgegevens
-     * @return bijgewerkte {@link UserResponseDTO}
-     * @throws RuntimeException als de gebruiker niet wordt gevonden
-     */
-    public UserResponseDTO updateProfile(Long id, UserUpdateDTO dto) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        return toDTO(userRepository.save(user));
+    private String currentEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new AccessDeniedException("Not authenticated");
+        }
+        return auth.getName(); // email
     }
 
-    /**
-     * Zet een {@link User}-entiteit om naar een {@link UserResponseDTO}.
-     *
-     * @param user het te converteren {@link User}-object
-     * @return {@link UserResponseDTO} met vereenvoudigde gebruikersinformatie
-     */
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private void assertOwnerOrAdmin(Long targetUserId) {
+        if (isAdmin()) return;
+
+        User me = currentUser();
+        if (!me.getId().equals(targetUserId)) {
+            throw new AccessDeniedException("Je mag alleen je eigen profiel wijzigen");
+        }
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String r = role.trim().toUpperCase();
+        if (r.startsWith("ROLE_")) {
+            r = r.substring(5);
+        }
+        return r;
+    }
+
+    // =====================================================================
+    // MAPPER
+    // =====================================================================
+
     private UserResponseDTO toDTO(User user) {
         return new UserResponseDTO(
                 user.getId(),

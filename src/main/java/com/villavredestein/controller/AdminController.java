@@ -1,9 +1,15 @@
 package com.villavredestein.controller;
 
-import com.villavredestein.dto.*;
+import com.villavredestein.dto.CleaningRequestDTO;
+import com.villavredestein.dto.CleaningResponseDTO;
+import com.villavredestein.dto.InvoiceRequestDTO;
+import com.villavredestein.dto.InvoiceResponseDTO;
+import com.villavredestein.dto.UserResponseDTO;
 import com.villavredestein.jobs.InvoiceReminderJob;
 import com.villavredestein.jobs.OverdueInvoiceJob;
-import com.villavredestein.service.*;
+import com.villavredestein.service.CleaningService;
+import com.villavredestein.service.InvoiceService;
+import com.villavredestein.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -169,7 +175,7 @@ public class AdminController {
      * Haalt schoonmaaktaken op (optioneel per weeknummer).
      */
     @GetMapping("/cleaning/tasks")
-    public ResponseEntity<List<CleaningRequestDTO>> getCleaningTasks(
+    public ResponseEntity<List<CleaningResponseDTO>> getCleaningTasks(
             @RequestParam(required = false) Integer weekNumber
     ) {
         if (weekNumber != null) {
@@ -182,7 +188,7 @@ public class AdminController {
      * Maakt een nieuwe schoonmaaktaak aan.
      */
     @PostMapping("/cleaning/tasks")
-    public ResponseEntity<CleaningRequestDTO> createTask(@RequestBody CleaningRequestDTO dto) {
+    public ResponseEntity<CleaningResponseDTO> createTask(@RequestBody CleaningRequestDTO dto) {
         return ResponseEntity.ok(cleaningService.addTask(dto));
     }
 
@@ -190,7 +196,7 @@ public class AdminController {
      * Wijzigt een bestaande schoonmaaktaak.
      */
     @PutMapping("/cleaning/tasks/{taskId}")
-    public ResponseEntity<CleaningRequestDTO> updateTask(
+    public ResponseEntity<CleaningResponseDTO> updateTask(
             @PathVariable Long taskId,
             @RequestBody CleaningRequestDTO dto
     ) {
@@ -201,7 +207,7 @@ public class AdminController {
      * Toggle taak-status (OPEN ↔ DONE).
      */
     @PutMapping("/cleaning/tasks/{taskId}/toggle")
-    public ResponseEntity<CleaningRequestDTO> toggleTask(@PathVariable Long taskId) {
+    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable Long taskId) {
         return ResponseEntity.ok(cleaningService.toggleTask(taskId));
     }
 
@@ -225,15 +231,5 @@ public class AdminController {
     @GetMapping("/force-500")
     public void forceInternalError() {
         throw new RuntimeException("500 testfout");
-    }
-
-    @GetMapping("/boom")
-    public void boom() {
-        throw new RuntimeException("500 testfout");
-    }
-
-    @GetMapping("/trigger-500")
-    public void trigger500() {
-        throw new RuntimeException("Testfout");
     }
 }

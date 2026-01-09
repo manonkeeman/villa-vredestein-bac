@@ -128,14 +128,36 @@ public class SecurityConfig {
                                 "/h2-console/**"
                         ).permitAll()
 
-                        // Users: alleen ingelogde rollen (ownership per userId gebeurt in service)
-                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        // Admin: alles onder /api/admin is uitsluitend voor ADMIN
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Rooms (voorbeeld): admin/student mogen lezen, admin beheert
-                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("ADMIN", "STUDENT")
+                        // Users: iedereen ingelogd mag eigen gegevens benaderen; admin beheert alles
+                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
+
+                        // Rooms: admin/student/cleaner mogen lezen; mutaties alleen ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
                         .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
+
+                        // Cleaning tasks: zichtbaar voor ingelogde rollen; mutaties beperkt
+                        .requestMatchers(HttpMethod.GET, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.POST, "/api/cleaning/**").hasAnyRole("ADMIN", "CLEANER")
+                        .requestMatchers(HttpMethod.PUT, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/cleaning/**").hasRole("ADMIN")
+
+                        // Documents: lijst/download voor ingelogde rollen; upload/delete admin
+                        .requestMatchers(HttpMethod.GET, "/api/documents/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
+                        .requestMatchers(HttpMethod.POST, "/api/documents/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/documents/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/documents/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/documents/**").hasRole("ADMIN")
 
                         // Alles wat overblijft moet ingelogd zijn
                         .anyRequest().authenticated()

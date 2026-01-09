@@ -13,7 +13,6 @@ import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 /**
  * Service-laag voor het beheren van schoonmaaktaken.
@@ -49,7 +48,7 @@ public class CleaningService {
         return taskRepository.findAll()
                 .stream()
                 .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<CleaningResponseDTO> getCurrentWeekTasks() {
@@ -57,21 +56,24 @@ public class CleaningService {
         return taskRepository.findByWeekNumberOrderByIdAsc(rotationWeek)
                 .stream()
                 .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<CleaningResponseDTO> getTasksByWeek(int weekNumber) {
         return taskRepository.findByWeekNumberOrderByIdAsc(weekNumber)
                 .stream()
                 .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public CleaningResponseDTO addTask(CleaningRequestDTO dto) {
-        CleaningTask task = new CleaningTask();
-        task.setWeekNumber(dto.getWeekNumber());
-        task.setName(dto.getName());
-        task.setDescription(dto.getDescription());
+        CleaningTask task = new CleaningTask(
+                dto.getWeekNumber(),
+                dto.getName(),
+                dto.getDescription(),
+                null
+        );
+
         task.setCompleted(dto.isCompleted());
         task.setComment(dto.getComment());
         task.setIncidentReport(dto.getIncidentReport());

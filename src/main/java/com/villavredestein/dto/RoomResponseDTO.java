@@ -1,15 +1,5 @@
 package com.villavredestein.dto;
 
-/**
- * Response DTO voor een kamer.
- *
- * <p>Wordt gebruikt in alle API-responses voor rooms.
- * Deze DTO vervangt het direct terugsturen van de Room-entity.</p>
- *
- * <ul>
- *   <li><b>occupantId</b> en <b>occupantUsername</b> zijn {@code null} als de kamer leeg is</li>
- * </ul>
- */
 public class RoomResponseDTO {
 
     private final Long id;

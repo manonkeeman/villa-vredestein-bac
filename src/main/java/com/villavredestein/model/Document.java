@@ -4,15 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
-/**
- * {@code Document} representeert een opgeslagen document binnen Villa Vredestein.
- *
- * <p>Deze entity bevat uitsluitend metadata die nodig is om een bestand terug te vinden
- * in storage en om toegangscontrole toe te passen. De daadwerkelijke bestandsinhoud
- * wordt niet in de database opgeslagen.</p>
- *
- * <p>Let op: stuur entities niet direct naar de client. Gebruik DTO’s in de controllerlaag.</p>
- */
 @Entity
 @Table(
         name = "documents",
@@ -39,10 +30,6 @@ public class Document {
     @Column(length = 1000)
     private String description;
 
-    /**
-     * Interne opslagreferentie naar het bestand (bijv. pad of storage key).
-     * Deze waarde moet uniek zijn.
-     */
     @NotBlank(message = "storagePath is verplicht")
     @Column(name = "storage_path", nullable = false, length = 255, unique = true)
     private String storagePath;
@@ -56,18 +43,12 @@ public class Document {
 
     /**
      * De gebruiker die het document heeft geüpload.
-     *
-     * <p>Lazy loading voorkomt onnodige database queries.
-     * Gevoelige velden worden genegeerd bij serialisatie.</p>
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uploaded_by_id", nullable = false)
     @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
     private User uploadedBy;
 
-    /**
-     * Publieke no-args constructor vereist door JPA.
-     */
     public Document() {
     }
 

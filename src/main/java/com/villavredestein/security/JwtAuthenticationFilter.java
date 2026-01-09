@@ -19,13 +19,6 @@ import java.io.IOException;
 /**
  * JWT-filter die elke request onderschept en controleert op geldige JWT-tokens.
  *
- * <p>Deze filter zorgt uitsluitend voor:
- * <ul>
- *     <li>Token extraheren uit de Authorization header</li>
- *     <li>Validatie van token</li>
- *     <li>Setten van Authentication in de SecurityContext</li>
- * </ul>
- *
  * <p>Foutcodes (401 / 403) worden afgehandeld door SecurityConfig.</p>
  */
 @Component
@@ -50,7 +43,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Open endpoints overslaan
         if (path.startsWith("/api/auth") || path.startsWith("/h2-console")) {
             filterChain.doFilter(request, response);
             return;
@@ -58,7 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
-        // Geen token → doorgeven aan SecurityConfig → 401
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -71,12 +62,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtService.extractUsername(jwtToken);
         } catch (Exception e) {
             log.warn("JWT parsing mislukt: {}", e.getMessage());
-            // Slechte token → SecurityConfig → 401
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Als er nog geen Authentication bestaat, valideren en zetten
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails;

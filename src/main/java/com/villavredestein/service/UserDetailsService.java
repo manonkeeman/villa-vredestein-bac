@@ -8,37 +8,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-/**
- * {@code UserDetailsService} vormt de brug tussen de applicatie en
- * het authenticatiemechanisme van Spring Security.
- * <p>Wordt aangeroepen door de {@code AuthenticationManager} binnen de
- * {@link com.villavredestein.controller.AuthController} tijdens login.</p>
- */
 @Service
 public class UserDetailsService implements org.springframework.security.core.userdetails.UserDetailsService {
 
     private static final Logger log = LoggerFactory.getLogger(UserDetailsService.class);
     private final UserRepository userRepository;
 
-    /**
-     * Constructor voor {@link UserDetailsService}.
-     *
-     * @param userRepository repository voor gebruikersbeheer
-     */
     public UserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
     /**
      * Laadt een gebruiker op basis van het ingevoerde e-mailadres.
-     *
-     * <p>Als de gebruiker niet wordt gevonden, wordt een
-     * {@link UsernameNotFoundException} gegooid, waardoor Spring Security
-     * de authenticatie zal weigeren.</p>
-     *
-     * @param email e-mailadres van de gebruiker (fungeert als gebruikersnaam)
-     * @return een {@link UserDetails}-object dat gebruikt wordt door Spring Security
-     * @throws UsernameNotFoundException als geen gebruiker met dit e-mailadres bestaat
      */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

@@ -20,9 +20,6 @@ import java.util.Map;
 /**
  * {@code AuthController} verzorgt authenticatie, token-generatie en token-validatie
  * binnen de Villa Vredestein API.
- *
- * <p>Endpoints onder /api/auth zijn openbaar toegankelijk. Andere endpoints
- * vereisen een geldige JWT-token.</p>
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -45,9 +42,6 @@ public class AuthController {
 
     /**
      * Verwerkt een loginpoging en geeft bij succes een JWT-token terug.
-     *
-     * @param request bevat e-mail en wachtwoord
-     * @return loginresultaat inclusief token of foutmelding
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO request) {
@@ -93,12 +87,6 @@ public class AuthController {
     // TOKEN VALIDATIE
     // =====================================================================
 
-    /**
-     * Valideert een meegegeven JWT-token.
-     *
-     * @param token JWT-token
-     * @return tokenstatus + gebruikersinfo
-     */
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestParam String token) {
         try {
@@ -129,11 +117,6 @@ public class AuthController {
     // INTERNAL SERVER ERROR 500 (testing)
     // =====================================================================
 
-    /**
-     * Forceert bewust een 500-fout voor testdoeleinden.
-     *
-     * @return nooit een succesvol resultaat — altijd 500.
-     */
     @GetMapping("/force-error")
     public ResponseEntity<?> forceError() {
         throw new RuntimeException("Geforceerde serverfout voor test");

@@ -16,13 +16,6 @@ import java.util.Locale;
 
 /**
  * Service-laag voor het beheren van schoonmaaktaken.
- *
- * <p>De {@code CleaningService} bevat de businesslogica voor het aanmaken, ophalen,
- * bijwerken en verwijderen van schoonmaaktaken. Daarnaast ondersteunt deze service
- * eenvoudige week-rotatie en het registreren van opmerkingen en incidenten.</p>
- *
- * <p>Deze service wordt aangeroepen vanuit de controllerlaag en praat met de database
- * via {@link CleaningTaskRepository} en {@link UserRepository}.</p>
  */
 @Service
 @Transactional
@@ -37,7 +30,7 @@ public class CleaningService {
     }
 
     /**
-     * Berekent de huidige rotatie-week (1 t/m 4) op basis van de ISO-week van het jaar.
+     * Berekent de huidige rotatie-week (1 t/m 4).
      */
     private int getCurrentRotationWeek() {
         int currentWeekOfYear = LocalDate.now().get(WeekFields.of(Locale.getDefault()).weekOfYear());

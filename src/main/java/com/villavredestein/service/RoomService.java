@@ -12,13 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * {@code RoomService} beheert de businesslogica rondom kamers binnen
- * de Villa Vredestein applicatie.
- *
- * <p>Deze service werkt intern met {@link Room} entities,
- * maar exposeert uitsluitend {@link RoomResponseDTO} richting controllers.</p>
- */
 @Service
 @Transactional
 public class RoomService {

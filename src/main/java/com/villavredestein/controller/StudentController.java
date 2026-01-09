@@ -11,17 +11,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-/**
- * {@code StudentController} beheert alle API-endpoints die betrekking hebben
- * op studentenfunctionaliteiten binnen de Villa Vredestein webapplicatie.
- *
- * <p>De controller biedt studenten toegang tot hun eigen gegevens zoals
- * facturen, documenten en schoonmaaktaken. Daarnaast is toegang ook toegestaan
- * voor ADMIN-gebruikers, zodat zij studentgerelateerde data kunnen beheren of inzien.</p>
- *
- * <p>De controller werkt samen met {@link InvoiceService}, {@link DocumentService}
- * en {@link CleaningService} om data uit de onderliggende lagen op te halen.</p>
- */
 @RestController
 @RequestMapping("/api/student")
 @CrossOrigin
@@ -34,10 +23,6 @@ public class StudentController {
 
     /**
      * Constructor voor {@link StudentController}.
-     *
-     * @param invoiceService service voor factuurbeheer
-     * @param documentService service voor documentbeheer
-     * @param cleaningService service voor schoonmaaktaken
      */
     public StudentController(InvoiceService invoiceService,
                              DocumentService documentService,
@@ -58,10 +43,6 @@ public class StudentController {
 
     /**
      * Haalt alle facturen op die relevant zijn voor de ingelogde student.
-     *
-     * <p>Beschikbaar voor gebruikers met de rollen STUDENT en ADMIN.</p>
-     *
-     * @return lijst van {@link InvoiceResponseDTO} objecten
      */
     @GetMapping("/invoices")
     public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices() {
@@ -70,10 +51,6 @@ public class StudentController {
 
     /**
      * Haalt alle documenten op die zichtbaar zijn voor de student.
-     *
-     * <p>Beschikbaar voor gebruikers met de rollen STUDENT en ADMIN.</p>
-     *
-     * @return lijst van {@link Document} objecten
      */
     @GetMapping("/documents")
     public ResponseEntity<List<Document>> getMyDocuments() {
@@ -82,12 +59,6 @@ public class StudentController {
 
     /**
      * Haalt de schoonmaaktaken op voor de student.
-     *
-     * <p>Indien een weeknummer wordt meegegeven, worden enkel de taken voor die week getoond.
-     * Zonder parameter worden alle taken opgehaald.</p>
-     *
-     * @param weekNumber optioneel weeknummer om op te filteren
-     * @return lijst van {@link CleaningRequestDTO} objecten
      */
     @GetMapping("/cleaning/tasks")
     public ResponseEntity<List<CleaningRequestDTO>> getCleaningTasks(

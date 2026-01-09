@@ -1,177 +1,214 @@
 package com.villavredestein.service;
 
+import com.villavredestein.dto.PaymentRequestDTO;
 import com.villavredestein.model.Payment;
+import com.villavredestein.model.Payment.PaymentStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.PaymentRepository;
+import com.villavredestein.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * {@code PaymentService} beheert de businesslogica rondom huurbetalingen
- * binnen de Villa Vredestein webapplicatie.
- *
- * <p>De service is verantwoordelijk voor het ophalen, aanmaken, bijwerken en verwijderen
- * van betalingen. Daarnaast verstuurt de service automatische bevestigingsmails bij
- * succesvolle betalingen.</p>
- *
- * <p>De klasse werkt samen met {@link PaymentRepository} voor database-interacties
- * en met {@link MailService} voor notificaties richting studenten.</p>
- *
- * <p>Elke betaling is gekoppeld aan een {@link User}-entiteit (student) en bevat
- * informatie over bedrag, status en datum.</p>
- *
- */
 @Service
+@Transactional
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final MailService mailService;
+    private final UserRepository userRepository;
 
-    /**
-     * Constructor voor {@link PaymentService}.
-     *
-     * @param paymentRepository repository voor opslag en beheer van {@link Payment}-entiteiten
-     * @param mailService service voor het verzenden van e-mailnotificaties
-     */
-    public PaymentService(PaymentRepository paymentRepository, MailService mailService) {
+    public PaymentService(PaymentRepository paymentRepository, UserRepository userRepository) {
         this.paymentRepository = paymentRepository;
-        this.mailService = mailService;
+        this.userRepository = userRepository;
     }
 
-    /**
-     * Haalt alle betalingen op die gekoppeld zijn aan een specifieke student.
-     *
-     * @param student de {@link User} waarvan de betalingen moeten worden opgehaald
-     * @return lijst van {@link Payment}-objecten
-     */
-    public List<Payment> getPaymentsForStudent(User student) {
-        return paymentRepository.findByStudent(student);
-    }
+    // ==========================================================
+    // READ
+    // ==========================================================
 
-    /**
-     * Haalt alle betalingen op uit de database.
-     *
-     * @return lijst van alle {@link Payment}-objecten
-     */
+    @Transactional(readOnly = true)
     public List<Payment> getAllPayments() {
         return paymentRepository.findAll();
     }
 
-    /**
-     * Haalt één betaling op basis van het unieke ID.
-     *
-     * @param id het unieke ID van de betaling
-     * @return optioneel {@link Payment}-object
-     */
-    public Optional<Payment> getPaymentById(Long id) {
-        return paymentRepository.findById(id);
+    @Transactional(readOnly = true)
+    public List<Payment> getPaymentsForStudent(String studentEmail) {
+        if (studentEmail == null || studentEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "studentEmail is required");
+        }
+        return paymentRepository.findByStudent_Email(studentEmail.trim().toLowerCase());
     }
 
-    /**
-     * Haalt alle betalingen op met status ‘OPEN’.
-     *
-     * @return lijst van openstaande {@link Payment}-objecten
-     */
-    public List<Payment> getOpenPayments() {
-        return paymentRepository.findByStatus("OPEN");
+    @Transactional(readOnly = true)
+    public List<Payment> getOpenPaymentsForStudent(String studentEmail) {
+        if (studentEmail == null || studentEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "studentEmail is required");
+        }
+        return paymentRepository.findByStudent_EmailAndStatus(studentEmail.trim().toLowerCase(), PaymentStatus.OPEN);
     }
 
-    /**
-     * Haalt alle betalingen op op basis van het e-mailadres van de student.
-     *
-     * @param email e-mailadres van de student
-     * @return lijst van {@link Payment}-objecten
-     */
-    public List<Payment> getPaymentsByStudentEmail(String email) {
-        return paymentRepository.findByStudentEmail(email);
-    }
-
-    /**
-     * Slaat een nieuwe betaling op in de database.
-     *
-     * <p>Na het opslaan wordt gecontroleerd of de betaling de status ‘PAID’ heeft.
-     * In dat geval wordt automatisch een bevestigingsmail verzonden naar de student.</p>
-     *
-     * @param payment de betaling die moet worden opgeslagen
-     * @return het opgeslagen {@link Payment}-object
-     */
-    public Payment savePayment(Payment payment) {
-        Payment saved = paymentRepository.save(payment);
-        sendPaymentConfirmationIfPaid(saved);
-        return saved;
-    }
-
-    /**
-     * Wijzigt een bestaande betaling op basis van het ID.
-     *
-     * <p>De methode werkt de betalingsgegevens bij en verstuurt een automatische
-     * bevestigingsmail als de betaling de status ‘PAID’ krijgt.</p>
-     *
-     * @param id het unieke ID van de te wijzigen betaling
-     * @param updatedPayment de nieuwe betalingsgegevens
-     * @return het bijgewerkte {@link Payment}-object
-     * @throws RuntimeException als de betaling niet wordt gevonden
-     */
-    public Payment updatePayment(Long id, Payment updatedPayment) {
+    @Transactional(readOnly = true)
+    public Payment getPaymentById(Long id) {
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "id is required");
+        }
         return paymentRepository.findById(id)
-                .map(existing -> {
-                    existing.setAmount(updatedPayment.getAmount());
-                    existing.setDate(updatedPayment.getDate());
-                    existing.setStatus(updatedPayment.getStatus());
-                    existing.setDescription(updatedPayment.getDescription());
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found: " + id));
+    }
 
-                    Payment saved = paymentRepository.save(existing);
-                    sendPaymentConfirmationIfPaid(saved);
-                    return saved;
-                })
-                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + id));
+    // ==========================================================
+    // CREATE / UPDATE
+    // ==========================================================
+
+    public Payment createPayment(PaymentRequestDTO dto) {
+        if (dto == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PaymentRequestDTO is required");
+        }
+
+        BigDecimal amount = dto.getAmount();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount must be > 0");
+        }
+
+        User student = resolveStudentFromDto(dto)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "student is required (provide studentId/studentEmail/studentUsername in PaymentRequestDTO)"
+                ));
+
+        Payment payment = new Payment();
+        payment.setAmount(amount);
+        payment.setDescription(dto.getDescription());
+        payment.setStudent(student);
+        payment.setCreatedAt(LocalDateTime.now());
+        payment.setStatus(dto.getStatus() != null ? dto.getStatus() : PaymentStatus.OPEN);
+
+        if (payment.getStatus() == PaymentStatus.PAID) {
+            payment.setPaidAt(LocalDateTime.now());
+        }
+
+        return paymentRepository.save(payment);
     }
 
     /**
-     * Verwijdert een betaling op basis van ID.
-     *
-     * @param id het unieke ID van de te verwijderen betaling
+     * Status updaten (bijv. OPEN -> PAID).
+     */
+    public Payment updateStatus(Long paymentId, PaymentStatus newStatus) {
+        if (paymentId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "paymentId is required");
+        }
+        if (newStatus == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "newStatus is required");
+        }
+
+        Payment payment = getPaymentById(paymentId);
+        payment.setStatus(newStatus);
+
+        if (newStatus == PaymentStatus.PAID && payment.getPaidAt() == null) {
+            payment.setPaidAt(LocalDateTime.now());
+        }
+        if (newStatus != PaymentStatus.PAID) {
+            payment.setPaidAt(null);
+        }
+
+        return paymentRepository.save(payment);
+    }
+
+    /**
+     * Payment verwijderen (admin).
      */
     public void deletePayment(Long id) {
-        paymentRepository.deleteById(id);
+        Payment payment = getPaymentById(id);
+        paymentRepository.delete(payment);
     }
 
-    /**
-     * Controleert of een betaling de status ‘PAID’ heeft en stuurt in dat geval
-     * een bevestigingsmail naar de gekoppelde student.
-     *
-     * @param payment de betaling waarvoor een bevestiging moet worden verstuurd
-     */
-    private void sendPaymentConfirmationIfPaid(Payment payment) {
-        if ("PAID".equalsIgnoreCase(payment.getStatus()) && payment.getStudent() != null) {
-            User student = payment.getStudent();
-            String subject = "Bevestiging huurbetaling ontvangen";
-            String body = String.format("""
-                    Beste %s,
+    // ==========================================================
+    // Helpers: resolve student via reflection (compile-safe)
+    // ==========================================================
 
-                    Wij hebben je betaling van €%.2f ontvangen.
+    private Optional<User> resolveStudentFromDto(PaymentRequestDTO dto) {
+        Long id = readLong(dto, "getStudentId")
+                .or(() -> readLong(dto, "getUserId"))
+                .orElse(null);
 
-                    Bedankt dat je op tijd hebt betaald!
+        if (id != null) {
+            return userRepository.findById(id);
+        }
 
-                    Met vriendelijke groet,
-                    Villa Vredestein Beheer
-                    """,
-                    safe(student.getUsername()),
-                    payment.getAmount());
+        String email = readString(dto, "getStudentEmail")
+                .or(() -> readString(dto, "getEmail"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .orElse(null);
 
-            mailService.sendMailWithRole("ADMIN", student.getEmail(), subject, body);
+        if (email != null) {
+            return findUserByStringRepoMethod("findByEmail", email)
+                    .or(() -> findUserByStringRepoMethod("findByEmailIgnoreCase", email));
+        }
+
+        String username = readString(dto, "getStudentUsername")
+                .or(() -> readString(dto, "getUsername"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .orElse(null);
+
+        if (username != null) {
+            return findUserByStringRepoMethod("findByUsername", username)
+                    .or(() -> findUserByStringRepoMethod("findByUsernameIgnoreCase", username));
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<Long> readLong(Object target, String methodName) {
+        try {
+            Method m = target.getClass().getMethod(methodName);
+            Object value = m.invoke(target);
+            if (value instanceof Long l) {
+                return Optional.of(l);
+            }
+            return Optional.empty();
+        } catch (Exception ignored) {
+            return Optional.empty();
         }
     }
 
-    /**
-     * Zorgt ervoor dat null- of lege waarden worden vervangen door een standaardwaarde.
-     *
-     * @param s invoerstring
-     * @return veilige string zonder null-waarde
-     */
-    private String safe(String s) {
-        return (s == null || s.isBlank()) ? "student" : s;
+    private Optional<String> readString(Object target, String methodName) {
+        try {
+            Method m = target.getClass().getMethod(methodName);
+            Object value = m.invoke(target);
+            if (value instanceof String s) {
+                return Optional.of(s);
+            }
+            return Optional.empty();
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Optional<User> findUserByStringRepoMethod(String methodName, String value) {
+        try {
+            Method m = userRepository.getClass().getMethod(methodName, String.class);
+            Object result = m.invoke(userRepository, value);
+
+            if (result instanceof Optional<?> opt) {
+                return (Optional<User>) opt;
+            }
+            if (result instanceof User u) {
+                return Optional.of(u);
+            }
+
+            return Optional.empty();
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
     }
 }

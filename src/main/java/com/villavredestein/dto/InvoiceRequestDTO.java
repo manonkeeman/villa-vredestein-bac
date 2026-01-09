@@ -4,13 +4,6 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * Request DTO voor het aanmaken van een nieuwe factuur.
- *
- * <p>Wordt gebruikt door ADMIN-gebruikers om facturen aan te maken
- * voor studenten. Bevat uitsluitend invoervelden en validatieregels,
- * geen businesslogica.</p>
- */
 public class InvoiceRequestDTO {
 
     @NotBlank(message = "Titel is verplicht")
@@ -37,7 +30,6 @@ public class InvoiceRequestDTO {
     private String studentEmail;
 
     protected InvoiceRequestDTO() {
-        // for deserialization
     }
 
     public InvoiceRequestDTO(

@@ -2,18 +2,6 @@ package com.villavredestein.model;
 
 import jakarta.persistence.*;
 
-/**
- * Entity die een kamer binnen Villa Vredestein representeert.
- *
- * <ul>
- *   <li>Een kamer heeft altijd een unieke naam</li>
- *   <li>Een kamer kan maximaal één bewoner (User) hebben</li>
- *   <li>Een gebruiker kan maximaal één kamer bewonen</li>
- * </ul>
- *
- * <p>Deze entity wordt nooit direct naar de client gestuurd;
- * controllers werken uitsluitend met DTO's.</p>
- */
 @Entity
 @Table(name = "rooms")
 public class Room {
@@ -29,16 +17,10 @@ public class Room {
     @JoinColumn(name = "occupant_id", unique = true)
     private User occupant;
 
-    /**
-     * Protected no-args constructor voor JPA.
-     */
     protected Room() {
         // JPA only
     }
 
-    /**
-     * Maakt een nieuwe kamer aan met een verplichte naam.
-     */
     public Room(String name) {
         this.name = name;
     }

@@ -17,13 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * {@code UserService} bevat businesslogica rondom gebruikers.
- *
- * <p>Belangrijk security-principe:
- * STUDENT/CLEANER mogen alleen zichzelf wijzigen (ownership).
- * ADMIN mag iedereen wijzigen.</p>
- */
 @Service
 @Transactional
 public class UserService {
@@ -42,9 +35,6 @@ public class UserService {
     // CREATE
     // =====================================================================
 
-    /**
-     * Maakt een nieuwe student aan met rol STUDENT en een gehashte password.
-     */
     public UserResponseDTO createStudent(String username, String email, String rawPassword) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email bestaat al");
@@ -78,9 +68,6 @@ public class UserService {
         return userRepository.findByEmail(email).map(this::toDTO);
     }
 
-    /**
-     * Geeft het profiel van de ingelogde gebruiker terug.
-     */
     public UserResponseDTO getMe() {
         return toDTO(currentUser());
     }
@@ -102,10 +89,6 @@ public class UserService {
         return toDTO(userRepository.save(user));
     }
 
-    /**
-     * STUDENT/CLEANER mogen alleen hun eigen profiel aanpassen.
-     * ADMIN mag iedereen aanpassen.
-     */
     public UserResponseDTO updateProfile(Long id, UserUpdateDTO dto) {
         User target = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));

@@ -6,13 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 
-/**
- * DTO voor het aanmaken en updaten van schoonmaaktaken.
- *
- * <p>Deze DTO wordt gebruikt als request body richting de API.
- * Validaties zorgen ervoor dat foutieve input vroeg wordt afgevangen,
- * voordat data de service- of persistence-laag bereikt.</p>
- */
 public class CleaningRequestDTO {
 
     private Long id;
@@ -30,10 +23,6 @@ public class CleaningRequestDTO {
 
     private boolean completed;
 
-    /**
-     * We houden dit bewust simpel als String (bijv. username/email),
-     * zodat de client geen User-object hoeft te kennen.
-     */
     private String assignedTo;
 
     private String comment;

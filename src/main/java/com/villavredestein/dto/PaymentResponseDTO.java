@@ -1,22 +1,18 @@
 package com.villavredestein.dto;
 
-import java.time.LocalDate;
+import com.villavredestein.model.Payment;
 
-public class PaymentResponseDTO {
-    private Long id;
-    private double amount;
-    private LocalDate date;
-    private String status;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-    public PaymentResponseDTO(Long id, double amount, LocalDate date, String status) {
-        this.id = id;
-        this.amount = amount;
-        this.date = date;
-        this.status = status;
-    }
-
-    public Long getId() { return id; }
-    public double getAmount() { return amount; }
-    public LocalDate getDate() { return date; }
-    public String getStatus() { return status; }
+public record PaymentResponseDTO(
+        Long id,
+        BigDecimal amount,
+        LocalDateTime createdAt,
+        LocalDateTime paidAt,
+        Payment.PaymentStatus status,
+        String description,
+        String studentEmail,
+        String studentUsername
+) {
 }

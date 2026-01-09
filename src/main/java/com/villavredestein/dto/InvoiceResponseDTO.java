@@ -6,13 +6,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * Response DTO voor facturen.
- *
- * <p>Deze DTO wordt gebruikt om factuurgegevens veilig en gestructureerd
- * terug te sturen naar de client. Er worden geen JPA-entiteiten of interne
- * database-objecten blootgesteld.</p>
- */
 public class InvoiceResponseDTO {
 
     private Long id;
@@ -21,24 +14,15 @@ public class InvoiceResponseDTO {
     private BigDecimal amount;
     private LocalDate issueDate;
     private LocalDate dueDate;
-
-    /**
-     * Status wordt als enum-naam (String) teruggegeven om de API stabiel te houden.
-     */
     private String status;
 
-    /**
-     * Reminder metadata (audit-vriendelijk).
-     */
     private int reminderCount;
     private LocalDateTime lastReminderSentAt;
 
-    // Student-context (read-only)
     private String studentName;
     private String studentEmail;
 
     protected InvoiceResponseDTO() {
-        // for serialization
     }
 
     public InvoiceResponseDTO(

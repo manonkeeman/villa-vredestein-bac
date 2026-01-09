@@ -39,7 +39,6 @@ public class InvoiceController {
             return ResponseEntity.ok(invoiceService.getAllInvoices());
         }
 
-        // JWT subject / username / email (afhankelijk van jouw implementatie)
         String currentUsernameOrEmail = authentication.getName();
         return ResponseEntity.ok(invoiceService.getInvoicesForStudent(currentUsernameOrEmail));
     }

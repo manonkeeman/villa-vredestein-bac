@@ -23,15 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@code DocumentService} bevat de businesslogica voor documentbeheer binnen Villa Vredestein.
- *
- * <p>Deze service is verantwoordelijk voor upload, download, listing en verwijderen van documenten.
- * Bestanden worden fysiek opgeslagen op het bestandssysteem; metadata wordt opgeslagen in de database.</p>
- *
- * <p>Let op: entities worden niet rechtstreeks naar de client gestuurd. Listing gebeurt via
- * {@link DocumentResponseDTO}.</p>
- */
 @Service
 public class DocumentService {
 
@@ -48,9 +39,6 @@ public class DocumentService {
 
     /**
      * Uploadt een document namens de ingelogde gebruiker.
-     *
-     * <p>De uploader wordt geïdentificeerd op basis van de principal name (meestal email of username).
-     * Dit voorkomt dat een client een willekeurige userId kan meesturen.</p>
      */
     public UploadResponseDTO upload(String uploaderPrincipalName, MultipartFile file, String roleAccess) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -67,7 +55,6 @@ public class DocumentService {
                 .map(this::sanitizeFilename)
                 .orElse("document");
 
-        // Unieke storage key voorkomt collisions en maakt opslag onafhankelijk van user input
         String storageKey = UUID.randomUUID() + "_" + originalName;
         Path targetPath = uploadDir.resolve(storageKey);
 
@@ -88,11 +75,6 @@ public class DocumentService {
         return new UploadResponseDTO(saved.getId(), saved.getTitle(), downloadUrl);
     }
 
-    /**
-     * Backwards compatible overload (als je front-end of Postman nog uploaderId gebruikt).
-     *
-     * <p>Advies: gebruik de principal-based upload.</p>
-     */
     public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) throws IOException {
         User uploader = userRepository.findById(uploaderUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden: " + uploaderUserId));
@@ -105,7 +87,6 @@ public class DocumentService {
      * Haalt alle documenten op als veilige response-DTO’s.
      */
     public List<DocumentResponseDTO> listAll() {
-        // Als je repository de methode findAllByOrderByIdDesc() heeft, pak die; anders fallback.
         List<Document> docs;
         try {
             docs = documentRepository.findAllByOrderByIdDesc();
@@ -120,13 +101,10 @@ public class DocumentService {
 
     /**
      * Haalt documenten op die zichtbaar zijn voor een rol.
-     *
-     * <p>ADMIN ziet alles; andere rollen zien ALL en hun eigen rol.</p>
      */
     public List<DocumentResponseDTO> listAccessibleDocuments(String role) {
         String normalizedRole = normalizeRoleAccess(role);
 
-        // Simpel en duidelijk voor NOVI: filtering in Java (kan later naar query-niveau)
         return documentRepository.findAll().stream()
                 .filter(doc -> "ADMIN".equalsIgnoreCase(normalizedRole)
                         || Document.ROLE_ALL.equalsIgnoreCase(doc.getRoleAccess())
@@ -158,7 +136,6 @@ public class DocumentService {
         try {
             Files.deleteIfExists(Paths.get(doc.getStoragePath()));
         } catch (IOException ignored) {
-            // In een volwassen API zou je dit loggen; voor NOVI is fail-safe delete oké.
         }
 
         documentRepository.delete(doc);
@@ -188,7 +165,6 @@ public class DocumentService {
         if (cleaned.isBlank()) {
             return "document";
         }
-        // Houd het kort zodat je geen extreme pad-lengtes krijgt
         return cleaned.length() > 120 ? cleaned.substring(0, 120) : cleaned;
     }
 }

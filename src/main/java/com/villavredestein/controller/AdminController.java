@@ -20,16 +20,6 @@ import java.util.List;
  * {@code AdminController} beheert alle beheerfunctionaliteiten binnen
  * de Villa Vredestein web-API. Alleen toegankelijk voor gebruikers met
  * de rol {@code ADMIN}.
- *
- * <p>Bevat functionaliteit voor:</p>
- * <ul>
- *     <li>Gebruikersbeheer</li>
- *     <li>Factuurbeheer</li>
- *     <li>Schoonmaaktaken beheren</li>
- *     <li>Versturen van huurherinneringen</li>
- * </ul>
- *
- * <p>Fouten worden centraal afgehandeld via {@link com.villavredestein.config.GlobalExceptionHandler}.</p>
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -69,8 +59,6 @@ public class AdminController {
 
     /**
      * Haalt één factuur op basis van ID.
-     *
-     * @param id factuur-ID
      */
     @GetMapping("/invoices/{id}")
     public ResponseEntity<InvoiceResponseDTO> getInvoiceById(@PathVariable Long id) {
@@ -224,10 +212,6 @@ public class AdminController {
     // INTERNAL SERVER ERROR 500 (testing)
     // ============================================================
 
-    /**
-     * Geforceerde server error voor Postman testing.
-     * Wordt opgevangen door GlobalExceptionHandler → 500.
-     */
     @GetMapping("/force-500")
     public void forceInternalError() {
         throw new RuntimeException("500 testfout");

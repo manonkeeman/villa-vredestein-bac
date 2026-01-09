@@ -19,10 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Globale exception handler voor alle REST-endpoints van Villa Vredestein.
- * Zorgt voor consistente foutafhandeling en gestructureerde JSON-responses.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

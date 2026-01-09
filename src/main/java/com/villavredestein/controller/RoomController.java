@@ -14,13 +14,6 @@ import java.util.List;
 
 /**
  * {@code RoomController} beheert alle API-endpoints rondom kamers.
- *
- * <ul>
- *   <li><b>STUDENT</b>: mag kamers inzien</li>
- *   <li><b>ADMIN</b>: mag kamers aanmaken, bezetting beheren en kamers verwijderen</li>
- * </ul>
- *
- * <p>Responses zijn altijd DTO's (geen entities).</p>
  */
 @RestController
 @RequestMapping(value = "/api/rooms", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -37,9 +30,6 @@ public class RoomController {
     // REQUEST DTO
     // =====================================================================
 
-    /**
-     * Request body voor het aanmaken van een kamer.
-     */
     public record CreateRoomRequest(
             @NotBlank(message = "room name is verplicht")
             String name
@@ -49,18 +39,12 @@ public class RoomController {
     // READ
     // =====================================================================
 
-    /**
-     * Haalt alle kamers op.
-     */
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping
     public ResponseEntity<List<RoomResponseDTO>> getAllRooms() {
         return ResponseEntity.ok(roomService.getAllRoomsDTO());
     }
 
-    /**
-     * Haalt een kamer op via id.
-     */
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping("/{id}")
     public ResponseEntity<RoomResponseDTO> getRoomById(@PathVariable Long id) {
@@ -73,9 +57,6 @@ public class RoomController {
     // CREATE
     // =====================================================================
 
-    /**
-     * ADMIN maakt een nieuwe kamer aan.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RoomResponseDTO> createRoom(@Valid @RequestBody CreateRoomRequest request) {
@@ -87,18 +68,12 @@ public class RoomController {
     // UPDATE
     // =====================================================================
 
-    /**
-     * ADMIN wijst een bewoner toe aan een kamer.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/assign/{userId}")
     public ResponseEntity<RoomResponseDTO> assignOccupant(@PathVariable Long roomId, @PathVariable Long userId) {
         return ResponseEntity.ok(roomService.assignOccupantDTO(roomId, userId));
     }
 
-    /**
-     * ADMIN verwijdert de bewoner uit een kamer.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/remove")
     public ResponseEntity<RoomResponseDTO> removeOccupant(@PathVariable Long roomId) {
@@ -109,9 +84,6 @@ public class RoomController {
     // DELETE
     // =====================================================================
 
-    /**
-     * ADMIN verwijdert een kamer.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {

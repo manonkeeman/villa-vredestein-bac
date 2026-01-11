@@ -81,6 +81,8 @@ server:
 # Application Settings
 # ==================================================
 app:
+  cors:
+    allowed-origins: http://localhost:5173,https://www.villavredestein.com,https://villavredestein.com,https://*.netlify.app
   upload-dir: ${APP_UPLOAD_DIR:./uploads}
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
@@ -161,6 +163,10 @@ server:
   error:
     include-message: never
     include-binding-errors: never
+
+app:
+  cors:
+    allowed-origins: https://www.villavredestein.com,https://villavredestein.com,https://*.netlify.app
 
 logging:
   level:

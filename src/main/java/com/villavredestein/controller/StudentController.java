@@ -1,14 +1,15 @@
 package com.villavredestein.controller;
 
-import com.villavredestein.dto.CleaningRequestDTO;
+import com.villavredestein.dto.CleaningResponseDTO;
+import com.villavredestein.dto.DocumentResponseDTO;
 import com.villavredestein.dto.InvoiceResponseDTO;
-import com.villavredestein.model.Document;
 import com.villavredestein.service.CleaningService;
 import com.villavredestein.service.DocumentService;
 import com.villavredestein.service.InvoiceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -21,9 +22,6 @@ public class StudentController {
     private final DocumentService documentService;
     private final CleaningService cleaningService;
 
-    /**
-     * Constructor voor {@link StudentController}.
-     */
     public StudentController(InvoiceService invoiceService,
                              DocumentService documentService,
                              CleaningService cleaningService) {
@@ -32,37 +30,25 @@ public class StudentController {
         this.cleaningService = cleaningService;
     }
 
-    /**
-     * Test endpoint voor POSTMAN
-     */
     @GetMapping("/dashboard")
     public ResponseEntity<String> studentDashboardTest() {
         return ResponseEntity.ok("STUDENT OK");
     }
 
-
-    /**
-     * Haalt alle facturen op die relevant zijn voor de ingelogde student.
-     */
     @GetMapping("/invoices")
     public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices() {
         return ResponseEntity.ok(invoiceService.getAllInvoices());
     }
 
-    /**
-     * Haalt alle documenten op die zichtbaar zijn voor de student.
-     */
     @GetMapping("/documents")
-    public ResponseEntity<List<Document>> getMyDocuments() {
+    public ResponseEntity<List<DocumentResponseDTO>> getMyDocuments() {
         return ResponseEntity.ok(documentService.listAll());
     }
 
-    /**
-     * Haalt de schoonmaaktaken op voor de student.
-     */
     @GetMapping("/cleaning/tasks")
-    public ResponseEntity<List<CleaningRequestDTO>> getCleaningTasks(
+    public ResponseEntity<List<CleaningResponseDTO>> getCleaningTasks(
             @RequestParam(required = false) Integer weekNumber) {
+
         if (weekNumber != null) {
             return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));
         }

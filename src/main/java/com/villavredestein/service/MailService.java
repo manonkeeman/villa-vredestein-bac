@@ -16,6 +16,7 @@ public class MailService {
 
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
 
+    @Nullable
     private final JavaMailSender mailSender;
     private final boolean mailEnabled;
     private final String from;
@@ -44,6 +45,18 @@ public class MailService {
         this.mailEnabled = mailEnabled;
         this.from = from;
         this.bccAdmin = bccAdmin;
+    }
+
+    /**
+     * Test/override constructor.
+     * Hiermee kan je in tests een subclass maken zonder Spring injectie.
+     * Mail staat standaard uit en er is geen mailSender.
+     */
+    protected MailService() {
+        this.mailSender = null;
+        this.mailEnabled = false;
+        this.from = "no-reply@villavredestein.local";
+        this.bccAdmin = "";
     }
 
     /**
@@ -142,6 +155,11 @@ public class MailService {
 
         if (!mailEnabled) {
             log.warn("📧 [MAIL UITGESCHAKELD] cat={} | to={} | subject={} | body={}...", category, safeTo, subject, body.substring(0, Math.min(body.length(), 200)));
+            return;
+        }
+
+        if (mailSender == null) {
+            log.warn("📧 [MAIL ENABLED] maar geen mailSender geconfigureerd (cat={}, to={})", category, safeTo);
             return;
         }
 

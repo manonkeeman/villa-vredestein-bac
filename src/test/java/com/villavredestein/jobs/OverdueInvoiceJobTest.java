@@ -8,15 +8,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @TestPropertySource(properties = "spring.jpa.open-in-view=true")
@@ -30,7 +29,35 @@ class OverdueInvoiceJobTest {
     @Autowired private RoomRepository roomRepository;
     @Autowired private OverdueInvoiceJob overdueInvoiceJob;
 
-    @MockBean private MailService mailService;
+    @Autowired private CapturingMailService capturingMailService;
+
+    @TestConfiguration
+    static class MailTestConfig {
+        @Bean
+        @Primary
+        CapturingMailService capturingMailService() {
+            return new CapturingMailService();
+        }
+
+        @Bean
+        @Primary
+        MailService mailService(CapturingMailService capturingMailService) {
+            return capturingMailService;
+        }
+    }
+
+    static class CapturingMailService extends MailService {
+        private int sentCount = 0;
+
+        public int getSentCount() {
+            return sentCount;
+        }
+
+        @Override
+        public void sendMailWithRole(String role, String to, String subject, String body) {
+            sentCount++;
+        }
+    }
 
     @BeforeEach
     @Transactional
@@ -50,7 +77,7 @@ class OverdueInvoiceJobTest {
 
         Invoice overdueInvoice = new Invoice();
         overdueInvoice.setStudent(student);
-        overdueInvoice.setAmount(500.0);
+        overdueInvoice.setAmount(new BigDecimal("500.00"));
         overdueInvoice.setStatus("OPEN");
         overdueInvoice.setDueDate(LocalDate.now().minusDays(3)); // te laat → overdue
         overdueInvoice.setReminderSent(false);
@@ -62,7 +89,6 @@ class OverdueInvoiceJobTest {
     void shouldSendOverdueReminderForLateInvoices() {
         overdueInvoiceJob.sendOverdueReminders();
 
-        verify(mailService, times(1))
-                .sendMailWithRole(anyString(), anyString(), anyString(), anyString());
+        org.junit.jupiter.api.Assertions.assertEquals(1, capturingMailService.getSentCount());
     }
 }

@@ -63,8 +63,9 @@ public class MailService {
      * Verstuurt een e-mail namens een gebruiker met een bepaalde rol.
      */
     public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
-        String safeTo = maskEmail(to);
         String normalizedRole = normalizeRole(role);
+        requireValidRecipient(to);
+        String safeTo = maskEmail(to);
 
         if (subject == null || subject.isBlank()) {
             throw new IllegalArgumentException("Subject is verplicht");
@@ -99,6 +100,7 @@ public class MailService {
      * CLEANER: verstuurt een incidentmail.
      */
     public void sendCleanerIncidentMail(String to, String body) {
+        requireValidRecipient(to);
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Body is verplicht");
         }
@@ -110,6 +112,7 @@ public class MailService {
      * CLEANER: verstuurt een mail over een schoonmaaktaak.
      */
     public void sendCleanerCleaningTaskMail(String to, String body) {
+        requireValidRecipient(to);
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Body is verplicht");
         }
@@ -121,6 +124,7 @@ public class MailService {
      * SYSTEEM: verstuurt een factuurherinnering (huur) naar een student.
      */
     public void sendInvoiceReminderMail(String to, String subject, String body) {
+        requireValidRecipient(to);
         String safeTo = maskEmail(to);
 
         if (subject == null || subject.isBlank()) {
@@ -163,11 +167,6 @@ public class MailService {
             return;
         }
 
-        if (to == null || to.isBlank()) {
-            log.error("Ongeldig e-mailadres: {}", safeTo);
-            return;
-        }
-
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setFrom(from);
@@ -194,7 +193,23 @@ public class MailService {
         if (role == null) {
             throw new AccessDeniedException("Rol ontbreekt");
         }
-        return role.trim().toUpperCase(Locale.ROOT);
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
+    }
+
+    private void requireValidRecipient(String to) {
+        if (to == null || to.isBlank()) {
+            throw new IllegalArgumentException("E-mailadres (to) is verplicht");
+        }
+        String trimmed = to.trim();
+        int at = trimmed.indexOf('@');
+        int dot = trimmed.lastIndexOf('.');
+        if (at < 1 || dot < at + 2 || dot == trimmed.length() - 1) {
+            throw new IllegalArgumentException("Ongeldig e-mailadres: " + maskEmail(trimmed));
+        }
     }
 
     private String maskEmail(String email) {

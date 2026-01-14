@@ -6,6 +6,7 @@ import com.villavredestein.model.CleaningTask;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.CleaningTaskRepository;
 import com.villavredestein.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +39,7 @@ public class CleaningService {
     }
 
     public List<CleaningResponseDTO> getAllTasks() {
-        return taskRepository.findAll()
+        return taskRepository.findAllByOrderByWeekNumberAscIdAsc()
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
@@ -53,6 +54,7 @@ public class CleaningService {
     }
 
     public List<CleaningResponseDTO> getTasksByWeek(int weekNumber) {
+        requireValidWeekNumber(weekNumber);
         return taskRepository.findByWeekNumberOrderByIdAsc(weekNumber)
                 .stream()
                 .map(this::toResponseDTO)
@@ -60,8 +62,10 @@ public class CleaningService {
     }
 
     public CleaningResponseDTO addTask(CleaningRequestDTO dto) {
+        int weekNumber = requireValidWeekNumber(dto.getWeekNumber());
+
         CleaningTask task = new CleaningTask(
-                dto.getWeekNumber(),
+                weekNumber,
                 dto.getName(),
                 dto.getDescription(),
                 null
@@ -78,26 +82,23 @@ public class CleaningService {
     public CleaningResponseDTO updateTask(Long id, CleaningRequestDTO dto) {
         CleaningTask task = findTaskOrThrow(id);
 
-        task.setWeekNumber(dto.getWeekNumber());
+        task.setWeekNumber(requireValidWeekNumber(dto.getWeekNumber()));
         task.setName(dto.getName());
         task.setDescription(dto.getDescription());
         task.setComment(dto.getComment());
         task.setIncidentReport(dto.getIncidentReport());
 
         if (dto.getAssignedTo() != null && !dto.getAssignedTo().isBlank()) {
-            User assignee = resolveAssignee(dto.getAssignedTo());
-            if (assignee != null) {
-                task.setAssignedTo(assignee);
-            }
+            task.setAssignedTo(resolveAssignee(dto.getAssignedTo()));
         }
 
-        return toResponseDTO(taskRepository.save(task));
+        return toResponseDTO(task);
     }
 
     public CleaningResponseDTO toggleTask(Long id) {
         CleaningTask task = findTaskOrThrow(id);
         task.setCompleted(!task.isCompleted());
-        return toResponseDTO(taskRepository.save(task));
+        return toResponseDTO(task);
     }
 
     public CleaningResponseDTO addComment(Long id, String comment) {
@@ -105,7 +106,7 @@ public class CleaningService {
         String safeComment = requireNonBlank(comment, "Comment mag niet leeg zijn");
 
         task.setComment(safeComment);
-        return toResponseDTO(taskRepository.save(task));
+        return toResponseDTO(task);
     }
 
     public CleaningResponseDTO addIncident(Long id, String incidentReport) {
@@ -113,30 +114,40 @@ public class CleaningService {
         String safeIncident = requireNonBlank(incidentReport, "Incidentbeschrijving mag niet leeg zijn");
 
         task.setIncidentReport(safeIncident);
-        return toResponseDTO(taskRepository.save(task));
+        return toResponseDTO(task);
     }
 
     public void deleteTask(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new RuntimeException("Taak niet gevonden: " + id);
-        }
-        taskRepository.deleteById(id);
+        CleaningTask task = findTaskOrThrow(id);
+        taskRepository.delete(task);
     }
 
     // =========================
     // Helpers
     // =========================
 
+    private int requireValidWeekNumber(Integer weekNumber) {
+        if (weekNumber == null) {
+            throw new IllegalArgumentException("Weeknummer is verplicht");
+        }
+        if (weekNumber < 1 || weekNumber > 4) {
+            throw new IllegalArgumentException("Weeknummer moet tussen 1 en 4 liggen");
+        }
+        return weekNumber;
+    }
+
     private CleaningTask findTaskOrThrow(Long id) {
         return taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Taak niet gevonden: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Taak niet gevonden: " + id));
     }
 
     private User resolveAssignee(String emailOrNull) {
         if (emailOrNull == null || emailOrNull.isBlank()) {
             return null;
         }
-        return userRepository.findByEmail(emailOrNull.trim()).orElse(null);
+        String email = emailOrNull.trim();
+        return userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new EntityNotFoundException("Gebruiker niet gevonden: " + email));
     }
 
     private String requireNonBlank(String value, String message) {

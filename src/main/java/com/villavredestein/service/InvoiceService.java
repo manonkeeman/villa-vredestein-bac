@@ -7,14 +7,17 @@ import com.villavredestein.model.Invoice.InvoiceStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
 
 @Service
 @Transactional
@@ -37,9 +40,9 @@ public class InvoiceService {
 
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
 
-        User student = userRepository.findByEmail(dto.getStudentEmail())
+        User student = userRepository.findByEmailIgnoreCase(dto.getStudentEmail())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Student niet gevonden: " + dto.getStudentEmail()));
+                        new EntityNotFoundException("Student niet gevonden: " + dto.getStudentEmail()));
 
         LocalDate issueDate = (dto.getIssueDate() != null) ? dto.getIssueDate() : LocalDate.now();
 
@@ -56,7 +59,10 @@ public class InvoiceService {
         );
 
         if (invoiceRepository.existsByStudentAndInvoiceMonthAndInvoiceYear(student, invoice.getInvoiceMonth(), invoice.getInvoiceYear())) {
-            throw new IllegalArgumentException("Er bestaat al een factuur voor deze student in " + invoice.getInvoiceMonth() + "-" + invoice.getInvoiceYear());
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Er bestaat al een factuur voor deze student in " + invoice.getInvoiceMonth() + "-" + invoice.getInvoiceYear()
+            );
         }
 
         Invoice saved = invoiceRepository.save(invoice);
@@ -74,20 +80,21 @@ public class InvoiceService {
         return invoiceRepository.findAllByOrderByIdDesc()
                 .stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public InvoiceResponseDTO getInvoiceById(Long id) {
-        Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Factuur niet gevonden: " + id));
-        return toDTO(invoice);
+        return toDTO(findInvoiceOrThrow(id));
     }
 
     public List<InvoiceResponseDTO> getInvoicesForStudent(String studentEmail) {
-        return invoiceRepository.findByStudent_EmailIgnoreCaseOrderByIdDesc(studentEmail)
+        if (studentEmail == null || studentEmail.isBlank()) {
+            throw new IllegalArgumentException("studentEmail is verplicht");
+        }
+        return invoiceRepository.findByStudent_EmailIgnoreCaseOrderByIdDesc(studentEmail.trim())
                 .stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // =====================================================================
@@ -96,15 +103,13 @@ public class InvoiceService {
 
     public InvoiceResponseDTO updateStatus(Long id, InvoiceStatus newStatus) {
 
-        Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Factuur niet gevonden: " + id));
+        Invoice invoice = findInvoiceOrThrow(id);
 
         invoice.setStatus(newStatus);
-        Invoice updated = invoiceRepository.save(invoice);
 
         log.info("📌 Factuurstatus gewijzigd (invoiceId={}, status={})", id, newStatus);
 
-        return toDTO(updated);
+        return toDTO(invoice);
     }
 
     public InvoiceResponseDTO updateStatus(Long id, String newStatus) {
@@ -112,7 +117,7 @@ public class InvoiceService {
             throw new IllegalArgumentException("Status is verplicht");
         }
         try {
-            return updateStatus(id, InvoiceStatus.valueOf(newStatus.trim().toUpperCase()));
+            return updateStatus(id, InvoiceStatus.valueOf(newStatus.trim().toUpperCase(Locale.ROOT)));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Ongeldige status: " + newStatus + ". Toegestaan: OPEN, PAID, OVERDUE, CANCELLED");
         }
@@ -123,10 +128,8 @@ public class InvoiceService {
     // =====================================================================
 
     public void deleteInvoice(Long id) {
-        if (!invoiceRepository.existsById(id)) {
-            throw new IllegalArgumentException("Factuur niet gevonden: " + id);
-        }
-        invoiceRepository.deleteById(id);
+        Invoice invoice = findInvoiceOrThrow(id);
+        invoiceRepository.delete(invoice);
         log.warn("🗑️ Factuur verwijderd (invoiceId={})", id);
     }
 
@@ -152,10 +155,19 @@ public class InvoiceService {
     }
 
     // =====================================================================
+    // HELPERS
+    // =====================================================================
+
+    private Invoice findInvoiceOrThrow(Long id) {
+        return invoiceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Factuur niet gevonden: " + id));
+    }
+
+    // =====================================================================
     // DTO MAPPING
     // =====================================================================
 
-    InvoiceResponseDTO toDTO(Invoice invoice) {
+    private InvoiceResponseDTO toDTO(Invoice invoice) {
 
         if (invoice == null) {
             throw new IllegalArgumentException("Invoice mag niet null zijn");

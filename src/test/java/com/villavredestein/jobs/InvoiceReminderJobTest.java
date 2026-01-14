@@ -8,15 +8,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @TestPropertySource(properties = "spring.jpa.open-in-view=true")
@@ -30,7 +29,7 @@ class InvoiceReminderJobTest {
     @Autowired private RoomRepository roomRepository;
     @Autowired private InvoiceReminderJob invoiceReminderJob;
 
-    @MockBean private MailService mailService;
+    @Autowired private CapturingMailService capturingMailService;
 
     @BeforeEach
     @Transactional
@@ -50,7 +49,7 @@ class InvoiceReminderJobTest {
 
         Invoice invoice = new Invoice();
         invoice.setStudent(student);
-        invoice.setAmount(500.0);
+        invoice.setAmount(new BigDecimal("500.00"));
         invoice.setStatus("OPEN");
         invoice.setDueDate(LocalDate.now().plusDays(3)); // binnen 4 dagen → reminder
         invoice.setReminderSent(false);
@@ -62,7 +61,34 @@ class InvoiceReminderJobTest {
     void shouldSendReminderForUpcomingInvoices() {
         invoiceReminderJob.sendReminders();
 
-        verify(mailService, times(1))
-                .sendMailWithRole(anyString(), anyString(), anyString(), anyString());
+        org.junit.jupiter.api.Assertions.assertEquals(1, capturingMailService.getSentCount());
+    }
+
+    @TestConfiguration
+    static class MailTestConfig {
+        @Bean
+        @Primary
+        CapturingMailService capturingMailService() {
+            return new CapturingMailService();
+        }
+
+        @Bean
+        @Primary
+        MailService mailService(CapturingMailService capturingMailService) {
+            return capturingMailService;
+        }
+    }
+
+    static class CapturingMailService extends MailService {
+        private int sentCount = 0;
+
+        public int getSentCount() {
+            return sentCount;
+        }
+
+        @Override
+        public void sendMailWithRole(String role, String to, String subject, String body) {
+            sentCount++;
+        }
     }
 }

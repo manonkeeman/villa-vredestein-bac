@@ -6,12 +6,16 @@ import com.villavredestein.dto.InvoiceResponseDTO;
 import com.villavredestein.service.CleaningService;
 import com.villavredestein.service.DocumentService;
 import com.villavredestein.service.InvoiceService;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/api/student")
 @CrossOrigin
@@ -36,8 +40,8 @@ public class StudentController {
     }
 
     @GetMapping("/invoices")
-    public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices() {
-        return ResponseEntity.ok(invoiceService.getAllInvoices());
+    public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices(Authentication authentication) {
+        return ResponseEntity.ok(invoiceService.getInvoicesForStudent(authentication.getName()));
     }
 
     @GetMapping("/documents")
@@ -47,7 +51,7 @@ public class StudentController {
 
     @GetMapping("/cleaning/tasks")
     public ResponseEntity<List<CleaningResponseDTO>> getCleaningTasks(
-            @RequestParam(required = false) Integer weekNumber) {
+            @RequestParam(required = false) @Positive Integer weekNumber) {
 
         if (weekNumber != null) {
             return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));

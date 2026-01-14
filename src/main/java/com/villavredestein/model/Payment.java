@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Entity
@@ -35,7 +36,7 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "paid_at")
@@ -86,9 +87,17 @@ public class Payment {
     private void normalize() {
         if (description != null) {
             description = description.trim();
+            if (description.isEmpty()) {
+                description = null;
+            }
         }
+
         if (status == null) {
             status = PaymentStatus.OPEN;
+        }
+
+        if (amount != null) {
+            amount = amount.setScale(2, RoundingMode.HALF_UP);
         }
     }
 
@@ -100,9 +109,16 @@ public class Payment {
         return !paidAt.isBefore(createdAt);
     }
 
-    // =========================
-    // Getters
-    // =========================
+    @AssertTrue(message = "Bij status PAID moet paidAt gevuld zijn")
+    private boolean isPaidAtPresentWhenPaid() {
+        if (status == null) {
+            return true;
+        }
+        if (status == PaymentStatus.PAID) {
+            return paidAt != null;
+        }
+        return true;
+    }
 
     public Long getId() {
         return id;
@@ -132,10 +148,6 @@ public class Payment {
         return student;
     }
 
-    // =========================
-    // Setters
-    // =========================
-
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
@@ -153,16 +165,12 @@ public class Payment {
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        this.description = (description == null) ? null : description.trim();
     }
 
     public void setStudent(User student) {
         this.student = student;
     }
-
-    // =========================
-    // Convenience
-    // =========================
 
     public void markPaidNow() {
         this.status = PaymentStatus.PAID;
@@ -181,7 +189,20 @@ public class Payment {
                 ", createdAt=" + createdAt +
                 ", paidAt=" + paidAt +
                 ", status=" + status +
-                ", student=" + (student != null ? student.getUsername() : "null") +
+                ", studentId=" + (student != null ? student.getId() : null) +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Payment)) return false;
+        Payment other = (Payment) o;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
     }
 }

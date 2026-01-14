@@ -10,4 +10,8 @@ import java.util.List;
 public interface CleaningTaskRepository extends JpaRepository<CleaningTask, Long> {
 
     List<CleaningTask> findByWeekNumberOrderByIdAsc(int weekNumber);
+
+    List<CleaningTask> findAllByOrderByWeekNumberAscIdAsc();
+
+    List<CleaningTask> findAllByOrderByIdAsc();
 }

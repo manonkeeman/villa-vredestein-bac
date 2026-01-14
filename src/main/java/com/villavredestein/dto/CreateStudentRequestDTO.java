@@ -6,16 +6,19 @@ import jakarta.validation.constraints.Size;
 
 public class CreateStudentRequestDTO {
 
-    @NotBlank(message = "username is verplicht")
+    @NotBlank(message = "Gebruikersnaam is verplicht")
     private String username;
 
-    @Email(message = "email moet geldig zijn")
-    @NotBlank(message = "email is verplicht")
+    @NotBlank(message = "E-mailadres is verplicht")
+    @Email(message = "Voer een geldig e-mailadres in")
     private String email;
 
-    @NotBlank(message = "password is verplicht")
-    @Size(min = 6, message = "password moet minimaal 6 tekens zijn")
+    @NotBlank(message = "Wachtwoord is verplicht")
+    @Size(min = 6, message = "Wachtwoord moet minimaal 6 tekens lang zijn")
     private String password;
+
+    public CreateStudentRequestDTO() {
+    }
 
     public String getUsername() {
         return username;

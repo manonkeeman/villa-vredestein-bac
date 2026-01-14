@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.Locale;
+
 @Entity
 @Table(
         name = "documents",
@@ -49,14 +51,20 @@ public class Document {
     @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
     private User uploadedBy;
 
-    public Document() {
+    protected Document() {
     }
 
-    public Document(String title, String description, String storagePath, String roleAccess, User uploadedBy) {
+    public Document(String title,
+                    String description,
+                    String storagePath,
+                    String roleAccess,
+                    User uploadedBy) {
         this.title = title;
         this.description = description;
         this.storagePath = storagePath;
-        this.roleAccess = (roleAccess == null || roleAccess.isBlank()) ? ROLE_ALL : roleAccess;
+        this.roleAccess = (roleAccess == null || roleAccess.isBlank())
+                ? ROLE_ALL
+                : roleAccess.trim().toUpperCase(Locale.ROOT);
         this.uploadedBy = uploadedBy;
     }
 
@@ -77,7 +85,7 @@ public class Document {
 
         roleAccess = (roleAccess == null || roleAccess.isBlank())
                 ? ROLE_ALL
-                : roleAccess.trim().toUpperCase();
+                : roleAccess.trim().toUpperCase(Locale.ROOT);
     }
 
     public Long getId() {

@@ -4,9 +4,12 @@ import com.villavredestein.dto.CleaningRequestDTO;
 import com.villavredestein.dto.CleaningResponseDTO;
 import com.villavredestein.service.CleaningService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.List;
 /**
  * REST-controller voor het beheren van schoonmaaktaken binnen Villa Vredestein.
  */
+@Validated
 @RestController
 @RequestMapping("/api/cleaning")
 @CrossOrigin
@@ -40,7 +44,7 @@ public class CleaningController {
     @GetMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<List<CleaningResponseDTO>> getTasks(
-            @RequestParam(required = false) Integer weekNumber
+            @RequestParam(required = false) @Positive Integer weekNumber
     ) {
         List<CleaningResponseDTO> result = (weekNumber == null)
                 ? cleaningService.getAllTasks()
@@ -66,7 +70,7 @@ public class CleaningController {
      */
     @PutMapping("/tasks/{taskId}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable Long taskId) {
+    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable @Positive Long taskId) {
         return ResponseEntity.ok(cleaningService.toggleTask(taskId));
     }
 
@@ -76,8 +80,8 @@ public class CleaningController {
     @PutMapping("/tasks/{taskId}/comment")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningResponseDTO> addComment(
-            @PathVariable Long taskId,
-            @RequestParam String comment
+            @PathVariable @Positive Long taskId,
+            @RequestParam @NotBlank String comment
     ) {
         return ResponseEntity.ok(cleaningService.addComment(taskId, comment));
     }
@@ -88,8 +92,8 @@ public class CleaningController {
     @PutMapping("/tasks/{taskId}/incident")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningResponseDTO> addIncident(
-            @PathVariable Long taskId,
-            @RequestParam String incident
+            @PathVariable @Positive Long taskId,
+            @RequestParam @NotBlank String incident
     ) {
         return ResponseEntity.ok(cleaningService.addIncident(taskId, incident));
     }
@@ -99,7 +103,7 @@ public class CleaningController {
      */
     @DeleteMapping("/tasks/{taskId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
+    public ResponseEntity<Void> deleteTask(@PathVariable @Positive Long taskId) {
         cleaningService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }

@@ -6,7 +6,6 @@ import com.villavredestein.model.User;
 import com.villavredestein.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -36,13 +34,14 @@ public class UserService {
     // =====================================================================
 
     public UserResponseDTO createStudent(String username, String email, String rawPassword) {
-        if (userRepository.existsByEmail(email)) {
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new IllegalArgumentException("Email bestaat al");
         }
 
         User user = new User(
                 username,
-                email,
+                normalizedEmail,
                 passwordEncoder.encode(rawPassword),
                 "STUDENT"
         );
@@ -55,9 +54,9 @@ public class UserService {
     // =====================================================================
 
     public List<UserResponseDTO> getAllUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllByOrderByIdAsc().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Optional<UserResponseDTO> getUserById(Long id) {
@@ -65,7 +64,7 @@ public class UserService {
     }
 
     public Optional<UserResponseDTO> getUserByEmail(String email) {
-        return userRepository.findByEmail(email).map(this::toDTO);
+        return userRepository.findByEmailIgnoreCase(normalizeEmail(email)).map(this::toDTO);
     }
 
     public UserResponseDTO getMe() {
@@ -83,15 +82,15 @@ public class UserService {
         }
 
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + id));
 
         user.setRole(normalized);
-        return toDTO(userRepository.save(user));
+        return toDTO(user);
     }
 
     public UserResponseDTO updateProfile(Long id, UserUpdateDTO dto) {
         User target = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + id));
 
         assertOwnerOrAdmin(target.getId());
 
@@ -100,13 +99,14 @@ public class UserService {
         }
 
         if (dto.getEmail() != null && !dto.getEmail().equalsIgnoreCase(target.getEmail())) {
-            if (userRepository.existsByEmail(dto.getEmail())) {
+            String normalizedEmail = normalizeEmail(dto.getEmail());
+            if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
                 throw new IllegalArgumentException("Email bestaat al");
             }
-            target.setEmail(dto.getEmail());
+            target.setEmail(normalizedEmail);
         }
 
-        return toDTO(userRepository.save(target));
+        return toDTO(target);
     }
 
     // =====================================================================
@@ -114,32 +114,38 @@ public class UserService {
     // =====================================================================
 
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new EntityNotFoundException("User not found");
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + id));
+        userRepository.delete(user);
     }
 
     // =====================================================================
     // SECURITY HELPERS
     // =====================================================================
 
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is verplicht");
+        }
+        return email.trim().toLowerCase();
+    }
+
     private User currentUser() {
-        String email = currentEmail();
-        return userRepository.findByEmail(email)
+        String email = normalizeEmail(currentEmail());
+        return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
     }
 
     private String currentEmail() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getName() == null) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
             throw new AccessDeniedException("Not authenticated");
         }
         return auth.getName(); // email
     }
 
     private boolean isAdmin() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return false;
 
         return auth.getAuthorities().stream()

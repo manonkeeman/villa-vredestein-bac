@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Entity
 @Table(
@@ -132,10 +133,6 @@ public class Invoice {
         return !dueDate.isBefore(issueDate);
     }
 
-    // =========================
-    // Getters
-    // =========================
-
     public Long getId() {
         return id;
     }
@@ -184,24 +181,20 @@ public class Invoice {
         return student;
     }
 
-    // =========================
-    // Setters
-    // =========================
-
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public void setAmount(double amount) {
-        this.amount = BigDecimal.valueOf(amount);
-    }
-
     public void setStatus(String status) {
-        if (status == null) {
-            this.status = null;
+        if (status == null || status.isBlank()) {
+            this.status = InvoiceStatus.OPEN;
             return;
         }
-        this.status = InvoiceStatus.valueOf(status.trim().toUpperCase());
+        this.status = InvoiceStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+    }
+
+    public void setStatus(InvoiceStatus status) {
+        this.status = (status == null) ? InvoiceStatus.OPEN : status;
     }
 
     public void setReminderSent(boolean reminderSent) {
@@ -248,17 +241,9 @@ public class Invoice {
         this.reminderCount = (reminderCount < 0) ? 0 : reminderCount;
     }
 
-    public void setStatus(InvoiceStatus status) {
-        this.status = (status == null) ? InvoiceStatus.OPEN : status;
-    }
-
     public void setStudent(User student) {
         this.student = student;
     }
-
-    // =========================
-    // Convenience
-    // =========================
 
     public void markReminderSentNow() {
         this.lastReminderSentAt = LocalDateTime.now();

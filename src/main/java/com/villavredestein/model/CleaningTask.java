@@ -1,5 +1,7 @@
 package com.villavredestein.model;
 
+import java.util.Locale;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
@@ -43,16 +45,9 @@ public class CleaningTask {
     @Column(length = 1000)
     private String incidentReport;
 
-    /**
-     * Bepaalt voor welke rol(len) deze taak zichtbaar of uitvoerbaar is.
-     * Voorbeelden: ALL, ADMIN, STUDENT, CLEANER.
-     */
     @Column(name = "role_access", nullable = false, length = 20)
     private String roleAccess = ROLE_ALL;
 
-    /**
-     * De gebruiker aan wie deze taak is toegewezen.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
     @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
@@ -67,7 +62,7 @@ public class CleaningTask {
         this.description = description;
         this.roleAccess = (roleAccess == null || roleAccess.isBlank())
                 ? ROLE_ALL
-                : roleAccess;
+                : roleAccess.trim().toUpperCase(Locale.ROOT);
     }
 
     @PrePersist
@@ -75,16 +70,12 @@ public class CleaningTask {
     private void normalize() {
         roleAccess = (roleAccess == null || roleAccess.isBlank())
                 ? ROLE_ALL
-                : roleAccess.trim().toUpperCase();
+                : roleAccess.trim().toUpperCase(Locale.ROOT);
 
         if (name != null) {
             name = name.trim();
         }
     }
-
-    // =========================
-    // Getters
-    // =========================
 
     public Long getId() {
         return id;
@@ -122,9 +113,6 @@ public class CleaningTask {
         return assignedTo;
     }
 
-    // =========================
-    // Setters
-    // =========================
 
     public void setWeekNumber(int weekNumber) {
         this.weekNumber = weekNumber;

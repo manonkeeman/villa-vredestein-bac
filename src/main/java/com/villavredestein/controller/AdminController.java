@@ -10,17 +10,23 @@ import com.villavredestein.jobs.OverdueInvoiceJob;
 import com.villavredestein.service.CleaningService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.UserService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
- * {@code AdminController} beheert alle beheerfunctionaliteiten binnen
+* {@code AdminController} beheert alle beheerfunctionaliteiten binnen
  * de Villa Vredestein web-API. Alleen toegankelijk voor gebruikers met
  * de rol {@code ADMIN}.
  */
+@Validated
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin
@@ -61,7 +67,7 @@ public class AdminController {
      * Haalt één factuur op basis van ID.
      */
     @GetMapping("/invoices/{id}")
-    public ResponseEntity<InvoiceResponseDTO> getInvoiceById(@PathVariable Long id) {
+    public ResponseEntity<InvoiceResponseDTO> getInvoiceById(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(invoiceService.getInvoiceById(id));
     }
 
@@ -77,8 +83,8 @@ public class AdminController {
      * Maakt een nieuwe factuur aan.
      */
     @PostMapping("/invoices")
-    public ResponseEntity<InvoiceResponseDTO> createInvoice(@RequestBody InvoiceRequestDTO dto) {
-        return ResponseEntity.ok(invoiceService.createInvoice(dto));
+    public ResponseEntity<InvoiceResponseDTO> createInvoice(@Valid @RequestBody InvoiceRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(invoiceService.createInvoice(dto));
     }
 
     /**
@@ -86,8 +92,8 @@ public class AdminController {
      */
     @PutMapping("/invoices/{id}/status")
     public ResponseEntity<InvoiceResponseDTO> updateInvoiceStatus(
-            @PathVariable Long id,
-            @RequestParam String status
+            @PathVariable @Positive Long id,
+            @RequestParam @NotBlank String status
     ) {
         return ResponseEntity.ok(invoiceService.updateStatus(id, status));
     }
@@ -96,7 +102,7 @@ public class AdminController {
      * Verwijdert een factuur.
      */
     @DeleteMapping("/invoices/{id}")
-    public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteInvoice(@PathVariable @Positive Long id) {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.noContent().build();
     }
@@ -139,7 +145,7 @@ public class AdminController {
      * Verwijdert een gebruiker.
      */
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable @Positive Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -149,8 +155,8 @@ public class AdminController {
      */
     @PutMapping("/users/{id}/role")
     public ResponseEntity<UserResponseDTO> changeRole(
-            @PathVariable Long id,
-            @RequestParam String newRole
+            @PathVariable @Positive Long id,
+            @RequestParam @NotBlank String newRole
     ) {
         return ResponseEntity.ok(userService.changeRole(id, newRole));
     }
@@ -164,7 +170,7 @@ public class AdminController {
      */
     @GetMapping("/cleaning/tasks")
     public ResponseEntity<List<CleaningResponseDTO>> getCleaningTasks(
-            @RequestParam(required = false) Integer weekNumber
+            @RequestParam(required = false) @Positive Integer weekNumber
     ) {
         if (weekNumber != null) {
             return ResponseEntity.ok(cleaningService.getTasksByWeek(weekNumber));
@@ -176,8 +182,8 @@ public class AdminController {
      * Maakt een nieuwe schoonmaaktaak aan.
      */
     @PostMapping("/cleaning/tasks")
-    public ResponseEntity<CleaningResponseDTO> createTask(@RequestBody CleaningRequestDTO dto) {
-        return ResponseEntity.ok(cleaningService.addTask(dto));
+    public ResponseEntity<CleaningResponseDTO> createTask(@Valid @RequestBody CleaningRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(cleaningService.addTask(dto));
     }
 
     /**
@@ -185,8 +191,8 @@ public class AdminController {
      */
     @PutMapping("/cleaning/tasks/{taskId}")
     public ResponseEntity<CleaningResponseDTO> updateTask(
-            @PathVariable Long taskId,
-            @RequestBody CleaningRequestDTO dto
+            @PathVariable @Positive Long taskId,
+            @Valid @RequestBody CleaningRequestDTO dto
     ) {
         return ResponseEntity.ok(cleaningService.updateTask(taskId, dto));
     }
@@ -195,7 +201,7 @@ public class AdminController {
      * Toggle taak-status (OPEN ↔ DONE).
      */
     @PutMapping("/cleaning/tasks/{taskId}/toggle")
-    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable Long taskId) {
+    public ResponseEntity<CleaningResponseDTO> toggleTask(@PathVariable @Positive Long taskId) {
         return ResponseEntity.ok(cleaningService.toggleTask(taskId));
     }
 
@@ -203,7 +209,7 @@ public class AdminController {
      * Verwijdert een schoonmaaktaak.
      */
     @DeleteMapping("/cleaning/tasks/{taskId}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
+    public ResponseEntity<Void> deleteTask(@PathVariable @Positive Long taskId) {
         cleaningService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }

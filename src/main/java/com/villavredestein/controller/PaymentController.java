@@ -4,9 +4,14 @@ import com.villavredestein.dto.PaymentRequestDTO;
 import com.villavredestein.model.Payment;
 import com.villavredestein.service.PaymentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -15,6 +20,7 @@ import java.util.List;
 /**
  * REST-controller voor betalingen binnen Villa Vredestein
  */
+@Validated
 @RestController
 @RequestMapping("/api/payments")
 @CrossOrigin
@@ -56,13 +62,13 @@ public class PaymentController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/student/{email}")
-    public ResponseEntity<List<Payment>> getPaymentsForStudent(@PathVariable String email) {
+    public ResponseEntity<List<Payment>> getPaymentsForStudent(@PathVariable @NotBlank @Email String email) {
         return ResponseEntity.ok(paymentService.getPaymentsForStudent(email));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable Long id) {
+    public ResponseEntity<Payment> getPaymentById(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
@@ -79,7 +85,7 @@ public class PaymentController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePayment(@PathVariable @Positive Long id) {
         paymentService.deletePayment(id);
         return ResponseEntity.noContent().build();
     }
@@ -90,7 +96,7 @@ public class PaymentController {
 
     private String currentUserEmail(Principal principal) {
         if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
-            throw new IllegalStateException("Geen ingelogde gebruiker gevonden");
+            throw new AuthenticationException("Geen ingelogde gebruiker gevonden") {};
         }
         return principal.getName().trim().toLowerCase();
     }

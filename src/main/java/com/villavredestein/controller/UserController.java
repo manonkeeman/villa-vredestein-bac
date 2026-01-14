@@ -7,15 +7,19 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping(value = "/api/users", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin
@@ -93,10 +97,10 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponseDTO> getByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserResponseDTO> getByEmail(@PathVariable @NotBlank @Email String email) {
+        UserResponseDTO user = userService.getUserByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User met email " + email + " niet gevonden"));
+        return ResponseEntity.ok(user);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
@@ -107,10 +111,10 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> getById(@PathVariable Long id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserResponseDTO> getById(@PathVariable @Positive Long id) {
+        UserResponseDTO user = userService.getUserById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User met id " + id + " niet gevonden"));
+        return ResponseEntity.ok(user);
     }
 
     // =====================================================================
@@ -119,7 +123,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/{id}/role", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponseDTO> changeRole(@PathVariable Long id, @Valid @RequestBody ChangeRoleRequest request) {
+    public ResponseEntity<UserResponseDTO> changeRole(@PathVariable @Positive Long id, @Valid @RequestBody ChangeRoleRequest request) {
         return ResponseEntity.ok(userService.changeRole(id, request.getNewRole()));
     }
 
@@ -133,7 +137,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/{id}/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponseDTO> updateAnyProfile(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO dto) {
+    public ResponseEntity<UserResponseDTO> updateAnyProfile(@PathVariable @Positive Long id, @Valid @RequestBody UserUpdateDTO dto) {
         return ResponseEntity.ok(userService.updateProfile(id, dto));
     }
 
@@ -143,7 +147,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable @Positive Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }

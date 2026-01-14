@@ -6,10 +6,9 @@ import com.villavredestein.model.Payment.PaymentStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.PaymentRepository;
 import com.villavredestein.repository.UserRepository;
-import org.springframework.http.HttpStatus;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -41,26 +40,26 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public List<Payment> getPaymentsForStudent(String studentEmail) {
         if (studentEmail == null || studentEmail.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "studentEmail is required");
+            throw new IllegalArgumentException("studentEmail is verplicht");
         }
-        return paymentRepository.findByStudent_Email(studentEmail.trim().toLowerCase());
+        return paymentRepository.findByStudent_Email(studentEmail.trim());
     }
 
     @Transactional(readOnly = true)
     public List<Payment> getOpenPaymentsForStudent(String studentEmail) {
         if (studentEmail == null || studentEmail.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "studentEmail is required");
+            throw new IllegalArgumentException("studentEmail is verplicht");
         }
-        return paymentRepository.findByStudent_EmailAndStatus(studentEmail.trim().toLowerCase(), PaymentStatus.OPEN);
+        return paymentRepository.findByStudent_EmailAndStatus(studentEmail.trim(), PaymentStatus.OPEN);
     }
 
     @Transactional(readOnly = true)
     public Payment getPaymentById(Long id) {
         if (id == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "id is required");
+            throw new IllegalArgumentException("id is verplicht");
         }
         return paymentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Payment niet gevonden: " + id));
     }
 
     // ==========================================================
@@ -69,19 +68,24 @@ public class PaymentService {
 
     public Payment createPayment(PaymentRequestDTO dto) {
         if (dto == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PaymentRequestDTO is required");
+            throw new IllegalArgumentException("PaymentRequestDTO is verplicht");
         }
 
         BigDecimal amount = dto.getAmount();
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount must be > 0");
+            throw new IllegalArgumentException("amount moet groter zijn dan 0");
         }
 
+        boolean identifierProvided = hasStudentIdentifier(dto);
         User student = resolveStudentFromDto(dto)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "student is required (provide studentId/studentEmail/studentUsername in PaymentRequestDTO)"
-                ));
+                .orElseThrow(() -> {
+                    if (identifierProvided) {
+                        return new EntityNotFoundException("Student niet gevonden op basis van opgegeven identificatie");
+                    }
+                    return new IllegalArgumentException(
+                            "student is verplicht (geef studentId/studentEmail/studentUsername mee in PaymentRequestDTO)"
+                    );
+                });
 
         Payment payment = new Payment();
         payment.setAmount(amount);
@@ -102,10 +106,10 @@ public class PaymentService {
      */
     public Payment updateStatus(Long paymentId, PaymentStatus newStatus) {
         if (paymentId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "paymentId is required");
+            throw new IllegalArgumentException("paymentId is verplicht");
         }
         if (newStatus == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "newStatus is required");
+            throw new IllegalArgumentException("newStatus is verplicht");
         }
 
         Payment payment = getPaymentById(paymentId);
@@ -127,6 +131,33 @@ public class PaymentService {
     public void deletePayment(Long id) {
         Payment payment = getPaymentById(id);
         paymentRepository.delete(payment);
+    }
+
+    // ==========================================================
+    // Helpers: detect student identifier
+    // ==========================================================
+
+    private boolean hasStudentIdentifier(PaymentRequestDTO dto) {
+        Long id = readLong(dto, "getStudentId")
+                .or(() -> readLong(dto, "getUserId"))
+                .orElse(null);
+        if (id != null) {
+            return true;
+        }
+
+        String email = readString(dto, "getStudentEmail")
+                .or(() -> readString(dto, "getEmail"))
+                .map(String::trim)
+                .orElse("");
+        if (!email.isBlank()) {
+            return true;
+        }
+
+        String username = readString(dto, "getStudentUsername")
+                .or(() -> readString(dto, "getUsername"))
+                .map(String::trim)
+                .orElse("");
+        return !username.isBlank();
     }
 
     // ==========================================================

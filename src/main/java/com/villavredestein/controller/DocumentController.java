@@ -12,7 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import org.springframework.http.ContentDisposition;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class DocumentController {
             Principal principal,
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "ALL") String roleAccess
-    ) throws IOException {
+    ) {
         UploadResponseDTO created = documentService.upload(principal.getName(), file, roleAccess);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -60,14 +61,15 @@ public class DocumentController {
     @GetMapping("/{id}/download")
     public ResponseEntity<FileSystemResource> downloadDocument(@PathVariable Long id) {
         FileSystemResource resource = documentService.download(id);
-        if (resource == null || !resource.exists()) {
-            return ResponseEntity.notFound().build();
-        }
 
         String filename = resource.getFilename() == null ? "document" : resource.getFilename();
+        ContentDisposition contentDisposition = ContentDisposition
+                .attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }

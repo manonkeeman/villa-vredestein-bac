@@ -5,14 +5,16 @@ import com.villavredestein.dto.InvoiceResponseDTO;
 import com.villavredestein.model.Invoice;
 import com.villavredestein.service.InvoiceService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/api/invoices")
 @CrossOrigin
@@ -57,7 +59,7 @@ public class InvoiceController {
     @PutMapping("/{id}/status")
     public ResponseEntity<InvoiceResponseDTO> updateInvoiceStatus(
             @PathVariable Long id,
-            @RequestParam Invoice.InvoiceStatus status
+            @RequestParam @NotNull Invoice.InvoiceStatus status
     ) {
         return ResponseEntity.ok(invoiceService.updateStatus(id, status));
     }

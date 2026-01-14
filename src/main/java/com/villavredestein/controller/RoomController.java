@@ -4,10 +4,13 @@ import com.villavredestein.dto.RoomResponseDTO;
 import com.villavredestein.service.RoomService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +18,7 @@ import java.util.List;
 /**
  * {@code RoomController} beheert alle API-endpoints rondom kamers.
  */
+@Validated
 @RestController
 @RequestMapping(value = "/api/rooms", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin
@@ -47,10 +51,11 @@ public class RoomController {
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping("/{id}")
-    public ResponseEntity<RoomResponseDTO> getRoomById(@PathVariable Long id) {
-        return roomService.getRoomByIdDTO(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<RoomResponseDTO> getRoomById(@PathVariable @Positive Long id) {
+        return ResponseEntity.ok(
+                roomService.getRoomByIdDTO(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Room met id " + id + " niet gevonden"))
+        );
     }
 
     // =====================================================================
@@ -70,13 +75,13 @@ public class RoomController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/assign/{userId}")
-    public ResponseEntity<RoomResponseDTO> assignOccupant(@PathVariable Long roomId, @PathVariable Long userId) {
+    public ResponseEntity<RoomResponseDTO> assignOccupant(@PathVariable @Positive Long roomId, @PathVariable @Positive Long userId) {
         return ResponseEntity.ok(roomService.assignOccupantDTO(roomId, userId));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/remove")
-    public ResponseEntity<RoomResponseDTO> removeOccupant(@PathVariable Long roomId) {
+    public ResponseEntity<RoomResponseDTO> removeOccupant(@PathVariable @Positive Long roomId) {
         return ResponseEntity.ok(roomService.removeOccupantDTO(roomId));
     }
 
@@ -86,7 +91,7 @@ public class RoomController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRoom(@PathVariable @Positive Long id) {
         roomService.deleteRoom(id);
         return ResponseEntity.noContent().build();
     }

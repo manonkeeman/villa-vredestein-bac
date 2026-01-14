@@ -19,12 +19,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByStudent_EmailIgnoreCaseOrderByIdDesc(String email);
 
     List<Invoice> findByStatusOrderByIdDesc(InvoiceStatus status);
-    List<Invoice> findByStatusIgnoreCase(String status);
 
     List<Invoice> findByStatusAndDueDateBeforeOrderByDueDateAsc(InvoiceStatus status, LocalDate date);
 
     List<Invoice> findByStatusAndDueDateBetweenOrderByDueDateAsc(InvoiceStatus status, LocalDate start, LocalDate end);
-    List<Invoice> findByStatusIgnoreCaseAndDueDateBetween(String status, LocalDate start, LocalDate end);
 
     boolean existsByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
 }

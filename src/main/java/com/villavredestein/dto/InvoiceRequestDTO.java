@@ -32,14 +32,12 @@ public class InvoiceRequestDTO {
     protected InvoiceRequestDTO() {
     }
 
-    public InvoiceRequestDTO(
-            String title,
-            String description,
-            BigDecimal amount,
-            LocalDate issueDate,
-            LocalDate dueDate,
-            String studentEmail
-    ) {
+    public InvoiceRequestDTO(String title,
+                             String description,
+                             BigDecimal amount,
+                             LocalDate issueDate,
+                             LocalDate dueDate,
+                             String studentEmail) {
         this.title = title;
         this.description = description;
         this.amount = amount;
@@ -47,10 +45,6 @@ public class InvoiceRequestDTO {
         this.dueDate = dueDate;
         this.studentEmail = studentEmail;
     }
-
-    // =========================
-    // Getters & Setters
-    // =========================
 
     public String getTitle() {
         return title;

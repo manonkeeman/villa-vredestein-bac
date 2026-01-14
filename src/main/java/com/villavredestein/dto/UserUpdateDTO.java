@@ -5,11 +5,11 @@ import jakarta.validation.constraints.Size;
 
 public class UserUpdateDTO {
 
-    @Size(min = 2, max = 50, message = "Username moet tussen 2 en 50 tekens zijn")
+    @Size(min = 2, max = 50, message = "Gebruikersnaam moet tussen 2 en 50 tekens zijn")
     private String username;
 
-    @Email(message = "Email moet een geldig emailadres zijn")
-    @Size(max = 255, message = "Email mag maximaal 255 tekens zijn")
+    @Email(message = "E-mailadres moet een geldig e-mailadres zijn")
+    @Size(max = 255, message = "E-mailadres mag maximaal 255 tekens zijn")
     private String email;
 
     public UserUpdateDTO() {

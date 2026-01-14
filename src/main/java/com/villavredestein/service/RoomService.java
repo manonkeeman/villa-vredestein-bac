@@ -29,11 +29,16 @@ public class RoomService {
     // =====================================================================
 
     public RoomResponseDTO createRoomDTO(String name) {
-        if (roomRepository.existsByName(name)) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Room name is verplicht");
+        }
+        String normalizedName = name.trim();
+
+        if (roomRepository.existsByNameIgnoreCase(normalizedName)) {
             throw new IllegalArgumentException("Room name already exists");
         }
 
-        Room room = roomRepository.save(new Room(name));
+        Room room = roomRepository.save(new Room(normalizedName));
         return toDTO(room);
     }
 
@@ -42,7 +47,7 @@ public class RoomService {
     // =====================================================================
 
     public List<RoomResponseDTO> getAllRoomsDTO() {
-        return roomRepository.findAll()
+        return roomRepository.findAllByOrderByIdAsc()
                 .stream()
                 .map(this::toDTO)
                 .toList();
@@ -58,21 +63,21 @@ public class RoomService {
 
     public RoomResponseDTO assignOccupantDTO(Long roomId, Long userId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + roomId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + userId));
 
         room.assignOccupant(user);
-        return toDTO(roomRepository.save(room));
+        return toDTO(room);
     }
 
     public RoomResponseDTO removeOccupantDTO(Long roomId) {
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("Room not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + roomId));
 
         room.removeOccupant();
-        return toDTO(roomRepository.save(room));
+        return toDTO(room);
     }
 
     // =====================================================================
@@ -80,10 +85,9 @@ public class RoomService {
     // =====================================================================
 
     public void deleteRoom(Long id) {
-        if (!roomRepository.existsById(id)) {
-            throw new EntityNotFoundException("Room not found");
-        }
-        roomRepository.deleteById(id);
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + id));
+        roomRepository.delete(room);
     }
 
     // =====================================================================

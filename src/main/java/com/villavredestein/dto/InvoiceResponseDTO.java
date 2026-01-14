@@ -8,21 +8,32 @@ import java.time.LocalDateTime;
 
 public class InvoiceResponseDTO {
 
-    private Long id;
-    private String title;
-    private String description;
-    private BigDecimal amount;
-    private LocalDate issueDate;
-    private LocalDate dueDate;
-    private String status;
+    private final Long id;
+    private final String title;
+    private final String description;
+    private final BigDecimal amount;
+    private final LocalDate issueDate;
+    private final LocalDate dueDate;
+    private final String status;
 
-    private int reminderCount;
-    private LocalDateTime lastReminderSentAt;
+    private final int reminderCount;
+    private final LocalDateTime lastReminderSentAt;
 
-    private String studentName;
-    private String studentEmail;
+    private final String studentName;
+    private final String studentEmail;
 
     protected InvoiceResponseDTO() {
+        this.id = null;
+        this.title = null;
+        this.description = null;
+        this.amount = null;
+        this.issueDate = null;
+        this.dueDate = null;
+        this.status = null;
+        this.reminderCount = 0;
+        this.lastReminderSentAt = null;
+        this.studentName = null;
+        this.studentEmail = null;
     }
 
     public InvoiceResponseDTO(
@@ -50,10 +61,6 @@ public class InvoiceResponseDTO {
         this.studentName = studentName;
         this.studentEmail = studentEmail;
     }
-
-    // =========================
-    // Getters (read-only DTO)
-    // =========================
 
     public Long getId() {
         return id;

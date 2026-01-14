@@ -6,12 +6,13 @@ import com.villavredestein.model.Document;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.DocumentRepository;
 import com.villavredestein.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,11 +21,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class DocumentService {
+
+    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
@@ -40,16 +44,25 @@ public class DocumentService {
     /**
      * Uploadt een document namens de ingelogde gebruiker.
      */
-    public UploadResponseDTO upload(String uploaderPrincipalName, MultipartFile file, String roleAccess) throws IOException {
+    public UploadResponseDTO upload(String uploaderPrincipalName, MultipartFile file, String roleAccess) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Bestand is verplicht");
         }
 
-        User uploader = userRepository.findByEmail(uploaderPrincipalName)
-                .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden: " + uploaderPrincipalName));
+        if (uploadDirPath == null || uploadDirPath.isBlank()) {
+            throw new IllegalStateException("app.upload-dir is niet geconfigureerd");
+        }
+
+        User uploader = userRepository.findByEmailIgnoreCase(uploaderPrincipalName)
+                .orElseThrow(() -> new EntityNotFoundException("Uploader niet gevonden: " + uploaderPrincipalName));
 
         Path uploadDir = Paths.get(uploadDirPath).toAbsolutePath().normalize();
-        Files.createDirectories(uploadDir);
+        try {
+            Files.createDirectories(uploadDir);
+        } catch (IOException e) {
+            log.error("Could not create upload directory {}", uploadDir, e);
+            throw new RuntimeException("Upload directory kan niet worden aangemaakt.");
+        }
 
         String originalName = Optional.ofNullable(file.getOriginalFilename())
                 .map(this::sanitizeFilename)
@@ -60,6 +73,9 @@ public class DocumentService {
 
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("Upload failed for {} -> {}", uploaderPrincipalName, targetPath, e);
+            throw new RuntimeException("Upload mislukt. Probeer het opnieuw.");
         }
 
         Document document = new Document();
@@ -75,9 +91,9 @@ public class DocumentService {
         return new UploadResponseDTO(saved.getId(), saved.getTitle(), downloadUrl);
     }
 
-    public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) throws IOException {
+    public UploadResponseDTO upload(Long uploaderUserId, MultipartFile file, String roleAccess) {
         User uploader = userRepository.findById(uploaderUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Uploader niet gevonden: " + uploaderUserId));
+                .orElseThrow(() -> new EntityNotFoundException("Uploader niet gevonden: " + uploaderUserId));
 
         // Delegate naar principal-based methode op basis van email
         return upload(uploader.getEmail(), file, roleAccess);
@@ -87,14 +103,8 @@ public class DocumentService {
      * Haalt alle documenten op als veilige response-DTO’s.
      */
     public List<DocumentResponseDTO> listAll() {
-        List<Document> docs;
-        try {
-            docs = documentRepository.findAllByOrderByIdDesc();
-        } catch (Exception ex) {
-            docs = documentRepository.findAll();
-        }
-
-        return docs.stream()
+        return documentRepository.findAllByOrderByIdDesc()
+                .stream()
                 .map(this::toResponseDTO)
                 .toList();
     }
@@ -105,10 +115,14 @@ public class DocumentService {
     public List<DocumentResponseDTO> listAccessibleDocuments(String role) {
         String normalizedRole = normalizeRoleAccess(role);
 
-        return documentRepository.findAll().stream()
-                .filter(doc -> "ADMIN".equalsIgnoreCase(normalizedRole)
-                        || Document.ROLE_ALL.equalsIgnoreCase(doc.getRoleAccess())
-                        || normalizedRole.equalsIgnoreCase(doc.getRoleAccess()))
+        List<Document> docs;
+        if ("ADMIN".equalsIgnoreCase(normalizedRole)) {
+            docs = documentRepository.findAllByOrderByIdDesc();
+        } else {
+            docs = documentRepository.findAccessibleForRole(normalizedRole);
+        }
+
+        return docs.stream()
                 .map(this::toResponseDTO)
                 .toList();
     }
@@ -117,25 +131,28 @@ public class DocumentService {
      * Downloadt het fysieke bestand bij een document.
      */
     public FileSystemResource download(Long id) {
-        return documentRepository.findById(id)
-                .map(doc -> {
-                    Path path = Paths.get(doc.getStoragePath());
-                    return Files.exists(path) ? new FileSystemResource(path) : null;
-                })
-                .orElse(null);
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Document niet gevonden: " + id));
+
+        Path path = Paths.get(doc.getStoragePath());
+        if (!Files.exists(path)) {
+            throw new EntityNotFoundException("Bestand voor document " + id + " niet gevonden");
+        }
+
+        return new FileSystemResource(path);
     }
 
     /**
      * Verwijdert een document en het bijbehorende fysieke bestand.
      */
-    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         Document doc = documentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Document niet gevonden: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Document niet gevonden: " + id));
 
         try {
             Files.deleteIfExists(Paths.get(doc.getStoragePath()));
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            log.warn("Could not delete file for document {} at {}", id, doc.getStoragePath(), e);
         }
 
         documentRepository.delete(doc);
@@ -157,7 +174,11 @@ public class DocumentService {
         if (roleAccess == null || roleAccess.isBlank()) {
             return Document.ROLE_ALL;
         }
-        return roleAccess.trim().toUpperCase();
+        String normalized = roleAccess.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
     }
 
     private String sanitizeFilename(String filename) {

@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import java.util.Locale;
 
 @Service
 public class UserDetailsService implements org.springframework.security.core.userdetails.UserDetailsService {
@@ -23,22 +24,47 @@ public class UserDetailsService implements org.springframework.security.core.use
      */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        if (email == null || email.isBlank()) {
+            throw new UsernameNotFoundException("E-mailadres is verplicht");
+        }
+
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> {
-                    log.warn("Login mislukt: gebruiker '{}' niet gevonden", email);
-                    return new UsernameNotFoundException("Gebruiker niet gevonden: " + email);
+                    log.warn("Login mislukt: gebruiker '{}' niet gevonden", maskEmail(normalizedEmail));
+                    return new UsernameNotFoundException("Gebruiker niet gevonden: " + normalizedEmail);
                 });
 
-        log.info("Gebruiker '{}' geladen met rol '{}'", user.getEmail(), user.getRole());
+        String role = user.getRole();
+        if (role == null || role.isBlank()) {
+            log.warn("Gebruiker '{}' heeft geen rol; default naar STUDENT", maskEmail(user.getEmail()));
+            role = "STUDENT";
+        }
 
-        String sanitizedRole = user.getRole().startsWith("ROLE_")
-                ? user.getRole().substring(5)
-                : user.getRole();
+        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
+        if (normalizedRole.startsWith("ROLE_")) {
+            normalizedRole = normalizedRole.substring("ROLE_".length());
+        }
+
+        log.info("Gebruiker '{}' geladen met rol '{}'", maskEmail(user.getEmail()), normalizedRole);
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())
-                .roles(sanitizedRole)
+                .roles(normalizedRole)
                 .build();
+    }
+
+    private String maskEmail(String email) {
+        if (email == null) {
+            return "<null>";
+        }
+        String trimmed = email.trim();
+        int at = trimmed.indexOf('@');
+        if (at <= 1) {
+            return "***";
+        }
+        return trimmed.charAt(0) + "***" + trimmed.substring(at);
     }
 }

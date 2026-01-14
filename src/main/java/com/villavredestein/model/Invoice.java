@@ -79,7 +79,7 @@ public class Invoice {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    protected Invoice() {
+    public Invoice() {
     }
 
     public Invoice(String title,
@@ -187,6 +187,30 @@ public class Invoice {
     // =========================
     // Setters
     // =========================
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = BigDecimal.valueOf(amount);
+    }
+
+    public void setStatus(String status) {
+        if (status == null) {
+            this.status = null;
+            return;
+        }
+        this.status = InvoiceStatus.valueOf(status.trim().toUpperCase());
+    }
+
+    public void setReminderSent(boolean reminderSent) {
+        if (reminderSent) {
+            markReminderSentNow();
+        } else {
+            this.lastReminderSentAt = null;
+        }
+    }
 
     public void setTitle(String title) {
         this.title = title;

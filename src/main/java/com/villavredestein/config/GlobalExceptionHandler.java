@@ -23,11 +23,15 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.validation.BindException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -39,10 +43,16 @@ public class GlobalExceptionHandler {
     // 401 / 403 (Security)
     // =========================
 
-    @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
-    public ResponseEntity<Map<String, Object>> handleUnauthorized(Exception ex, HttpServletRequest request) {
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Bad credentials: {}", ex.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Onjuiste inloggegevens.", request);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(AuthenticationException ex, HttpServletRequest request) {
         log.warn("Unauthorized: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Je bent niet ingelogd. Log in en probeer het opnieuw.", request);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Je bent niet ingelogd of je sessie is verlopen. Log in en probeer het opnieuw.", request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -61,23 +71,29 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("No resource found: {}", ex.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, "Endpoint niet gevonden.", request);
+    }
+
     // =========================
     // 400 (Validatie + input)
     // =========================
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<Map<String, Object>> handleMultipart(MultipartException ex, HttpServletRequest request) {
+        log.warn("Multipart error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bestand-upload mislukt. Controleer of je een geldig bestand meestuurt.", request);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        List<Map<String, String>> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(this::toFieldError)
-                .collect(Collectors.toList());
+        return handleBindingErrors(ex.getBindingResult(), request);
+    }
 
-        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Er klopt iets niet. Check de velden en probeer het opnieuw.", request);
-        body.put("fieldErrors", fieldErrors);
-
-        log.warn("Validation failed: {}", fieldErrors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<Map<String, Object>> handleBindException(BindException ex, HttpServletRequest request) {
+        return handleBindingErrors(ex.getBindingResult(), request);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -180,17 +196,41 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Oeps. Er ging iets mis aan onze kant. Probeer het later opnieuw.", request);
+        String requestId = resolveRequestId(request);
+        log.error("Unexpected error [requestId={}]", requestId, ex);
+        Map<String, Object> body = baseBody(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Oeps. Er ging iets mis aan onze kant. Probeer het later opnieuw. (requestId: " + requestId + ")",
+                request);
+        // baseBody() already puts requestId as well; this keeps the message useful for clients.
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     // =====================================================================
     // Helpers
     // =====================================================================
 
+    private String resolveRequestId(HttpServletRequest request) {
+        if (request == null) {
+            return UUID.randomUUID().toString();
+        }
+        String header = request.getHeader("X-Request-Id");
+        if (header != null && !header.trim().isEmpty()) {
+            return header.trim();
+        }
+        Object attr = request.getAttribute("requestId");
+        if (attr != null) {
+            String v = String.valueOf(attr).trim();
+            if (!v.isEmpty()) {
+                return v;
+            }
+        }
+        return UUID.randomUUID().toString();
+    }
+
     private Map<String, Object> baseBody(HttpStatus status, String message, HttpServletRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
+        body.put("requestId", resolveRequestId(request));
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("message", message);
@@ -206,10 +246,43 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(baseBody(status, message, request));
     }
 
+    private ResponseEntity<Map<String, Object>> handleBindingErrors(
+            org.springframework.validation.BindingResult bindingResult,
+            HttpServletRequest request) {
+
+        List<Map<String, String>> fieldErrors = bindingResult
+                .getFieldErrors()
+                .stream()
+                .map(this::toFieldError)
+                .collect(Collectors.toList());
+
+        List<String> globalErrors = bindingResult
+                .getGlobalErrors()
+                .stream()
+                .map(e -> e.getDefaultMessage())
+                .filter(m -> m != null && !m.trim().isEmpty())
+                .collect(Collectors.toList());
+
+        Map<String, Object> body = baseBody(
+                HttpStatus.BAD_REQUEST,
+                "Er klopt iets niet. Check de velden en probeer het opnieuw.",
+                request
+        );
+
+        body.put("fieldErrors", fieldErrors);
+        if (!globalErrors.isEmpty()) {
+            body.put("globalErrors", globalErrors);
+        }
+
+        log.warn("Validation failed: fieldErrors={}, globalErrors={}", fieldErrors, globalErrors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     private Map<String, String> toFieldError(FieldError fe) {
         return Map.of(
                 "field", fe.getField(),
-                "message", fe.getDefaultMessage() == null ? "Ongeldige waarde" : fe.getDefaultMessage()
+                "message", fe.getDefaultMessage() == null ? "Ongeldige waarde" : fe.getDefaultMessage(),
+                "rejectedValue", fe.getRejectedValue() == null ? "" : String.valueOf(fe.getRejectedValue())
         );
     }
 }

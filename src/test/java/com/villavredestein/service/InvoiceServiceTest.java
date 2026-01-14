@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,7 +39,7 @@ class InvoiceServiceTest {
         InvoiceRequestDTO dto = new InvoiceRequestDTO(
                 "Huur juli",
                 "Huur kamer 2 juli",
-                500.0,
+                new BigDecimal("500.00"),
                 null,
                 LocalDate.of(2025, 7, 31),
                 "student@example.com"
@@ -66,7 +67,7 @@ class InvoiceServiceTest {
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Huur juli");
-        assertThat(result.getAmount()).isEqualTo(500.0);
+        assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("500.00"));
         assertThat(result.getStudentEmail()).isEqualTo("student@example.com");
         verify(userRepository).findByEmail("student@example.com");
         verify(invoiceRepository).save(any(Invoice.class));
@@ -77,7 +78,7 @@ class InvoiceServiceTest {
         InvoiceRequestDTO dto = new InvoiceRequestDTO(
                 "Huur juli",
                 "Huur kamer 2 juli",
-                500.0,
+                new BigDecimal("500.00"),
                 null,
                 LocalDate.of(2025, 7, 31),
                 "missing@example.com"
@@ -106,7 +107,7 @@ class InvoiceServiceTest {
         Invoice inv1 = new Invoice();
         inv1.setId(1L);
         inv1.setTitle("Factuur 1");
-        inv1.setAmount(100.0);
+        inv1.setAmount(new BigDecimal("100.00"));
         inv1.setDueDate(LocalDate.of(2025, 1, 31));
         inv1.setStatus("OPEN");
         inv1.setStudent(student1);
@@ -114,9 +115,9 @@ class InvoiceServiceTest {
         Invoice inv2 = new Invoice();
         inv2.setId(2L);
         inv2.setTitle("Factuur 2");
-        inv2.setAmount(200.0);
+        inv2.setAmount(new BigDecimal("200.00"));
         inv2.setDueDate(LocalDate.of(2025, 2, 28));
-        inv2.setStatus("BETAALD");
+        inv2.setStatus("PAID");
         inv2.setStudent(student2);
 
         when(invoiceRepository.findAll()).thenReturn(List.of(inv1, inv2));
@@ -140,7 +141,7 @@ class InvoiceServiceTest {
         Invoice inv = new Invoice();
         inv.setId(1L);
         inv.setTitle("Factuur 1");
-        inv.setAmount(150.0);
+        inv.setAmount(new BigDecimal("150.00"));
         inv.setDueDate(LocalDate.of(2025, 3, 31));
         inv.setStatus("OPEN");
         inv.setStudent(student);
@@ -179,9 +180,9 @@ class InvoiceServiceTest {
         when(invoiceRepository.findById(1L)).thenReturn(Optional.of(inv));
         when(invoiceRepository.save(inv)).thenReturn(inv);
 
-        InvoiceResponseDTO result = invoiceService.updateStatus(1L, "betaald");
+        InvoiceResponseDTO result = invoiceService.updateStatus(1L, "paid");
 
-        assertThat(result.getStatus()).isEqualTo("BETAALD");
+        assertThat(result.getStatus()).isEqualTo("PAID");
         verify(invoiceRepository).findById(1L);
         verify(invoiceRepository).save(inv);
     }
@@ -191,7 +192,7 @@ class InvoiceServiceTest {
         when(invoiceRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class,
-                () -> invoiceService.updateStatus(99L, "betaald"));
+                () -> invoiceService.updateStatus(99L, "paid"));
 
         verify(invoiceRepository).findById(99L);
         verify(invoiceRepository, never()).save(any(Invoice.class));
@@ -221,29 +222,46 @@ class InvoiceServiceTest {
     @Test
     void getAllOpenInvoices_returnsListFromRepository() {
         Invoice inv1 = new Invoice();
+        inv1.setStatus("OPEN");
+        inv1.setDueDate(LocalDate.now().plusDays(10));
+
         Invoice inv2 = new Invoice();
-        when(invoiceRepository.findByStatusIgnoreCase("OPEN"))
-                .thenReturn(List.of(inv1, inv2));
+        inv2.setStatus("OPEN");
+        inv2.setDueDate(LocalDate.now().plusDays(20));
+
+        Invoice inv3 = new Invoice();
+        inv3.setStatus("PAID");
+        inv3.setDueDate(LocalDate.now().plusDays(5));
+
+        when(invoiceRepository.findAll()).thenReturn(List.of(inv1, inv2, inv3));
 
         List<Invoice> result = invoiceService.getAllOpenInvoices();
 
         assertThat(result).hasSize(2);
-        verify(invoiceRepository).findByStatusIgnoreCase("OPEN");
+        verify(invoiceRepository).findAll();
     }
 
     @Test
     void getUpcomingInvoices_returnsListFromRepository() {
+        // Upcoming = OPEN en dueDate binnenkort (service gebruikt LocalDate.now())
         Invoice inv1 = new Invoice();
-        when(invoiceRepository.findByStatusIgnoreCaseAndDueDateBetween(
-                eq("OPEN"), any(LocalDate.class), any(LocalDate.class)))
-                .thenReturn(List.of(inv1));
+        inv1.setStatus("OPEN");
+        inv1.setDueDate(LocalDate.now().plusDays(3));
+
+        Invoice inv2 = new Invoice();
+        inv2.setStatus("OPEN");
+        inv2.setDueDate(LocalDate.now().plusDays(30));
+
+        Invoice inv3 = new Invoice();
+        inv3.setStatus("PAID");
+        inv3.setDueDate(LocalDate.now().plusDays(2));
+
+        when(invoiceRepository.findAll()).thenReturn(List.of(inv1, inv2, inv3));
 
         List<Invoice> result = invoiceService.getUpcomingInvoices();
 
         assertThat(result).hasSize(1);
-        verify(invoiceRepository)
-                .findByStatusIgnoreCaseAndDueDateBetween(
-                        eq("OPEN"), any(LocalDate.class), any(LocalDate.class));
+        verify(invoiceRepository).findAll();
     }
 
     @Test

@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // =========================
-    // 401 / 403 (Security)
+    // 401 / 403
     // =========================
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // 400 (Validatie + input)
+    // 400
     // =========================
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<Map<String, Object>> handleMultipart(MultipartException ex, HttpServletRequest request) {
@@ -137,7 +137,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // 405 / 415 (API robustness)
+    // 405 / 415
     // =========================
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // 409 (Database)
+    // 409
     // =========================
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -163,7 +163,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // Mail (jouw eerdere mail-aanpassingen)
+    // Mail
     // =========================
 
     @ExceptionHandler(MailException.class)
@@ -179,7 +179,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // ResponseStatusException passthrough
+    // ResponseStatusException
     // =========================
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -191,7 +191,7 @@ public class GlobalExceptionHandler {
     }
 
     // =========================
-    // 500 – Catch-all
+    // 500
     // =========================
 
     @ExceptionHandler(Exception.class)

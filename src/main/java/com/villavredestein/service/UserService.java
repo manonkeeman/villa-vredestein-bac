@@ -19,7 +19,7 @@ import java.util.Set;
 @Transactional
 public class UserService {
 
-    private static final Set<String> ALLOWED_ROLES = Set.of("ADMIN", "STUDENT", "CLEANER");
+    private static final Set<User.Role> ALLOWED_ROLES = Set.of(User.Role.ADMIN, User.Role.STUDENT, User.Role.CLEANER);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -43,7 +43,7 @@ public class UserService {
                 username,
                 normalizedEmail,
                 passwordEncoder.encode(rawPassword),
-                "STUDENT"
+                User.Role.STUDENT
         );
 
         return toDTO(userRepository.save(user));
@@ -76,15 +76,15 @@ public class UserService {
     // =====================================================================
 
     public UserResponseDTO changeRole(Long id, String newRole) {
-        String normalized = normalizeRole(newRole);
-        if (!ALLOWED_ROLES.contains(normalized)) {
+        User.Role role = parseRole(newRole);
+        if (!ALLOWED_ROLES.contains(role)) {
             throw new IllegalArgumentException("newRole moet ADMIN, STUDENT of CLEANER zijn");
         }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + id));
 
-        user.setRole(normalized);
+        user.setRole(role);
         return toDTO(user);
     }
 
@@ -161,15 +161,19 @@ public class UserService {
         }
     }
 
-    private String normalizeRole(String role) {
-        if (role == null) {
-            return "";
+    private User.Role parseRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Rol is verplicht");
         }
         String r = role.trim().toUpperCase();
         if (r.startsWith("ROLE_")) {
             r = r.substring(5);
         }
-        return r;
+        try {
+            return User.Role.valueOf(r);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Ongeldige rol: " + role + ". Kies ADMIN, STUDENT of CLEANER.");
+        }
     }
 
     // =====================================================================
@@ -181,7 +185,7 @@ public class UserService {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRole()
+                user.getRole() != null ? user.getRole().name() : null
         );
     }
 }

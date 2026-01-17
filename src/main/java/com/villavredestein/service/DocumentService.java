@@ -61,7 +61,7 @@ public class DocumentService {
             Files.createDirectories(uploadDir);
         } catch (IOException e) {
             log.error("Could not create upload directory {}", uploadDir, e);
-            throw new RuntimeException("Upload directory kan niet worden aangemaakt.");
+            throw new RuntimeException("Upload directory kan niet worden aangemaakt");
         }
 
         String originalName = Optional.ofNullable(file.getOriginalFilename())
@@ -75,15 +75,18 @@ public class DocumentService {
             Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             log.error("Upload failed for {} -> {}", uploaderPrincipalName, targetPath, e);
-            throw new RuntimeException("Upload mislukt. Probeer het opnieuw.");
+            throw new RuntimeException("Upload mislukt. Probeer het opnieuw");
         }
 
-        Document document = new Document();
-        document.setTitle(originalName);
-        document.setDescription("Geüpload door " + uploader.getUsername());
-        document.setStoragePath(targetPath.toString());
-        document.setRoleAccess(normalizeRoleAccess(roleAccess));
-        document.setUploadedBy(uploader);
+        String normalizedRoleAccess = normalizeRoleAccess(roleAccess);
+
+        Document document = new Document(
+                originalName,
+                "Geüpload door " + uploader.getUsername(),
+                targetPath.toString(),
+                normalizedRoleAccess,
+                uploader
+        );
 
         Document saved = documentRepository.save(document);
 

@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
 import java.util.Locale;
 
 @Service
@@ -36,17 +37,13 @@ public class UserDetailsService implements org.springframework.security.core.use
                     return new UsernameNotFoundException("Gebruiker niet gevonden: " + normalizedEmail);
                 });
 
-        String role = user.getRole();
-        if (role == null || role.isBlank()) {
+        User.Role role = user.getRole();
+        if (role == null) {
             log.warn("Gebruiker '{}' heeft geen rol; default naar STUDENT", maskEmail(user.getEmail()));
-            role = "STUDENT";
+            role = User.Role.STUDENT;
         }
 
-        String normalizedRole = role.trim().toUpperCase(Locale.ROOT);
-        if (normalizedRole.startsWith("ROLE_")) {
-            normalizedRole = normalizedRole.substring("ROLE_".length());
-        }
-
+        String normalizedRole = role.name(); // ADMIN / STUDENT / CLEANER
         log.info("Gebruiker '{}' geladen met rol '{}'", maskEmail(user.getEmail()), normalizedRole);
 
         return org.springframework.security.core.userdetails.User

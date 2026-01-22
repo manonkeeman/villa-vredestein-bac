@@ -1,7 +1,7 @@
 package com.villavredestein.config;
 
 import com.villavredestein.security.JwtAuthenticationFilter;
-import com.villavredestein.service.UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -94,7 +94,7 @@ public class SecurityConfig {
                 {
                   \"status\": 401,
                   \"error\": \"Unauthorized\",
-                  \"message\": \"Authenticatie vereist of token ongeldig\"
+                  \"message\": \"Authentication required or token is invalid\"
                 }
                 """);
         };
@@ -109,7 +109,7 @@ public class SecurityConfig {
                 {
                   \"status\": 403,
                   \"error\": \"Forbidden\",
-                  \"message\": \"Je hebt geen toegang tot deze resource\"
+                  \"message\": \"You do not have access to this resource\"
                 }
                 """);
         };

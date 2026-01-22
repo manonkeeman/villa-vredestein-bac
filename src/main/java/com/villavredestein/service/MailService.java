@@ -9,6 +9,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+
 import java.util.Locale;
 
 @Service
@@ -22,9 +23,9 @@ public class MailService {
     private final String from;
     private final String bccAdmin;
 
-    /**
-     * Categorisatie van uitgaande e-mail.
-     */
+    // =====================================================================
+    // # Categories
+    // =====================================================================
     public enum MailCategory {
         CLEANING_TASK,
         INCIDENT,
@@ -32,9 +33,6 @@ public class MailService {
         GENERIC
     }
 
-    /**
-     * Constructor voor {@link MailService}.
-     */
     public MailService(
             JavaMailSender mailSender,
             @Value("${app.mail.enabled:true}") boolean mailEnabled,
@@ -47,11 +45,9 @@ public class MailService {
         this.bccAdmin = bccAdmin;
     }
 
-    /**
-     * Test/override constructor.
-     * Hiermee kan je in tests een subclass maken zonder Spring injectie.
-     * Mail staat standaard uit en er is geen mailSender.
-     */
+    // =====================================================================
+    // # Test constructor
+    // =====================================================================
     protected MailService() {
         this.mailSender = null;
         this.mailEnabled = false;
@@ -59,35 +55,22 @@ public class MailService {
         this.bccAdmin = "";
     }
 
-    /**
-     * Verstuurt een e-mail namens een gebruiker met een bepaalde rol.
-     */
+    // =====================================================================
+    // # Public API
+    // =====================================================================
     public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
         String normalizedRole = normalizeRole(role);
         requireValidRecipient(to);
-        String safeTo = maskEmail(to);
 
         if (subject == null || subject.isBlank()) {
-            throw new IllegalArgumentException("Subject is verplicht");
+            throw new IllegalArgumentException("Subject is required");
         }
         if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Body is verplicht");
+            throw new IllegalArgumentException("Body is required");
         }
 
-        MailCategory category = MailCategory.GENERIC;
-        String s = subject.trim().toLowerCase(Locale.ROOT);
-
-        if (s.contains("factuur") || s.contains("huur") || s.contains("invoice") || s.contains("herinner")) {
-            category = MailCategory.INVOICE_REMINDER;
-        }
-
-        if ("CLEANER".equals(normalizedRole)) {
-            if (s.contains("incident")) {
-                category = MailCategory.INCIDENT;
-            } else if (s.contains("schoonmaak") || s.contains("cleaning")) {
-                category = MailCategory.CLEANING_TASK;
-            }
-        }
+        MailCategory category = categorize(normalizedRole, subject);
+        String safeTo = maskEmail(to);
 
         sendInternal(normalizedRole, category, to, subject, body, bcc, safeTo);
     }
@@ -96,74 +79,66 @@ public class MailService {
         sendMailWithRole(role, to, subject, body, null);
     }
 
-    /**
-     * CLEANER: verstuurt een incidentmail.
-     */
     public void sendCleanerIncidentMail(String to, String body) {
         requireValidRecipient(to);
         if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Body is verplicht");
+            throw new IllegalArgumentException("Body is required");
         }
-        String safeTo = maskEmail(to);
-        sendInternal("CLEANER", MailCategory.INCIDENT, to, "Incidentmelding", body, null, safeTo);
+        sendInternal("CLEANER", MailCategory.INCIDENT, to, "Incident report", body, null, maskEmail(to));
     }
 
-    /**
-     * CLEANER: verstuurt een mail over een schoonmaaktaak.
-     */
     public void sendCleanerCleaningTaskMail(String to, String body) {
         requireValidRecipient(to);
         if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Body is verplicht");
+            throw new IllegalArgumentException("Body is required");
         }
-        String safeTo = maskEmail(to);
-        sendInternal("CLEANER", MailCategory.CLEANING_TASK, to, "Schoonmaaktaak", body, null, safeTo);
+        sendInternal("CLEANER", MailCategory.CLEANING_TASK, to, "Cleaning task", body, null, maskEmail(to));
     }
 
-    /**
-     * SYSTEEM: verstuurt een factuurherinnering (huur) naar een student.
-     */
     public void sendInvoiceReminderMail(String to, String subject, String body) {
         requireValidRecipient(to);
-        String safeTo = maskEmail(to);
 
         if (subject == null || subject.isBlank()) {
-            throw new IllegalArgumentException("Subject is verplicht");
+            throw new IllegalArgumentException("Subject is required");
         }
         if (body == null || body.isBlank()) {
-            throw new IllegalArgumentException("Body is verplicht");
+            throw new IllegalArgumentException("Body is required");
         }
 
-        sendInternal("ADMIN", MailCategory.INVOICE_REMINDER, to, subject, body, null, safeTo);
+        sendInternal("ADMIN", MailCategory.INVOICE_REMINDER, to, subject, body, null, maskEmail(to));
     }
 
-    private void sendInternal(String normalizedRole,
-                              MailCategory category,
-                              String to,
-                              String subject,
-                              String body,
-                              @Nullable String bcc,
-                              String safeTo) {
-
+    // =====================================================================
+    // # Internal send
+    // =====================================================================
+    private void sendInternal(
+            String normalizedRole,
+            MailCategory category,
+            String to,
+            String subject,
+            String body,
+            @Nullable String bcc,
+            String safeTo
+    ) {
         switch (normalizedRole) {
-            case "ADMIN" -> log.info("ADMIN verstuurt mail (cat={}, to={})", category, safeTo);
+            case "ADMIN" -> log.info("ADMIN sending mail (cat={}, to={})", category, safeTo);
             case "CLEANER" -> {
                 if (category != MailCategory.INCIDENT && category != MailCategory.CLEANING_TASK) {
-                    throw new AccessDeniedException("CLEANER mag alleen mails sturen over schoonmaaktaken of incidenten");
+                    throw new AccessDeniedException("CLEANER may only send mail about incidents or cleaning tasks");
                 }
-                log.info("🧹 CLEANER verstuurt mail (cat={}, to={})", category, safeTo);
+                log.info("CLEANER sending mail (cat={}, to={})", category, safeTo);
             }
-            case "STUDENT" -> throw new AccessDeniedException("STUDENT mag geen e-mails verzenden");
-            default -> throw new AccessDeniedException("Onbekende rol");
+            case "STUDENT" -> throw new AccessDeniedException("STUDENT is not allowed to send emails");
+            default -> throw new AccessDeniedException("Unknown role");
         }
 
         if (!mailEnabled) {
-            log.warn("📧 [MAIL UITGESCHAKELD] cat={} | to={} | subject={} | body={}...", category, safeTo, subject, body.substring(0, Math.min(body.length(), 200)));
+            log.warn("[MAIL DISABLED] cat={} | to={} | subject={} | body={}...", category, safeTo, subject, preview(body));
             return;
         }
 
         if (mailSender == null) {
-            log.warn("📧 [MAIL ENABLED] maar geen mailSender geconfigureerd (cat={}, to={})", category, safeTo);
+            log.warn("[MAIL ENABLED] but no mailSender configured (cat={}, to={})", category, safeTo);
             return;
         }
 
@@ -182,16 +157,42 @@ public class MailService {
             msg.setText(body);
             mailSender.send(msg);
 
-            log.info("E-mail succesvol verzonden (role={}, cat={}, to={}, subject={})", normalizedRole, category, safeTo, subject);
+            log.info("Mail sent successfully (role={}, cat={}, to={}, subject={})", normalizedRole, category, safeTo, subject);
 
         } catch (MailException e) {
-            log.error("Fout bij verzenden van e-mail (role={}, cat={}, to={}, subject={}): {}", normalizedRole, category, safeTo, subject, e.getMessage());
+            log.error("Mail send failed (role={}, cat={}, to={}, subject={}): {}", normalizedRole, category, safeTo, subject, e.getMessage());
         }
     }
 
+    // =====================================================================
+    // # Categorization
+    // =====================================================================
+    private MailCategory categorize(String normalizedRole, String subject) {
+        String s = subject.trim().toLowerCase(Locale.ROOT);
+
+        MailCategory category = MailCategory.GENERIC;
+
+        if (s.contains("factuur") || s.contains("huur") || s.contains("invoice") || s.contains("herinner")) {
+            category = MailCategory.INVOICE_REMINDER;
+        }
+
+        if ("CLEANER".equals(normalizedRole)) {
+            if (s.contains("incident")) {
+                category = MailCategory.INCIDENT;
+            } else if (s.contains("schoonmaak") || s.contains("cleaning")) {
+                category = MailCategory.CLEANING_TASK;
+            }
+        }
+
+        return category;
+    }
+
+    // =====================================================================
+    // # Validation helpers
+    // =====================================================================
     private String normalizeRole(String role) {
         if (role == null) {
-            throw new AccessDeniedException("Rol ontbreekt");
+            throw new AccessDeniedException("Role is missing");
         }
         String normalized = role.trim().toUpperCase(Locale.ROOT);
         if (normalized.startsWith("ROLE_")) {
@@ -202,13 +203,13 @@ public class MailService {
 
     private void requireValidRecipient(String to) {
         if (to == null || to.isBlank()) {
-            throw new IllegalArgumentException("E-mailadres (to) is verplicht");
+            throw new IllegalArgumentException("Recipient email (to) is required");
         }
         String trimmed = to.trim();
         int at = trimmed.indexOf('@');
         int dot = trimmed.lastIndexOf('.');
         if (at < 1 || dot < at + 2 || dot == trimmed.length() - 1) {
-            throw new IllegalArgumentException("Ongeldig e-mailadres: " + maskEmail(trimmed));
+            throw new IllegalArgumentException("Invalid email address: " + maskEmail(trimmed));
         }
     }
 
@@ -217,5 +218,10 @@ public class MailService {
         int at = email.indexOf('@');
         if (at <= 1) return "***";
         return email.charAt(0) + "***" + email.substring(at);
+    }
+
+    private String preview(String text) {
+        if (text == null) return "";
+        return text.substring(0, Math.min(text.length(), 200));
     }
 }

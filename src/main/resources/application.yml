@@ -1,153 +1,78 @@
 # ==================================================
-# Villa Vredestein – Spring Boot Configuration
+# Default (shared) configuration
 # ==================================================
 
 spring:
   application:
-    name: villa-vredestein-bac
+    name: villa-vredestein
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
-
-  # ------------------------------------------------
-  # Database – PostgreSQL
-  # ------------------------------------------------
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  sql:
-    init:
-      mode: always
-
   jpa:
     open-in-view: false
     defer-datasource-initialization: true
-    show-sql: ${JPA_SHOW_SQL:true}
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+      ddl-auto: ${JPA_DDL_AUTO:validate}
 
-  # ------------------------------------------------
-  # File Upload Configuration
-  # ------------------------------------------------
-  servlet:
-    multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE:never}
 
-  # ------------------------------------------------
-  # Mail – Gmail SMTP
-  # ------------------------------------------------
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_APP_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-
-  # ------------------------------------------------
-  # Scheduled Jobs
-  # ------------------------------------------------
-  task:
-    scheduling:
-      enabled: true
-
-# ==================================================
-# Server / SSL Configuration
-# ==================================================
-server:
-  port: ${PORT:${SERVER_PORT:8443}}
-  ssl:
-    enabled: ${SSL_ENABLED:false}
-    key-store: ${SSL_KEYSTORE:}
-    key-store-type: ${SSL_KEYSTORE_TYPE:JKS}
-    key-store-password: ${SSL_KEYSTORE_PASSWORD:}
-    key-password: ${SSL_KEY_PASSWORD:}
-    key-alias: ${SSL_KEY_ALIAS:certificate}
-  error:
-    include-message: always
-    include-binding-errors: always
-
-# ==================================================
-# Application Settings
-# ==================================================
-app:
-  cors:
-    allowed-origins:
-      - http://localhost:5173
-      - https://www.villavredestein.com
-      - https://villavredestein.com
-      - https://*.netlify.app
-  upload-dir: ${APP_UPLOAD_DIR:./uploads}
-  mail:
-    enabled: ${APP_MAIL_ENABLED:true}
-    from: ${MAIL_FROM:${MAIL_USERNAME}}
-    bcc:
-      admin: ${MAIL_ADMIN_BCC:${MAIL_USERNAME}}
-  invoice:
-    reminder:
-      days-before-due: ${INVOICE_REMINDER_DAYS_BEFORE_DUE:4}
-      max-reminders: ${INVOICE_REMINDER_MAX:3}
-      min-hours-between: ${INVOICE_REMINDER_MIN_HOURS_BETWEEN:24}
-    overdue:
-      max-reminders: ${INVOICE_OVERDUE_MAX:5}
-      min-hours-between: ${INVOICE_OVERDUE_MIN_HOURS_BETWEEN:24}
-
-# ==================================================
-# JWT Configuration
-# ==================================================
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:MySuperSecretKeyForVillaVredesteinThatIsLongEnough!!}
   expiration: ${JWT_EXPIRATION_MS:86400000}
 
-# ==================================================
-# Logging
-# ==================================================
+app:
+  upload-dir: ${APP_UPLOAD_DIR:uploads}
+
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@villavredestein.local}
+    bcc:
+      admin: ${MAIL_BCC_ADMIN:}
+
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGIN_1:http://localhost:5173}
+      - ${CORS_ALLOWED_ORIGIN_2:http://localhost:3000}
+
+server:
+  port: ${SERVER_PORT:8080}
+  ssl:
+    enabled: ${SSL_ENABLED:false}
+
 logging:
   level:
-    root: INFO
-    org.springframework.web: INFO
-    com.villavredestein: DEBUG
-    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:DEBUG}
-    org.hibernate.type.descriptor.sql.BasicBinder: ${HIBERNATE_BIND_LOG_LEVEL:TRACE}
+    com.villavredestein: INFO
 
 ---
+
 # ==================================================
 # Test Profile
 # ==================================================
+
 spring:
   config:
     activate:
       on-profile: test
 
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${TEST_DB_URL:${DB_URL}}
+    username: ${TEST_DB_USERNAME:${DB_USERNAME}}
+    password: ${TEST_DB_PASSWORD:${DB_PASSWORD}}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    defer-datasource-initialization: true
+      ddl-auto: ${TEST_JPA_DDL_AUTO:create-drop}
+
   sql:
     init:
-      mode: always
+      mode: ${TEST_SQL_INIT_MODE:never}
 
   task:
     scheduling:
@@ -162,13 +87,19 @@ server:
     enabled: false
 
 ---
+
 # ==================================================
 # Production Profile
 # ==================================================
+
 spring:
   config:
     activate:
       on-profile: prod
+
+  sql:
+    init:
+      mode: never
 
   jpa:
     hibernate:

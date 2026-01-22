@@ -19,7 +19,9 @@ import java.util.Locale;
 )
 public class Document {
 
-    public static final String ROLE_ALL = "ALL";
+    public static final String ROLE_ALL = "ROLE_ALL";
+
+    public static final String LEGACY_ALL = "ALL";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,16 +38,9 @@ public class Document {
     @Column(name = "storage_path", nullable = false, length = 255, unique = true)
     private String storagePath;
 
-    /**
-     * Bepaalt voor welke rol(len) dit document zichtbaar is.
-     * Voorbeelden: ALL, ADMIN, STUDENT, CLEANER.
-     */
     @Column(name = "role_access", nullable = false, length = 20)
     private String roleAccess = ROLE_ALL;
 
-    /**
-     * De gebruiker die het document heeft geüpload.
-     */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uploaded_by_id", nullable = false)
     @JsonIgnoreProperties({"password", "hibernateLazyInitializer", "handler"})
@@ -62,10 +57,9 @@ public class Document {
         this.title = title;
         this.description = description;
         this.storagePath = storagePath;
-        this.roleAccess = (roleAccess == null || roleAccess.isBlank())
-                ? ROLE_ALL
-                : roleAccess.trim().toUpperCase(Locale.ROOT);
+        this.roleAccess = normalizeRoleAccess(roleAccess);
         this.uploadedBy = uploadedBy;
+        normalize();
     }
 
     @PrePersist
@@ -83,9 +77,29 @@ public class Document {
             storagePath = storagePath.trim();
         }
 
-        roleAccess = (roleAccess == null || roleAccess.isBlank())
-                ? ROLE_ALL
-                : roleAccess.trim().toUpperCase(Locale.ROOT);
+        roleAccess = normalizeRoleAccess(roleAccess);
+    }
+
+    private static String normalizeRoleAccess(String roleAccess) {
+        if (roleAccess == null || roleAccess.isBlank()) {
+            return ROLE_ALL;
+        }
+
+        String normalized = roleAccess.trim().toUpperCase(Locale.ROOT);
+
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+
+        if (LEGACY_ALL.equals(normalized)) {
+            return ROLE_ALL;
+        }
+
+        if ("ADMIN".equals(normalized) || "STUDENT".equals(normalized) || "CLEANER".equals(normalized)) {
+            return normalized;
+        }
+
+        return normalized;
     }
 
     public Long getId() {
@@ -97,7 +111,7 @@ public class Document {
     }
 
     public void setTitle(String title) {
-        this.title = title;
+        this.title = (title == null) ? null : title.trim();
     }
 
     public String getDescription() {
@@ -105,7 +119,7 @@ public class Document {
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        this.description = (description == null) ? null : description.trim();
     }
 
     public String getStoragePath() {
@@ -113,7 +127,7 @@ public class Document {
     }
 
     public void setStoragePath(String storagePath) {
-        this.storagePath = storagePath;
+        this.storagePath = (storagePath == null) ? null : storagePath.trim();
     }
 
     public String getRoleAccess() {
@@ -121,7 +135,7 @@ public class Document {
     }
 
     public void setRoleAccess(String roleAccess) {
-        this.roleAccess = roleAccess;
+        this.roleAccess = normalizeRoleAccess(roleAccess);
     }
 
     public User getUploadedBy() {

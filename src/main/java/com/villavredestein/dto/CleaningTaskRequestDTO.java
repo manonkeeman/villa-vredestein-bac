@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 
-public class CleaningRequestDTO {
+public class CleaningTaskRequestDTO {
 
     private Long id;
 
@@ -29,18 +29,18 @@ public class CleaningRequestDTO {
 
     private String incidentReport;
 
-    public CleaningRequestDTO() {
+    public CleaningTaskRequestDTO() {
     }
 
-    public CleaningRequestDTO(Long id,
-                              int weekNumber,
-                              String name,
-                              String description,
-                              LocalDate dueDate,
-                              boolean completed,
-                              String assignedTo,
-                              String comment,
-                              String incidentReport) {
+    public CleaningTaskRequestDTO(Long id,
+                                  int weekNumber,
+                                  String name,
+                                  String description,
+                                  LocalDate dueDate,
+                                  boolean completed,
+                                  String assignedTo,
+                                  String comment,
+                                  String incidentReport) {
         this.id = id;
         this.weekNumber = weekNumber;
         this.name = name;

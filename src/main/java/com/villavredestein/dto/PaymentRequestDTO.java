@@ -1,6 +1,5 @@
 package com.villavredestein.dto;
 
-import com.villavredestein.model.Payment.PaymentStatus;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -8,21 +7,22 @@ import java.time.LocalDateTime;
 
 public class PaymentRequestDTO {
 
-    @NotNull(message = "Bedrag is verplicht")
-    @DecimalMin(value = "0.01", message = "Bedrag moet groter zijn dan 0")
-    @Digits(integer = 8, fraction = 2, message = "Bedrag mag maximaal 8 cijfers en 2 decimalen bevatten")
+    @NotNull(message = "Amount is required")
+    @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
+    @Digits(integer = 8, fraction = 2, message = "Amount may contain up to 8 digits and 2 decimals")
     private BigDecimal amount;
 
-    @Size(max = 500, message = "Omschrijving mag maximaal 500 tekens bevatten")
+    @Size(max = 500, message = "Description may contain at most 500 characters")
     private String description;
 
-    private PaymentStatus status;
+    @NotBlank(message = "Status is required")
+    private String status;
 
-    @PastOrPresent(message = "Betaaldatum mag niet in de toekomst liggen")
+    @PastOrPresent(message = "Paid date may not be in the future")
     private LocalDateTime paidAt;
 
-    @NotBlank(message = "Student e-mailadres is verplicht")
-    @Email(message = "Ongeldig e-mailadres")
+    @NotBlank(message = "Student email is required")
+    @Email(message = "Invalid email address")
     private String studentEmail;
 
     public BigDecimal getAmount() {
@@ -38,15 +38,15 @@ public class PaymentRequestDTO {
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        this.description = description == null ? null : description.trim();
     }
 
-    public PaymentStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(PaymentStatus status) {
-        this.status = status;
+    public void setStatus(String status) {
+        this.status = status == null ? null : status.trim().toUpperCase();
     }
 
     public LocalDateTime getPaidAt() {
@@ -62,6 +62,6 @@ public class PaymentRequestDTO {
     }
 
     public void setStudentEmail(String studentEmail) {
-        this.studentEmail = studentEmail;
+        this.studentEmail = studentEmail == null ? null : studentEmail.trim().toLowerCase();
     }
 }

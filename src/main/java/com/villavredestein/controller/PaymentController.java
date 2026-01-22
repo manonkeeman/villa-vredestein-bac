@@ -1,28 +1,29 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.dto.PaymentRequestDTO;
-import com.villavredestein.model.Payment;
+import com.villavredestein.dto.PaymentResponseDTO;
 import com.villavredestein.service.PaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 
-/**
- * REST-controller voor betalingen binnen Villa Vredestein
- */
+// =====================================================================
+// # PaymentController
+// =====================================================================
 @Validated
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping(value = "/api/payments", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin
 public class PaymentController {
 
@@ -32,54 +33,51 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    // ==========================================================
-    // STUDENT: alleen eigen payments
-    // ==========================================================
-
-    @PreAuthorize("hasRole('STUDENT')")
+    // =====================================================================
+    // # READ - current user
+    // =====================================================================
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/me")
-    public ResponseEntity<List<Payment>> getMyPayments(Principal principal) {
-        String email = currentUserEmail(principal);
+    public ResponseEntity<List<PaymentResponseDTO>> getMyPayments(Authentication authentication) {
+        String email = currentUserEmail(authentication);
         return ResponseEntity.ok(paymentService.getPaymentsForStudent(email));
     }
 
-    @PreAuthorize("hasRole('STUDENT')")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/me/open")
-    public ResponseEntity<List<Payment>> getMyOpenPayments(Principal principal) {
-        String email = currentUserEmail(principal);
+    public ResponseEntity<List<PaymentResponseDTO>> getMyOpenPayments(Authentication authentication) {
+        String email = currentUserEmail(authentication);
         return ResponseEntity.ok(paymentService.getOpenPaymentsForStudent(email));
     }
 
-    // ==========================================================
-    // ADMIN: lezen
-    // ==========================================================
-
+    // =====================================================================
+    // # READ - admin
+    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<Payment>> getAllPayments() {
+    public ResponseEntity<List<PaymentResponseDTO>> getAllPayments() {
         return ResponseEntity.ok(paymentService.getAllPayments());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/student/{email}")
-    public ResponseEntity<List<Payment>> getPaymentsForStudent(@PathVariable @NotBlank @Email String email) {
-        return ResponseEntity.ok(paymentService.getPaymentsForStudent(email));
+    public ResponseEntity<List<PaymentResponseDTO>> getPaymentsForStudent(@PathVariable @NotBlank @Email String email) {
+        return ResponseEntity.ok(paymentService.getPaymentsForStudent(email.trim().toLowerCase()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable @Positive Long id) {
+    public ResponseEntity<PaymentResponseDTO> getPaymentById(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
-    // ==========================================================
-    // ADMIN: schrijven
-    // ==========================================================
-
+    // =====================================================================
+    // # CREATE / DELETE - admin
+    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
-    public ResponseEntity<Payment> createPayment(@Valid @RequestBody PaymentRequestDTO dto) {
-        Payment created = paymentService.createPayment(dto);
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PaymentResponseDTO> createPayment(@Valid @RequestBody PaymentRequestDTO dto) {
+        PaymentResponseDTO created = paymentService.createPayment(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -90,14 +88,13 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
-    // ==========================================================
-    // Helper
-    // ==========================================================
-
-    private String currentUserEmail(Principal principal) {
-        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
-            throw new AuthenticationException("Geen ingelogde gebruiker gevonden") {};
+    // =====================================================================
+    // # Helpers
+    // =====================================================================
+    private String currentUserEmail(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new AuthenticationCredentialsNotFoundException("No authenticated user found");
         }
-        return principal.getName().trim().toLowerCase();
+        return authentication.getName().trim().toLowerCase();
     }
 }

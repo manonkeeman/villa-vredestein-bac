@@ -1,7 +1,5 @@
 package com.villavredestein.dto;
 
-import com.villavredestein.model.Invoice;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,20 +20,6 @@ public class InvoiceResponseDTO {
     private final String studentName;
     private final String studentEmail;
 
-    protected InvoiceResponseDTO() {
-        this.id = null;
-        this.title = null;
-        this.description = null;
-        this.amount = null;
-        this.issueDate = null;
-        this.dueDate = null;
-        this.status = null;
-        this.reminderCount = 0;
-        this.lastReminderSentAt = null;
-        this.studentName = null;
-        this.studentEmail = null;
-    }
-
     public InvoiceResponseDTO(
             Long id,
             String title,
@@ -43,7 +27,7 @@ public class InvoiceResponseDTO {
             BigDecimal amount,
             LocalDate issueDate,
             LocalDate dueDate,
-            Invoice.InvoiceStatus status,
+            String status,
             int reminderCount,
             LocalDateTime lastReminderSentAt,
             String studentName,
@@ -55,7 +39,7 @@ public class InvoiceResponseDTO {
         this.amount = amount;
         this.issueDate = issueDate;
         this.dueDate = dueDate;
-        this.status = status != null ? status.name() : null;
+        this.status = status;
         this.reminderCount = reminderCount;
         this.lastReminderSentAt = lastReminderSentAt;
         this.studentName = studentName;

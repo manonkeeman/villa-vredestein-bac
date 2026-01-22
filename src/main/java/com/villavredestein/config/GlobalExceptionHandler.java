@@ -14,17 +14,17 @@ import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.validation.BindException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
@@ -39,31 +39,31 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // =========================
-    // 401 / 403
-    // =========================
+    // =====================================================================
+    // # 401 / 403
+    // =====================================================================
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
         log.warn("Bad credentials: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Onjuiste inloggegevens.", request);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid credentials.", request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleUnauthorized(AuthenticationException ex, HttpServletRequest request) {
         log.warn("Unauthorized: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Je bent niet ingelogd of je sessie is verlopen. Log in en probeer het opnieuw.", request);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Authentication required or token is invalid.", request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleForbidden(AccessDeniedException ex, HttpServletRequest request) {
         log.warn("Forbidden: {}", ex.getMessage());
-        return buildResponse(HttpStatus.FORBIDDEN, "Je mag dit niet doen met jouw account.", request);
+        return buildResponse(HttpStatus.FORBIDDEN, "You do not have access to this resource.", request);
     }
 
-    // =========================
-    // 404
-    // =========================
+    // =====================================================================
+    // # 404
+    // =====================================================================
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex, HttpServletRequest request) {
@@ -74,16 +74,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
         log.warn("No resource found: {}", ex.getMessage());
-        return buildResponse(HttpStatus.NOT_FOUND, "Endpoint niet gevonden.", request);
+        return buildResponse(HttpStatus.NOT_FOUND, "Endpoint not found.", request);
     }
 
-    // =========================
-    // 400
-    // =========================
+    // =====================================================================
+    // # 400
+    // =====================================================================
+
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<Map<String, Object>> handleMultipart(MultipartException ex, HttpServletRequest request) {
         log.warn("Multipart error: {}", ex.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, "Bestand-upload mislukt. Controleer of je een geldig bestand meestuurt.", request);
+        return buildResponse(HttpStatus.BAD_REQUEST, "File upload failed. Please provide a valid file.", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -98,7 +99,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
-        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Er klopt iets niet in je invoer. Pas het aan en probeer het opnieuw.", request);
+        Map<String, Object> body = baseBody(HttpStatus.BAD_REQUEST, "Invalid input. Please correct your request and try again.", request);
         body.put("violations", ex.getConstraintViolations().stream()
                 .map(v -> Map.of(
                         "path", String.valueOf(v.getPropertyPath()),
@@ -113,19 +114,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
         log.warn("Unreadable JSON: {}", ex.getMessage());
-        return buildResponse(HttpStatus.BAD_REQUEST, "Ik kan je verzoek niet lezen. Check je JSON en probeer het opnieuw.", request);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Request body is not readable JSON.", request);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        String msg = "Deze parameter klopt niet: " + ex.getName();
+        String msg = "Invalid parameter: " + ex.getName();
         log.warn("Type mismatch: {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, msg, request);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Map<String, Object>> handleMissingParam(MissingServletRequestParameterException ex, HttpServletRequest request) {
-        String msg = "Je mist een verplichte parameter: " + ex.getParameterName();
+        String msg = "Missing required parameter: " + ex.getParameterName();
         log.warn("Missing request parameter: {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, msg, request);
     }
@@ -136,51 +137,58 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    // =========================
-    // 405 / 415
-    // =========================
+    // =====================================================================
+    // # 405 / 415
+    // =====================================================================
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
         log.warn("Method not allowed: {}", ex.getMessage());
-        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "Deze actie werkt niet op dit endpoint. Gebruik een andere methode.", request);
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not allowed for this endpoint.", request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleUnsupportedMedia(HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
         log.warn("Unsupported media type: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Dit formaat wordt niet ondersteund. Gebruik het juiste Content-Type.", request);
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type. Use the correct Content-Type.", request);
     }
 
-    // =========================
-    // 409
-    // =========================
+    // =====================================================================
+    // # 409
+    // =====================================================================
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Data integrity violation: {}", ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage());
-        return buildResponse(HttpStatus.CONFLICT, "Dit kan niet, want deze gegevens bestaan al of botsen met bestaande data.", request);
+        String cause = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        log.warn("Data integrity violation: {}", cause);
+        return buildResponse(HttpStatus.CONFLICT, "Request conflicts with existing data.", request);
     }
 
-    // =========================
-    // Mail
-    // =========================
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex, HttpServletRequest request) {
+        log.warn("Conflict: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    // =====================================================================
+    // # Mail
+    // =====================================================================
 
     @ExceptionHandler(MailException.class)
     public ResponseEntity<Map<String, Object>> handleMailException(MailException ex, HttpServletRequest request) {
         log.error("MailException: {}", ex.getMessage(), ex);
-        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "Je mail kon niet worden verstuurd. Probeer het straks nog een keer.", request);
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "Email could not be sent. Please try again later.", request);
     }
 
     @ExceptionHandler(MessagingException.class)
     public ResponseEntity<Map<String, Object>> handleMessagingException(MessagingException ex, HttpServletRequest request) {
         log.error("MessagingException: {}", ex.getMessage(), ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Je mail kon niet worden verwerkt. Probeer het opnieuw.", request);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Email could not be processed. Please try again.", request);
     }
 
-    // =========================
-    // ResponseStatusException
-    // =========================
+    // =====================================================================
+    // # ResponseStatusException
+    // =====================================================================
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
@@ -190,23 +198,24 @@ public class GlobalExceptionHandler {
         return buildResponse(status, msg, request);
     }
 
-    // =========================
-    // 500
-    // =========================
+    // =====================================================================
+    // # 500
+    // =====================================================================
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex, HttpServletRequest request) {
         String requestId = resolveRequestId(request);
         log.error("Unexpected error [requestId={}]", requestId, ex);
-        Map<String, Object> body = baseBody(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Oeps. Er ging iets mis aan onze kant. Probeer het later opnieuw. (requestId: " + requestId + ")",
-                request);
-        // baseBody() already puts requestId as well; this keeps the message useful for clients.
+        Map<String, Object> body = baseBody(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An unexpected server error occurred. Please try again later. (requestId: " + requestId + ")",
+                request
+        );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     // =====================================================================
-    // Helpers
+    // # Helpers
     // =====================================================================
 
     private String resolveRequestId(HttpServletRequest request) {
@@ -265,7 +274,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> body = baseBody(
                 HttpStatus.BAD_REQUEST,
-                "Er klopt iets niet. Check de velden en probeer het opnieuw.",
+                "Validation failed. Please check the fields and try again.",
                 request
         );
 
@@ -281,7 +290,7 @@ public class GlobalExceptionHandler {
     private Map<String, String> toFieldError(FieldError fe) {
         return Map.of(
                 "field", fe.getField(),
-                "message", fe.getDefaultMessage() == null ? "Ongeldige waarde" : fe.getDefaultMessage(),
+                "message", fe.getDefaultMessage() == null ? "Invalid value" : fe.getDefaultMessage(),
                 "rejectedValue", fe.getRejectedValue() == null ? "" : String.valueOf(fe.getRejectedValue())
         );
     }

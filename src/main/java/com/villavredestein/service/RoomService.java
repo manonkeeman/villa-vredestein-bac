@@ -25,27 +25,10 @@ public class RoomService {
     }
 
     // =====================================================================
-    // CREATE
+    // # READ
     // =====================================================================
 
-    public RoomResponseDTO createRoomDTO(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Room name is verplicht");
-        }
-        String normalizedName = name.trim();
-
-        if (roomRepository.existsByNameIgnoreCase(normalizedName)) {
-            throw new IllegalArgumentException("Room name already exists");
-        }
-
-        Room room = roomRepository.save(new Room(normalizedName));
-        return toDTO(room);
-    }
-
-    // =====================================================================
-    // READ
-    // =====================================================================
-
+    @Transactional(readOnly = true)
     public List<RoomResponseDTO> getAllRoomsDTO() {
         return roomRepository.findAllByOrderByIdAsc()
                 .stream()
@@ -53,45 +36,59 @@ public class RoomService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Optional<RoomResponseDTO> getRoomByIdDTO(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Room id is required");
+        }
         return roomRepository.findById(id).map(this::toDTO);
     }
 
     // =====================================================================
-    // UPDATE
+    // # UPDATE
     // =====================================================================
 
     public RoomResponseDTO assignOccupantDTO(Long roomId, Long userId) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + roomId));
+        Room room = roomRepository.findById(requireId(roomId, "roomId"))
+                .orElseThrow(() -> new EntityNotFoundException("Room not found: " + roomId));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User niet gevonden: " + userId));
+        User user = userRepository.findById(requireId(userId, "userId"))
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+
+        if (room.getOccupant() != null && !room.getOccupant().getId().equals(user.getId())) {
+            throw new IllegalStateException("Room is already occupied");
+        }
+
+        roomRepository.findByOccupant_Id(user.getId()).ifPresent(existingRoom -> {
+            if (!existingRoom.getId().equals(room.getId())) {
+                throw new IllegalStateException("User is already assigned to another room");
+            }
+        });
 
         room.assignOccupant(user);
         return toDTO(room);
     }
 
     public RoomResponseDTO removeOccupantDTO(Long roomId) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + roomId));
+        Room room = roomRepository.findById(requireId(roomId, "roomId"))
+                .orElseThrow(() -> new EntityNotFoundException("Room not found: " + roomId));
 
         room.removeOccupant();
         return toDTO(room);
     }
 
     // =====================================================================
-    // DELETE
+    // # DELETE (optional)
     // =====================================================================
 
     public void deleteRoom(Long id) {
-        Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Room niet gevonden: " + id));
+        Room room = roomRepository.findById(requireId(id, "id"))
+                .orElseThrow(() -> new EntityNotFoundException("Room not found: " + id));
         roomRepository.delete(room);
     }
 
     // =====================================================================
-    // MAPPER
+    // # MAPPER
     // =====================================================================
 
     private RoomResponseDTO toDTO(Room room) {
@@ -104,5 +101,16 @@ public class RoomService {
                 occupantId,
                 occupantUsername
         );
+    }
+
+    // =====================================================================
+    // # HELPERS
+    // =====================================================================
+
+    private Long requireId(Long value, String fieldName) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value;
     }
 }

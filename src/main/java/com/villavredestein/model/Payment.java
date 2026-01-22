@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Entity
 @Table(
@@ -56,7 +57,7 @@ public class Payment {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    public Payment() {
+    protected Payment() {
     }
 
     public Payment(BigDecimal amount,
@@ -69,6 +70,7 @@ public class Payment {
         this.status = (status == null) ? PaymentStatus.OPEN : status;
         this.description = description;
         this.student = student;
+        normalize();
     }
 
     @PrePersist
@@ -114,10 +116,7 @@ public class Payment {
         if (status == null) {
             return true;
         }
-        if (status == PaymentStatus.PAID) {
-            return paidAt != null;
-        }
-        return true;
+        return status != PaymentStatus.PAID || paidAt != null;
     }
 
     public Long getId() {
@@ -152,10 +151,6 @@ public class Payment {
         this.amount = amount;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public void setPaidAt(LocalDateTime paidAt) {
         this.paidAt = paidAt;
     }
@@ -164,8 +159,29 @@ public class Payment {
         this.status = (status == null) ? PaymentStatus.OPEN : status;
     }
 
+    public void setStatus(String status) {
+        if (status == null || status.isBlank()) {
+            this.status = PaymentStatus.OPEN;
+            return;
+        }
+
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+
+        try {
+            this.status = PaymentStatus.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid payment status: " + status);
+        }
+    }
+
     public void setDescription(String description) {
         this.description = (description == null) ? null : description.trim();
+        if (this.description != null && this.description.isEmpty()) {
+            this.description = null;
+        }
     }
 
     public void setStudent(User student) {

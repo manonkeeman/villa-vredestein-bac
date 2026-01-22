@@ -3,7 +3,7 @@ package com.villavredestein.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
-public class UserUpdateDTO {
+public class UserRequestDTO {
 
     @Size(min = 2, max = 50, message = "Gebruikersnaam moet tussen 2 en 50 tekens zijn")
     private String username;
@@ -12,10 +12,10 @@ public class UserUpdateDTO {
     @Size(max = 255, message = "E-mailadres mag maximaal 255 tekens zijn")
     private String email;
 
-    public UserUpdateDTO() {
+    public UserRequestDTO() {
     }
 
-    public UserUpdateDTO(String username, String email) {
+    public UserRequestDTO(String username, String email) {
         this.username = username;
         this.email = email;
     }

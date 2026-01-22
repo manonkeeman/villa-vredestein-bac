@@ -1,6 +1,11 @@
 package com.villavredestein.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,7 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtService {
@@ -19,30 +27,26 @@ public class JwtService {
     @Value("${jwt.secret:MySuperSecretKeyForVillaVredesteinThatIsLongEnough!!}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}") // 24 uur
+    @Value("${jwt.expiration:86400000}")
     private long jwtExpirationMs;
 
-    private Key getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-
-        if (keyBytes.length < 32) {
-            keyBytes = Arrays.copyOf(keyBytes, 32);
-        }
-
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
+    // =====================================================================
+    // # Token creation
+    // =====================================================================
 
     public String generateToken(String username, String role) {
-        Map<String, Object> claims = new HashMap<>();
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
 
-        String normalizedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        claims.put("role", normalizedRole);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", normalizeRoleClaim(role));
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(username.trim())
                 .addClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(expiry)
@@ -50,18 +54,42 @@ public class JwtService {
                 .compact();
     }
 
+    // =====================================================================
+    // # Validation
+    // =====================================================================
+
     public boolean validateToken(String token, String username) {
+        if (token == null || token.isBlank()) {
+            log.warn("JWT missing or empty");
+            return false;
+        }
+        if (username == null || username.isBlank()) {
+            log.warn("JWT validation failed: username is missing");
+            return false;
+        }
+
         try {
             Claims claims = extractAllClaims(token);
             String extractedUsername = claims.getSubject();
 
-            if (!extractedUsername.equals(username)) {
-                log.warn("JWT invalid: username mismatch (token={}, expected={})",
-                        extractedUsername, username);
+            if (extractedUsername == null || extractedUsername.isBlank()) {
+                log.warn("JWT invalid: missing subject");
                 return false;
             }
 
-            if (claims.getExpiration().before(new Date())) {
+            if (!extractedUsername.equals(username)) {
+                log.warn("JWT invalid: username mismatch (tokenUser={}, expectedUser={})",
+                        maskEmail(extractedUsername), maskEmail(username));
+                return false;
+            }
+
+            Date exp = claims.getExpiration();
+            if (exp == null) {
+                log.warn("JWT invalid: missing expiration");
+                return false;
+            }
+
+            if (exp.before(new Date())) {
                 log.warn("JWT invalid: token expired");
                 return false;
             }
@@ -71,13 +99,17 @@ public class JwtService {
         } catch (ExpiredJwtException e) {
             log.warn("JWT expired: {}", e.getMessage());
         } catch (UnsupportedJwtException | MalformedJwtException | SecurityException e) {
-            log.warn("JWT corrupt/invalid: {}", e.getMessage());
+            log.warn("JWT invalid: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            log.warn("JWT missing/empty: {}", e.getMessage());
+            log.warn("JWT parsing failed: {}", e.getMessage());
         }
 
         return false;
     }
+
+    // =====================================================================
+    // # Extraction
+    // =====================================================================
 
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
@@ -85,8 +117,12 @@ public class JwtService {
 
     public String extractRole(String token) {
         Object role = extractAllClaims(token).get("role");
-        return (role != null) ? role.toString() : null;
+        return role != null ? role.toString() : null;
     }
+
+    // =====================================================================
+    // # Internals
+    // =====================================================================
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
@@ -94,5 +130,32 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    private Key getSigningKey() {
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+
+        if (keyBytes.length < 32) {
+            log.warn("jwt.secret is shorter than 32 bytes; it will be padded. Use a longer secret.");
+            keyBytes = Arrays.copyOf(keyBytes, 32);
+        }
+
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private String normalizeRoleClaim(String role) {
+        if (role == null || role.isBlank()) {
+            return "ROLE_STUDENT";
+        }
+        String r = role.trim().toUpperCase();
+        return r.startsWith("ROLE_") ? r : "ROLE_" + r;
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) return "(no-email)";
+        String trimmed = email.trim();
+        int at = trimmed.indexOf('@');
+        if (at <= 1) return "***";
+        return trimmed.charAt(0) + "***" + trimmed.substring(at);
     }
 }

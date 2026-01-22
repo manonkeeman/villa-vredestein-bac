@@ -1,27 +1,34 @@
 package com.villavredestein.controller;
 
+import com.villavredestein.dto.DocumentRequestDTO;
 import com.villavredestein.dto.DocumentResponseDTO;
 import com.villavredestein.dto.UploadResponseDTO;
 import com.villavredestein.service.DocumentService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.http.ContentDisposition;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
-/**
- * REST-controller voor documentbeheer binnen Villa Vredestein.
- */
+// =====================================================================
+// # DocumentController
+// =====================================================================
+@Validated
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping(value = "/api/documents", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin
 public class DocumentController {
 
@@ -31,38 +38,76 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
-    /**
-     * Haalt een lijst op met alle beschikbare document-metadata.
-     */
+    // =====================================================================
+    // # READ
+    // =====================================================================
+
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @GetMapping
-    public ResponseEntity<List<DocumentResponseDTO>> getAllDocuments() {
-        return ResponseEntity.ok(documentService.listAll());
+    public ResponseEntity<List<DocumentResponseDTO>> getDocuments(Authentication authentication) {
+        String role = resolveRole(authentication);
+
+        if ("ADMIN".equals(role)) {
+            return ResponseEntity.ok(documentService.listAll());
+        }
+
+        return ResponseEntity.ok(documentService.listAccessibleDocuments(role));
     }
 
-    /**
-     * Uploadt een document en slaat dit op in de serveromgeving.
-     */
+    // =====================================================================
+    // # CREATE
+    // =====================================================================
+
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+            value = "/upload",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<UploadResponseDTO> uploadDocument(
             Principal principal,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(defaultValue = "ALL") String roleAccess
+            @RequestPart("file") MultipartFile file,
+            @Valid @RequestPart("meta") DocumentRequestDTO meta
     ) {
-        UploadResponseDTO created = documentService.upload(principal.getName(), file, roleAccess);
+        String uploaderEmail = principal == null ? "unknown" : principal.getName();
+
+        UploadResponseDTO created = documentService.upload(
+                uploaderEmail,
+                file,
+                meta.getRoleAccess()
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    /**
-     * Downloadt een document op basis van het document-ID.
-     */
+    // =====================================================================
+    // # DOWNLOAD
+    // =====================================================================
+
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    @GetMapping("/{id}/download")
-    public ResponseEntity<FileSystemResource> downloadDocument(@PathVariable Long id) {
+    @GetMapping(value = "/{id}/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<FileSystemResource> downloadDocument(
+            Authentication authentication,
+            @PathVariable @Positive Long id
+    ) {
+        String role = resolveRole(authentication);
+
+        if (!"ADMIN".equals(role)) {
+            boolean allowed = documentService.listAccessibleDocuments(role)
+                    .stream()
+                    .anyMatch(d -> d.id() != null && d.id().equals(id));
+
+            if (!allowed) {
+                throw new EntityNotFoundException("Document not found: " + id);
+            }
+        }
+
         FileSystemResource resource = documentService.download(id);
 
-        String filename = resource.getFilename() == null ? "document" : resource.getFilename();
+        String filename = (resource.getFilename() == null || resource.getFilename().isBlank())
+                ? "document"
+                : resource.getFilename();
+
         ContentDisposition contentDisposition = ContentDisposition
                 .attachment()
                 .filename(filename, StandardCharsets.UTF_8)
@@ -74,13 +119,34 @@ public class DocumentController {
                 .body(resource);
     }
 
-    /**
-     * Verwijdert een document op basis van ID.
-     */
+    // =====================================================================
+    // # DELETE
+    // =====================================================================
+
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDocument(@PathVariable @Positive Long id) {
         documentService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // =====================================================================
+    // # Helpers
+    // =====================================================================
+
+    private String resolveRole(Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return "STUDENT";
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (isAdmin) return "ADMIN";
+
+        boolean isCleaner = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_CLEANER".equals(a.getAuthority()));
+        if (isCleaner) return "CLEANER";
+
+        return "STUDENT";
     }
 }

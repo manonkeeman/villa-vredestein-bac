@@ -1,8 +1,8 @@
 package com.villavredestein.service;
 
 import com.villavredestein.dto.PaymentRequestDTO;
+import com.villavredestein.dto.PaymentResponseDTO;
 import com.villavredestein.model.Payment;
-import com.villavredestein.model.Payment.PaymentStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.PaymentRepository;
 import com.villavredestein.repository.UserRepository;
@@ -10,11 +10,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -28,218 +25,147 @@ public class PaymentService {
         this.userRepository = userRepository;
     }
 
-    // ==========================================================
-    // READ
-    // ==========================================================
-
+    // =====================================================================
+    // # READ
+    // =====================================================================
     @Transactional(readOnly = true)
-    public List<Payment> getAllPayments() {
-        return paymentRepository.findAll();
+    public List<PaymentResponseDTO> getAllPayments() {
+        return paymentRepository.findAllByOrderByIdDesc()
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<Payment> getPaymentsForStudent(String studentEmail) {
-        if (studentEmail == null || studentEmail.isBlank()) {
-            throw new IllegalArgumentException("studentEmail is verplicht");
-        }
-        return paymentRepository.findByStudent_Email(studentEmail.trim());
+    public List<PaymentResponseDTO> getPaymentsForStudent(String studentEmail) {
+        String email = normalizeEmail(studentEmail);
+
+        return paymentRepository.findByStudent_EmailIgnoreCaseOrderByIdDesc(email)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<Payment> getOpenPaymentsForStudent(String studentEmail) {
-        if (studentEmail == null || studentEmail.isBlank()) {
-            throw new IllegalArgumentException("studentEmail is verplicht");
-        }
-        return paymentRepository.findByStudent_EmailAndStatus(studentEmail.trim(), PaymentStatus.OPEN);
+    public List<PaymentResponseDTO> getOpenPaymentsForStudent(String studentEmail) {
+        String email = normalizeEmail(studentEmail);
+
+        List<Payment> open = paymentRepository.findByStudent_EmailIgnoreCaseAndStatusOrderByIdDesc(
+                email,
+                Payment.PaymentStatus.OPEN
+        );
+
+        List<Payment> pending = paymentRepository.findByStudent_EmailIgnoreCaseAndStatusOrderByIdDesc(
+                email,
+                Payment.PaymentStatus.PENDING
+        );
+
+        return concat(open, pending)
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public Payment getPaymentById(Long id) {
-        if (id == null) {
-            throw new IllegalArgumentException("id is verplicht");
-        }
-        return paymentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Payment niet gevonden: " + id));
+    public PaymentResponseDTO getPaymentById(Long id) {
+        Payment payment = paymentRepository.findById(requireId(id))
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found: " + id));
+        return toResponseDTO(payment);
     }
 
-    // ==========================================================
-    // CREATE / UPDATE
-    // ==========================================================
-
-    public Payment createPayment(PaymentRequestDTO dto) {
+    // =====================================================================
+    // # CREATE / UPDATE
+    // =====================================================================
+    public PaymentResponseDTO createPayment(PaymentRequestDTO dto) {
         if (dto == null) {
-            throw new IllegalArgumentException("PaymentRequestDTO is verplicht");
+            throw new IllegalArgumentException("PaymentRequestDTO is required");
         }
 
-        BigDecimal amount = dto.getAmount();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("amount moet groter zijn dan 0");
+        String email = normalizeEmail(dto.getStudentEmail());
+        User student = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found: " + email));
+
+        Payment payment = new Payment(
+                dto.getAmount(),
+                null,
+                Payment.PaymentStatus.OPEN,
+                dto.getDescription(),
+                student
+        );
+
+        payment.setStatus(dto.getStatus());
+
+        if (payment.getStatus() == Payment.PaymentStatus.PAID) {
+            LocalDateTime paidAt = dto.getPaidAt() != null ? dto.getPaidAt() : LocalDateTime.now();
+            payment.setPaidAt(paidAt);
+        } else {
+            payment.setPaidAt(dto.getPaidAt());
         }
 
-        boolean identifierProvided = hasStudentIdentifier(dto);
-        User student = resolveStudentFromDto(dto)
-                .orElseThrow(() -> {
-                    if (identifierProvided) {
-                        return new EntityNotFoundException("Student niet gevonden op basis van opgegeven identificatie");
-                    }
-                    return new IllegalArgumentException(
-                            "student is verplicht (geef studentId/studentEmail/studentUsername mee in PaymentRequestDTO)"
-                    );
-                });
-
-        Payment payment = new Payment();
-        payment.setAmount(amount);
-        payment.setDescription(dto.getDescription());
-        payment.setStudent(student);
-        payment.setCreatedAt(LocalDateTime.now());
-        payment.setStatus(dto.getStatus() != null ? dto.getStatus() : PaymentStatus.OPEN);
-
-        if (payment.getStatus() == PaymentStatus.PAID) {
-            payment.setPaidAt(LocalDateTime.now());
-        }
-
-        return paymentRepository.save(payment);
+        Payment saved = paymentRepository.save(payment);
+        return toResponseDTO(saved);
     }
 
-    /**
-     * Status updaten (bijv. OPEN -> PAID).
-     */
-    public Payment updateStatus(Long paymentId, PaymentStatus newStatus) {
-        if (paymentId == null) {
-            throw new IllegalArgumentException("paymentId is verplicht");
-        }
-        if (newStatus == null) {
-            throw new IllegalArgumentException("newStatus is verplicht");
-        }
+    public PaymentResponseDTO updateStatus(Long paymentId, String newStatus) {
+        Payment payment = paymentRepository.findById(requireId(paymentId))
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found: " + paymentId));
 
-        Payment payment = getPaymentById(paymentId);
         payment.setStatus(newStatus);
 
-        if (newStatus == PaymentStatus.PAID && payment.getPaidAt() == null) {
+        if (payment.getStatus() == Payment.PaymentStatus.PAID && payment.getPaidAt() == null) {
             payment.setPaidAt(LocalDateTime.now());
         }
-        if (newStatus != PaymentStatus.PAID) {
+
+        if (payment.getStatus() != Payment.PaymentStatus.PAID) {
             payment.setPaidAt(null);
         }
 
-        return paymentRepository.save(payment);
+        Payment saved = paymentRepository.save(payment);
+        return toResponseDTO(saved);
     }
 
-    /**
-     * Payment verwijderen (admin).
-     */
     public void deletePayment(Long id) {
-        Payment payment = getPaymentById(id);
+        Payment payment = paymentRepository.findById(requireId(id))
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found: " + id));
         paymentRepository.delete(payment);
     }
 
-    // ==========================================================
-    // Helpers: detect student identifier
-    // ==========================================================
-
-    private boolean hasStudentIdentifier(PaymentRequestDTO dto) {
-        Long id = readLong(dto, "getStudentId")
-                .or(() -> readLong(dto, "getUserId"))
-                .orElse(null);
-        if (id != null) {
-            return true;
+    // =====================================================================
+    // # Helpers
+    // =====================================================================
+    private Long requireId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("id is required");
         }
-
-        String email = readString(dto, "getStudentEmail")
-                .or(() -> readString(dto, "getEmail"))
-                .map(String::trim)
-                .orElse("");
-        if (!email.isBlank()) {
-            return true;
-        }
-
-        String username = readString(dto, "getStudentUsername")
-                .or(() -> readString(dto, "getUsername"))
-                .map(String::trim)
-                .orElse("");
-        return !username.isBlank();
+        return id;
     }
 
-    // ==========================================================
-    // Helpers: resolve student via reflection (compile-safe)
-    // ==========================================================
-
-    private Optional<User> resolveStudentFromDto(PaymentRequestDTO dto) {
-        Long id = readLong(dto, "getStudentId")
-                .or(() -> readLong(dto, "getUserId"))
-                .orElse(null);
-
-        if (id != null) {
-            return userRepository.findById(id);
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("studentEmail is required");
         }
-
-        String email = readString(dto, "getStudentEmail")
-                .or(() -> readString(dto, "getEmail"))
-                .map(String::trim)
-                .filter(s -> !s.isBlank())
-                .orElse(null);
-
-        if (email != null) {
-            return findUserByStringRepoMethod("findByEmail", email)
-                    .or(() -> findUserByStringRepoMethod("findByEmailIgnoreCase", email));
-        }
-
-        String username = readString(dto, "getStudentUsername")
-                .or(() -> readString(dto, "getUsername"))
-                .map(String::trim)
-                .filter(s -> !s.isBlank())
-                .orElse(null);
-
-        if (username != null) {
-            return findUserByStringRepoMethod("findByUsername", username)
-                    .or(() -> findUserByStringRepoMethod("findByUsernameIgnoreCase", username));
-        }
-
-        return Optional.empty();
+        return email.trim().toLowerCase();
     }
 
-    private Optional<Long> readLong(Object target, String methodName) {
-        try {
-            Method m = target.getClass().getMethod(methodName);
-            Object value = m.invoke(target);
-            if (value instanceof Long l) {
-                return Optional.of(l);
-            }
-            return Optional.empty();
-        } catch (Exception ignored) {
-            return Optional.empty();
-        }
+    private List<Payment> concat(List<Payment> a, List<Payment> b) {
+        if (a.isEmpty()) return b;
+        if (b.isEmpty()) return a;
+        return java.util.stream.Stream.concat(a.stream(), b.stream()).toList();
     }
 
-    private Optional<String> readString(Object target, String methodName) {
-        try {
-            Method m = target.getClass().getMethod(methodName);
-            Object value = m.invoke(target);
-            if (value instanceof String s) {
-                return Optional.of(s);
-            }
-            return Optional.empty();
-        } catch (Exception ignored) {
-            return Optional.empty();
-        }
-    }
+    private PaymentResponseDTO toResponseDTO(Payment payment) {
+        String studentName = payment.getStudent() != null ? payment.getStudent().getUsername() : null;
+        String studentEmail = payment.getStudent() != null ? payment.getStudent().getEmail() : null;
 
-    @SuppressWarnings("unchecked")
-    private Optional<User> findUserByStringRepoMethod(String methodName, String value) {
-        try {
-            Method m = userRepository.getClass().getMethod(methodName, String.class);
-            Object result = m.invoke(userRepository, value);
-
-            if (result instanceof Optional<?> opt) {
-                return (Optional<User>) opt;
-            }
-            if (result instanceof User u) {
-                return Optional.of(u);
-            }
-
-            return Optional.empty();
-        } catch (Exception ignored) {
-            return Optional.empty();
-        }
+        return new PaymentResponseDTO(
+                payment.getId(),
+                payment.getAmount(),
+                payment.getCreatedAt(),
+                payment.getPaidAt(),
+                payment.getStatus().name(),
+                payment.getDescription(),
+                studentName,
+                studentEmail
+        );
     }
 }

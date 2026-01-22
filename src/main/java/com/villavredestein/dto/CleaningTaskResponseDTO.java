@@ -1,6 +1,6 @@
 package com.villavredestein.dto;
 
-public class CleaningResponseDTO {
+public class CleaningTaskResponseDTO {
 
     private final Long id;
     private final int weekNumber;
@@ -11,14 +11,14 @@ public class CleaningResponseDTO {
     private final String comment;
     private final String incidentReport;
 
-    public CleaningResponseDTO(Long id,
-                               int weekNumber,
-                               String name,
-                               String description,
-                               boolean completed,
-                               String assignedTo,
-                               String comment,
-                               String incidentReport) {
+    public CleaningTaskResponseDTO(Long id,
+                                   int weekNumber,
+                                   String name,
+                                   String description,
+                                   boolean completed,
+                                   String assignedTo,
+                                   String comment,
+                                   String incidentReport) {
         this.id = id;
         this.weekNumber = weekNumber;
         this.name = name;

@@ -1,7 +1,7 @@
 package com.villavredestein.controller;
 
 import com.villavredestein.dto.UserResponseDTO;
-import com.villavredestein.dto.UserUpdateDTO;
+import com.villavredestein.dto.UserRequestDTO;
 import com.villavredestein.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -129,7 +129,7 @@ public class UserController {
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @PutMapping(value = "/me/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponseDTO> updateMyProfile(@Valid @RequestBody UserUpdateDTO dto) {
+    public ResponseEntity<UserResponseDTO> updateMyProfile(@Valid @RequestBody UserRequestDTO dto) {
         // userService.getMe() haalt huidige gebruiker op; daarna updaten we op basis van het eigen id
         Long myId = userService.getMe().id();
         return ResponseEntity.ok(userService.updateProfile(myId, dto));
@@ -137,7 +137,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/{id}/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponseDTO> updateAnyProfile(@PathVariable @Positive Long id, @Valid @RequestBody UserUpdateDTO dto) {
+    public ResponseEntity<UserResponseDTO> updateAnyProfile(@PathVariable @Positive Long id, @Valid @RequestBody UserRequestDTO dto) {
         return ResponseEntity.ok(userService.updateProfile(id, dto));
     }
 

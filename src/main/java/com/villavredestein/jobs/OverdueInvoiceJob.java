@@ -1,7 +1,6 @@
 package com.villavredestein.jobs;
 
 import com.villavredestein.model.Invoice;
-import com.villavredestein.model.Invoice.InvoiceStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
@@ -12,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -50,14 +50,14 @@ public class OverdueInvoiceJob {
         LocalDateTime now = LocalDateTime.now();
 
         List<Invoice> candidates = invoiceService.getAllOpenInvoices();
-        log.info("Start overdue invoice job (candidates={}, maxReminders={}, minHoursBetween={})",
+        log.info("OverdueInvoiceJob started (candidates={}, maxReminders={}, minHoursBetween={})",
                 candidates.size(), maxReminders, minHoursBetween);
 
         for (Invoice invoice : candidates) {
             processInvoice(invoice, today, now);
         }
 
-        log.info("Overdue invoice job klaar");
+        log.info("OverdueInvoiceJob finished");
     }
 
     private void processInvoice(Invoice invoice, LocalDate today, LocalDateTime now) {
@@ -70,12 +70,12 @@ public class OverdueInvoiceJob {
 
         User student = invoice.getStudent();
         if (student == null) {
-            log.warn("Skip: student ontbreekt (invoiceId={})", invoiceId);
+            log.warn("Skip: student missing (invoiceId={})", invoiceId);
             return;
         }
 
         if (invoice.getDueDate() == null) {
-            log.warn("Skip: dueDate ontbreekt (invoiceId={})", invoiceId);
+            log.warn("Skip: dueDate missing (invoiceId={})", invoiceId);
             return;
         }
 
@@ -83,7 +83,8 @@ public class OverdueInvoiceJob {
             return;
         }
 
-        if (invoice.getStatus() != InvoiceStatus.OPEN && invoice.getStatus() != InvoiceStatus.OVERDUE) {
+        Invoice.InvoiceStatus status = invoice.getStatus();
+        if (status != Invoice.InvoiceStatus.OPEN && status != Invoice.InvoiceStatus.OVERDUE) {
             return;
         }
 
@@ -93,12 +94,12 @@ public class OverdueInvoiceJob {
 
         String to = student.getEmail();
         if (to == null || to.isBlank()) {
-            log.warn("Skip: geen geldig e-mailadres (invoiceId={}, student={})", invoiceId, safeName(student));
+            log.warn("Skip: invalid email (invoiceId={}, student={})", invoiceId, safeName(student));
             return;
         }
 
-        if (invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            invoice.setStatus(InvoiceStatus.OVERDUE);
+        if (status != Invoice.InvoiceStatus.OVERDUE) {
+            invoice.setStatus(Invoice.InvoiceStatus.OVERDUE);
         }
 
         sendOverdueMail(invoice, student, to);
@@ -108,7 +109,7 @@ public class OverdueInvoiceJob {
         Long invoiceId = invoice.getId();
 
         if (invoice.getReminderCount() >= maxReminders) {
-            log.info("Skip overdue: maxReminders bereikt (invoiceId={}, reminderCount={})",
+            log.info("Skip: maxReminders reached (invoiceId={}, reminderCount={})",
                     invoiceId, invoice.getReminderCount());
             return false;
         }
@@ -120,7 +121,7 @@ public class OverdueInvoiceJob {
 
         long hoursSinceLast = ChronoUnit.HOURS.between(last, now);
         if (hoursSinceLast < minHoursBetween) {
-            log.info("Skip overdue: laatste reminder {} uur geleden (invoiceId={})", hoursSinceLast, invoiceId);
+            log.info("Skip: last reminder {} hours ago (invoiceId={})", hoursSinceLast, invoiceId);
             return false;
         }
 
@@ -130,31 +131,40 @@ public class OverdueInvoiceJob {
     private void sendOverdueMail(Invoice invoice, User student, String to) {
         Long invoiceId = invoice.getId();
 
-        String amount = EUR.format(invoice.getAmount());
+        String amount = formatAmount(invoice.getAmount());
         String due = invoice.getDueDate().format(DATE_NL);
 
-        String subject = "Huurbetaling verlopen – actie nodig";
+        String subject = "Rent payment overdue – action required";
         String body = String.format("""
-                Beste %s,
+                Dear %s,
 
-                Onze administratie geeft aan dat de betaling van je huur (%s) met vervaldatum %s nog openstaat.
-                Wil je dit z.s.m. voldoen? Als je al betaald hebt, kun je deze mail negeren.
+                Our records show that your rent payment (%s) with due date %s is still unpaid.
+                Please pay as soon as possible. If you already paid, you can ignore this message.
 
-                Met vriendelijke groet,
+                Kind regards,
                 Villa Vredestein
                 """, safeName(student), amount, due);
 
         try {
             mailService.sendInvoiceReminderMail(to, subject, body);
+
             invoice.markReminderSentNow();
             invoiceService.saveReminderMeta(invoice);
 
-            log.info("Overdue mail verzonden (invoiceId={}, to={}, reminderCount={})",
+            log.info("Overdue reminder sent (invoiceId={}, to={}, reminderCount={})",
                     invoiceId, maskEmail(to), invoice.getReminderCount());
+
         } catch (Exception e) {
-            log.error("Verzenden overdue-mail mislukt (invoiceId={}, to={}): {}",
+            log.error("Sending failed (invoiceId={}, to={}): {}",
                     invoiceId, maskEmail(to), e.getMessage());
         }
+    }
+
+    private String formatAmount(BigDecimal amount) {
+        if (amount == null) {
+            return EUR.format(0);
+        }
+        return EUR.format(amount);
     }
 
     private String safeName(User user) {

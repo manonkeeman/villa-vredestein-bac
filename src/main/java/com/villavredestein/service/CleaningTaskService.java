@@ -1,7 +1,7 @@
 package com.villavredestein.service;
 
-import com.villavredestein.dto.CleaningRequestDTO;
-import com.villavredestein.dto.CleaningResponseDTO;
+import com.villavredestein.dto.CleaningTaskRequestDTO;
+import com.villavredestein.dto.CleaningTaskResponseDTO;
 import com.villavredestein.model.CleaningTask;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.CleaningTaskRepository;
@@ -13,55 +13,81 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
-import java.util.Locale;
 
-/**
- * Service-laag voor het beheren van schoonmaaktaken.
- */
+// ==============================================================
+// CleaningTaskService
+// ==============================================================
 @Service
 @Transactional
-public class CleaningService {
+public class CleaningTaskService {
 
     private final CleaningTaskRepository taskRepository;
     private final UserRepository userRepository;
 
-    public CleaningService(CleaningTaskRepository taskRepository, UserRepository userRepository) {
+    public CleaningTaskService(CleaningTaskRepository taskRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
     }
 
-    /**
-     * Berekent de huidige rotatie-week (1 t/m 4).
-     */
+    // --------------------------------------------------------------
+    // Rotation week helper (1..4)
+    // --------------------------------------------------------------
     private int getCurrentRotationWeek() {
-        int currentWeekOfYear = LocalDate.now().get(WeekFields.of(Locale.getDefault()).weekOfYear());
+        int currentWeekOfYear = LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
         return ((currentWeekOfYear - 1) % 4) + 1;
     }
 
-    public List<CleaningResponseDTO> getAllTasks() {
-        return taskRepository.findAllByOrderByWeekNumberAscIdAsc()
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+    // ==============================================================
+    // Role-aware methods
+    // ==============================================================
+
+    public List<CleaningTaskResponseDTO> getAllTasksForRole(String role) {
+        String callerRole = normalizeCallerRole(role);
+
+        List<CleaningTask> tasks = "ADMIN".equals(callerRole)
+                ? taskRepository.findAllByOrderByWeekNumberAscIdAsc()
+                : taskRepository.findAccessibleForRole(callerRole);
+
+        return tasks.stream().map(this::toResponseDTO).toList();
     }
 
-    public List<CleaningResponseDTO> getCurrentWeekTasks() {
+    public List<CleaningTaskResponseDTO> getTasksByWeekForRole(String role, int weekNumber) {
+        int safeWeek = requireValidWeekNumber(weekNumber);
+        String callerRole = normalizeCallerRole(role);
+
+        List<CleaningTask> tasks = "ADMIN".equals(callerRole)
+                ? taskRepository.findByWeekNumberOrderByIdAsc(safeWeek)
+                : taskRepository.findAccessibleForRoleByWeek(callerRole, safeWeek);
+
+        return tasks.stream().map(this::toResponseDTO).toList();
+    }
+
+    public List<CleaningTaskResponseDTO> getCurrentWeekTasksForRole(String role) {
         int rotationWeek = getCurrentRotationWeek();
-        return taskRepository.findByWeekNumberOrderByIdAsc(rotationWeek)
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+        return getTasksByWeekForRole(role, rotationWeek);
     }
 
-    public List<CleaningResponseDTO> getTasksByWeek(int weekNumber) {
-        requireValidWeekNumber(weekNumber);
-        return taskRepository.findByWeekNumberOrderByIdAsc(weekNumber)
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+    // ==============================================================
+    // Backwards-compatible READ methods
+    // ==============================================================
+
+    public List<CleaningTaskResponseDTO> getAllTasks() {
+        return getAllTasksForRole("ADMIN");
     }
 
-    public CleaningResponseDTO addTask(CleaningRequestDTO dto) {
+    public List<CleaningTaskResponseDTO> getCurrentWeekTasks() {
+        return getCurrentWeekTasksForRole("STUDENT");
+    }
+
+    public List<CleaningTaskResponseDTO> getTasksByWeek(int weekNumber) {
+        return getTasksByWeekForRole("STUDENT", weekNumber);
+    }
+
+    // ==============================================================
+    // WRITE methods
+    // ==============================================================
+
+    public CleaningTaskResponseDTO addTask(CleaningTaskRequestDTO dto) {
         int weekNumber = requireValidWeekNumber(dto.getWeekNumber());
 
         CleaningTask task = new CleaningTask(
@@ -79,7 +105,7 @@ public class CleaningService {
         return toResponseDTO(taskRepository.save(task));
     }
 
-    public CleaningResponseDTO updateTask(Long id, CleaningRequestDTO dto) {
+    public CleaningTaskResponseDTO updateTask(Long id, CleaningTaskRequestDTO dto) {
         CleaningTask task = findTaskOrThrow(id);
 
         task.setWeekNumber(requireValidWeekNumber(dto.getWeekNumber()));
@@ -95,13 +121,13 @@ public class CleaningService {
         return toResponseDTO(task);
     }
 
-    public CleaningResponseDTO toggleTask(Long id) {
+    public CleaningTaskResponseDTO toggleTask(Long id) {
         CleaningTask task = findTaskOrThrow(id);
         task.setCompleted(!task.isCompleted());
         return toResponseDTO(task);
     }
 
-    public CleaningResponseDTO addComment(Long id, String comment) {
+    public CleaningTaskResponseDTO addComment(Long id, String comment) {
         CleaningTask task = findTaskOrThrow(id);
         String safeComment = requireNonBlank(comment, "Comment mag niet leeg zijn");
 
@@ -109,7 +135,7 @@ public class CleaningService {
         return toResponseDTO(task);
     }
 
-    public CleaningResponseDTO addIncident(Long id, String incidentReport) {
+    public CleaningTaskResponseDTO addIncident(Long id, String incidentReport) {
         CleaningTask task = findTaskOrThrow(id);
         String safeIncident = requireNonBlank(incidentReport, "Incidentbeschrijving mag niet leeg zijn");
 
@@ -122,9 +148,21 @@ public class CleaningService {
         taskRepository.delete(task);
     }
 
-    // =========================
+    // ==============================================================
     // Helpers
-    // =========================
+    // ==============================================================
+
+    private String normalizeCallerRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "STUDENT";
+        }
+
+        String normalized = role.trim().toUpperCase();
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
+    }
 
     private int requireValidWeekNumber(Integer weekNumber) {
         if (weekNumber == null) {
@@ -157,10 +195,10 @@ public class CleaningService {
         return value.trim();
     }
 
-    private CleaningResponseDTO toResponseDTO(CleaningTask task) {
+    private CleaningTaskResponseDTO toResponseDTO(CleaningTask task) {
         String assignedTo = task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null;
 
-        return new CleaningResponseDTO(
+        return new CleaningTaskResponseDTO(
                 task.getId(),
                 task.getWeekNumber(),
                 task.getName(),

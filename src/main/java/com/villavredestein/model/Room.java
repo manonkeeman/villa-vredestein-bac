@@ -18,8 +18,8 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Kamernaam is verplicht")
-    @Size(max = 50, message = "Kamernaam mag maximaal 50 tekens bevatten")
+    @NotBlank(message = "Room name is required")
+    @Size(max = 50, message = "Room name may contain at most 50 characters")
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 
@@ -33,21 +33,30 @@ public class Room {
     public Room(String name) {
         this.name = name;
         normalize();
+        validateName();
     }
 
     @PrePersist
     private void onCreate() {
         normalize();
+        validateName();
     }
 
     @PreUpdate
     private void onUpdate() {
         normalize();
+        validateName();
     }
 
     private void normalize() {
         if (name != null) {
             name = name.trim();
+        }
+    }
+
+    private void validateName() {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Room name must not be blank");
         }
     }
 
@@ -64,16 +73,14 @@ public class Room {
     }
 
     public void rename(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Kamernaam mag niet leeg zijn");
-        }
         this.name = name;
         normalize();
+        validateName();
     }
 
     public void assignOccupant(User user) {
         if (user == null) {
-            throw new IllegalArgumentException("Occupant is verplicht");
+            throw new IllegalArgumentException("Occupant is required");
         }
         this.occupant = user;
     }

@@ -3,8 +3,8 @@ package com.villavredestein.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(
@@ -22,52 +22,64 @@ public class User {
         CLEANER
     }
 
+    // =====================================================================
+    // # FIELDS
+    // =====================================================================
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Gebruikersnaam is verplicht")
-    @Size(max = 50, message = "Gebruikersnaam mag maximaal 50 tekens bevatten")
+    @NotBlank(message = "Username is required")
+    @Size(max = 50, message = "Username may not exceed 50 characters")
     @Column(nullable = false, length = 50)
     private String username;
 
-    @NotBlank(message = "E-mail is verplicht")
-    @Email(message = "Ongeldig e-mailadres")
-    @Size(max = 100, message = "E-mail mag maximaal 100 tekens bevatten")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    @Size(max = 100, message = "Email may not exceed 100 characters")
     @Column(nullable = false, length = 100)
     private String email;
 
-    @NotBlank(message = "Wachtwoord is verplicht")
-    @Size(min = 8, max = 255, message = "Wachtwoord moet minimaal 8 tekens bevatten")
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 255, message = "Password must be at least 8 characters")
     @Column(nullable = false)
     private String password;
 
-    @NotNull(message = "Rol is verplicht")
+    @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+    // =====================================================================
+    // # CONSTRUCTORS
+    // =====================================================================
 
     protected User() {
     }
 
     public User(String username, String email, String password, Role role) {
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.role = role;
+        this.username = require(username, "username");
+        this.email = require(email, "email");
+        this.password = require(password, "password");
+        this.role = require(role, "role");
         normalize();
     }
+
+    // =====================================================================
+    // # LIFECYCLE
+    // =====================================================================
 
     @PrePersist
     @PreUpdate
     private void normalize() {
-        if (username != null) {
-            username = username.trim();
-        }
-        if (email != null) {
-            email = email.trim().toLowerCase();
-        }
+        username = username.trim();
+        email = email.trim().toLowerCase();
     }
+
+    // =====================================================================
+    // # GETTERS
+    // =====================================================================
 
     public Long getId() {
         return id;
@@ -89,38 +101,60 @@ public class User {
         return role;
     }
 
+    // =====================================================================
+    // # SETTERS
+    // =====================================================================
+
     public void setUsername(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Gebruikersnaam mag niet leeg zijn");
-        }
-        this.username = username;
+        this.username = require(username, "username");
         normalize();
     }
 
     public void setEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("E-mail mag niet leeg zijn");
-        }
-        this.email = email;
+        this.email = require(email, "email");
         normalize();
     }
 
     public void setPassword(String password) {
-        if (password == null || password.length() < 8) {
-            throw new IllegalArgumentException("Wachtwoord moet minimaal 8 tekens bevatten");
-        }
-        this.password = password;
+        this.password = require(password, "password");
     }
 
     public void setRole(Role role) {
-        if (role == null) {
-            throw new IllegalArgumentException("Rol is verplicht");
+        this.role = require(role, "role");
+    }
+
+    // =====================================================================
+    // # HELPERS
+    // =====================================================================
+
+    private <T> T require(T value, String field) {
+        if (value == null) {
+            throw new IllegalArgumentException(field + " is required");
         }
-        this.role = role;
+        if (value instanceof String s && s.trim().isEmpty()) {
+            throw new IllegalArgumentException(field + " may not be blank");
+        }
+        return value;
     }
 
     public boolean hasRole(Role expectedRole) {
         return this.role == expectedRole;
+    }
+
+    // =====================================================================
+    // # OBJECT CONTRACT
+    // =====================================================================
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
     }
 
     @Override
@@ -131,18 +165,5 @@ public class User {
                 ", email='" + email + '\'' +
                 ", role=" + role +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof User)) return false;
-        User other = (User) o;
-        return id != null && id.equals(other.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return 31;
     }
 }

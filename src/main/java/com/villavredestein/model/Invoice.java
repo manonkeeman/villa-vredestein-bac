@@ -80,7 +80,7 @@ public class Invoice {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    public Invoice() {
+    protected Invoice() {
     }
 
     public Invoice(String title,
@@ -101,6 +101,7 @@ public class Invoice {
         this.invoiceYear = invoiceYear;
         this.status = (status == null) ? InvoiceStatus.OPEN : status;
         this.student = student;
+        normalize();
     }
 
     @PrePersist
@@ -109,14 +110,21 @@ public class Invoice {
         if (title != null) {
             title = title.trim();
         }
+
         if (description != null) {
             description = description.trim();
         }
+
         if (status == null) {
             status = InvoiceStatus.OPEN;
         }
+
+        if (reminderCount < 0) {
+            reminderCount = 0;
+        }
+
         if (issueDate != null) {
-            if (invoiceMonth <= 0 || invoiceMonth > 12) {
+            if (invoiceMonth < 1 || invoiceMonth > 12) {
                 invoiceMonth = issueDate.getMonthValue();
             }
             if (invoiceYear < 2000 || invoiceYear > 2100) {
@@ -181,36 +189,12 @@ public class Invoice {
         return student;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setStatus(String status) {
-        if (status == null || status.isBlank()) {
-            this.status = InvoiceStatus.OPEN;
-            return;
-        }
-        this.status = InvoiceStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
-    }
-
-    public void setStatus(InvoiceStatus status) {
-        this.status = (status == null) ? InvoiceStatus.OPEN : status;
-    }
-
-    public void setReminderSent(boolean reminderSent) {
-        if (reminderSent) {
-            markReminderSentNow();
-        } else {
-            this.lastReminderSentAt = null;
-        }
-    }
-
     public void setTitle(String title) {
-        this.title = title;
+        this.title = (title == null) ? null : title.trim();
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        this.description = (description == null) ? null : description.trim();
     }
 
     public void setAmount(BigDecimal amount) {
@@ -238,7 +222,25 @@ public class Invoice {
     }
 
     public void setReminderCount(int reminderCount) {
-        this.reminderCount = (reminderCount < 0) ? 0 : reminderCount;
+        this.reminderCount = Math.max(0, reminderCount);
+    }
+
+    public void setStatus(String status) {
+        if (status == null || status.isBlank()) {
+            this.status = InvoiceStatus.OPEN;
+            return;
+        }
+
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        try {
+            this.status = InvoiceStatus.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid invoice status: " + status);
+        }
+    }
+
+    public void setStatus(InvoiceStatus status) {
+        this.status = (status == null) ? InvoiceStatus.OPEN : status;
     }
 
     public void setStudent(User student) {
@@ -250,11 +252,14 @@ public class Invoice {
         this.reminderCount = this.reminderCount + 1;
     }
 
+    public void clearLastReminderSentAt() {
+        this.lastReminderSentAt = null;
+    }
+
     @Override
     public String toString() {
         return "Invoice{" +
                 "id=" + id +
-                ", student=" + (student != null ? student.getUsername() : "null") +
                 ", amount=" + amount +
                 ", month=" + invoiceMonth +
                 ", year=" + invoiceYear +

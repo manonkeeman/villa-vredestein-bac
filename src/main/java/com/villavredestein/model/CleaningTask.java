@@ -18,7 +18,11 @@ import jakarta.validation.constraints.NotBlank;
 )
 public class CleaningTask {
 
-    public static final String ROLE_ALL = "ALL";
+    // Canonical public access value we store going forward
+    public static final String ROLE_ALL = "ROLE_ALL";
+
+    // Backwards compatibility: older rows / inputs may still contain "ALL"
+    public static final String LEGACY_ALL = "ALL";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,20 +64,45 @@ public class CleaningTask {
         this.weekNumber = weekNumber;
         this.name = name;
         this.description = description;
-        this.roleAccess = (roleAccess == null || roleAccess.isBlank())
-                ? ROLE_ALL
-                : roleAccess.trim().toUpperCase(Locale.ROOT);
+        this.roleAccess = normalizeRoleAccess(roleAccess);
+    }
+
+    private static String normalizeRoleAccess(String roleAccess) {
+        if (roleAccess == null || roleAccess.isBlank()) {
+            return ROLE_ALL;
+        }
+
+        String normalized = roleAccess.trim().toUpperCase(Locale.ROOT);
+
+        // Convert Spring Security authority format (ROLE_STUDENT -> STUDENT)
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+
+        // Legacy support
+        if (LEGACY_ALL.equals(normalized)) {
+            return ROLE_ALL;
+        }
+
+        // Canonical values
+        if ("ADMIN".equals(normalized) || "STUDENT".equals(normalized) || "CLEANER".equals(normalized)) {
+            return normalized;
+        }
+
+        // Keep as-is (uppercased). Validation/service layer can reject if needed.
+        return normalized;
     }
 
     @PrePersist
     @PreUpdate
     private void normalize() {
-        roleAccess = (roleAccess == null || roleAccess.isBlank())
-                ? ROLE_ALL
-                : roleAccess.trim().toUpperCase(Locale.ROOT);
+        roleAccess = normalizeRoleAccess(roleAccess);
 
         if (name != null) {
             name = name.trim();
+        }
+        if (description != null) {
+            description = description.trim();
         }
     }
 
@@ -119,11 +148,11 @@ public class CleaningTask {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = (name == null) ? null : name.trim();
     }
 
     public void setDescription(String description) {
-        this.description = description;
+        this.description = (description == null) ? null : description.trim();
     }
 
     public void setCompleted(boolean completed) {
@@ -139,7 +168,7 @@ public class CleaningTask {
     }
 
     public void setRoleAccess(String roleAccess) {
-        this.roleAccess = roleAccess;
+        this.roleAccess = normalizeRoleAccess(roleAccess);
     }
 
     public void setAssignedTo(User assignedTo) {

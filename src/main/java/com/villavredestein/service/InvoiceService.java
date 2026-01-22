@@ -35,7 +35,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // CREATE
+    // # CREATE INVOICE
     // =====================================================================
 
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
@@ -73,7 +73,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // READ
+    // # READ INVOICES
     // =====================================================================
 
     public List<InvoiceResponseDTO> getAllInvoices() {
@@ -98,7 +98,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // UPDATE
+    // # UPDATE INVOICE STATUS
     // =====================================================================
 
     public InvoiceResponseDTO updateStatus(Long id, InvoiceStatus newStatus) {
@@ -124,7 +124,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // DELETE
+    // # DELETE INVOICE
     // =====================================================================
 
     public void deleteInvoice(Long id) {
@@ -134,7 +134,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // BUSINESSLOGICA VOOR JOBS
+    // # BUSINESS LOGIC FOR JOBS
     // =====================================================================
 
     public List<Invoice> getAllOpenInvoices() {
@@ -155,7 +155,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // HELPERS
+    // # HELPERS
     // =====================================================================
 
     private Invoice findInvoiceOrThrow(Long id) {
@@ -164,7 +164,7 @@ public class InvoiceService {
     }
 
     // =====================================================================
-    // DTO MAPPING
+    // # DTO MAPPING
     // =====================================================================
 
     private InvoiceResponseDTO toDTO(Invoice invoice) {
@@ -183,7 +183,7 @@ public class InvoiceService {
                 invoice.getAmount(),
                 invoice.getIssueDate(),
                 invoice.getDueDate(),
-                invoice.getStatus(),
+                invoice.getStatus().name(),
                 invoice.getReminderCount(),
                 invoice.getLastReminderSentAt(),
                 invoice.getStudent().getUsername(),

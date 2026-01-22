@@ -16,11 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * JWT-filter die elke request onderschept en controleert op geldige JWT-tokens.
- *
- * <p>Foutcodes (401 / 403) worden afgehandeld door SecurityConfig.</p>
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -29,17 +24,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtService jwtService,
-                                   UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
     }
 
+    // =====================================================================
+    // # Filter
+    // =====================================================================
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String path = request.getRequestURI();
 
@@ -48,58 +47,72 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String authHeader = request.getHeader("Authorization");
-
+        String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String jwtToken = authHeader.substring(7);
+        String jwtToken = authHeader.substring("Bearer ".length());
 
         String username;
         try {
             username = jwtService.extractUsername(jwtToken);
         } catch (Exception e) {
-            log.warn("JWT parsing mislukt: {}", e.getMessage());
+            log.warn("JWT parsing failed: {}", e.getMessage());
             filterChain.doFilter(request, response);
             return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (username == null || username.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            UserDetails userDetails;
-            try {
-                userDetails = userDetailsService.loadUserByUsername(username);
-            } catch (Exception e) {
-                log.warn("Gebruiker in token bestaat niet: {}", username);
-                filterChain.doFilter(request, response);
-                return;
-            }
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            boolean isValid = jwtService.validateToken(jwtToken, userDetails.getUsername());
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUsername(username);
+        } catch (Exception e) {
+            log.warn("User referenced in token does not exist: {}", maskEmail(username));
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            if (isValid) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+        boolean isValid = jwtService.validateToken(jwtToken, userDetails.getUsername());
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+        if (isValid) {
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+            );
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                log.debug("JWT geldig → gebruiker {} is geauthenticeerd met rollen {}",
-                        username, userDetails.getAuthorities());
-            } else {
-                log.warn("Ongeldige JWT token voor gebruiker {}", username);
-            }
+            log.debug("JWT valid -> authenticated user {} with roles {}",
+                    maskEmail(username), userDetails.getAuthorities());
+        } else {
+            log.warn("Invalid JWT token for user {}", maskEmail(username));
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // =====================================================================
+    // # Helpers
+    // =====================================================================
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank()) return "(no-email)";
+        String trimmed = email.trim();
+        int at = trimmed.indexOf('@');
+        if (at <= 1) return "***";
+        return trimmed.charAt(0) + "***" + trimmed.substring(at);
     }
 }

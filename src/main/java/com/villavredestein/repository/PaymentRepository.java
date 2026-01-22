@@ -10,17 +10,11 @@ import java.util.List;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    List<Payment> findByStudent_Email(String email);
+    List<Payment> findAllByOrderByIdDesc();
 
-    List<Payment> findByStudent_EmailOrderByIdDesc(String email);
+    List<Payment> findByStudent_EmailIgnoreCaseOrderByIdDesc(String email);
 
-    List<Payment> findByStudent_EmailAndStatus(String email, PaymentStatus status);
-
-    List<Payment> findByStudent_EmailAndStatusOrderByIdDesc(String email, PaymentStatus status);
-
-    List<Payment> findByStatus(PaymentStatus status);
+    List<Payment> findByStudent_EmailIgnoreCaseAndStatusOrderByIdDesc(String email, PaymentStatus status);
 
     List<Payment> findByStatusOrderByIdDesc(PaymentStatus status);
-
-    List<Payment> findAllByOrderByIdDesc();
 }

@@ -2,11 +2,8 @@ package com.villavredestein.controller;
 
 import com.villavredestein.dto.RoomResponseDTO;
 import com.villavredestein.service.RoomService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,9 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * {@code RoomController} beheert alle API-endpoints rondom kamers.
- */
+// =====================================================================
+// # RoomController
+// =====================================================================
 @Validated
 @RestController
 @RequestMapping(value = "/api/rooms", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -31,16 +28,7 @@ public class RoomController {
     }
 
     // =====================================================================
-    // REQUEST DTO
-    // =====================================================================
-
-    public record CreateRoomRequest(
-            @NotBlank(message = "room name is verplicht")
-            String name
-    ) {}
-
-    // =====================================================================
-    // READ
+    // # READ
     // =====================================================================
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
@@ -54,28 +42,20 @@ public class RoomController {
     public ResponseEntity<RoomResponseDTO> getRoomById(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(
                 roomService.getRoomByIdDTO(id)
-                        .orElseThrow(() -> new EntityNotFoundException("Room met id " + id + " niet gevonden"))
+                        .orElseThrow(() -> new EntityNotFoundException("Room not found: " + id))
         );
     }
 
     // =====================================================================
-    // CREATE
-    // =====================================================================
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<RoomResponseDTO> createRoom(@Valid @RequestBody CreateRoomRequest request) {
-        RoomResponseDTO created = roomService.createRoomDTO(request.name());
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    // =====================================================================
-    // UPDATE
+    // # UPDATE
     // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/assign/{userId}")
-    public ResponseEntity<RoomResponseDTO> assignOccupant(@PathVariable @Positive Long roomId, @PathVariable @Positive Long userId) {
+    public ResponseEntity<RoomResponseDTO> assignOccupant(
+            @PathVariable @Positive Long roomId,
+            @PathVariable @Positive Long userId
+    ) {
         return ResponseEntity.ok(roomService.assignOccupantDTO(roomId, userId));
     }
 
@@ -86,7 +66,7 @@ public class RoomController {
     }
 
     // =====================================================================
-    // DELETE
+    // # DELETE
     // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")

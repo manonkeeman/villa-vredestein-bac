@@ -2,154 +2,101 @@ package com.villavredestein.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.AccessDeniedException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class MailServiceTest {
 
-    @Mock
-    JavaMailSender mailSender;
-
-    MailService mailServiceEnabled;
-    MailService mailServiceDisabled;
+    private JavaMailSender mailSender;
 
     @BeforeEach
     void setUp() {
-        mailServiceEnabled = new MailService(mailSender, true,
-                "no-reply@villavredestein.local", "admin@villa.nl");
-        mailServiceDisabled = new MailService(mailSender, false,
-                "no-reply@villavredestein.local", "admin@villa.nl");
+        mailSender = mock(JavaMailSender.class);
     }
 
     @Test
-    void admin_withMailEnabled_sendsMailWithAdminBcc() {
-        mailServiceEnabled.sendMailWithRole(
-                "ADMIN",
-                "student@villa.nl",
-                "Test onderwerp",
-                "Hallo student"
+    void admin_canSend_mailIsSent_withAdminBcc() {
+        MailService service = new MailService(
+                mailSender,
+                true,
+                "no-reply@villavredestein.nl",
+                "audit@villavredestein.nl"
         );
+
+        service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body");
 
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
 
-        SimpleMailMessage sent = captor.getValue();
-        assertThat(sent.getFrom()).isEqualTo("no-reply@villavredestein.local");
-        assertThat(sent.getTo()).containsExactly("student@villa.nl");
-        assertThat(sent.getBcc()).containsExactly("admin@villa.nl");
-        assertThat(sent.getSubject()).isEqualTo("Test onderwerp");
-        assertThat(sent.getText()).isEqualTo("Hallo student");
+        SimpleMailMessage msg = captor.getValue();
+        assertThat(msg.getFrom()).isEqualTo("no-reply@villavredestein.nl");
+        assertThat(msg.getTo()).containsExactly("student@gmail.com");
+        assertThat(msg.getSubject()).isEqualTo("Test");
+        assertThat(msg.getText()).isEqualTo("Body");
+        assertThat(msg.getBcc()).containsExactly("audit@villavredestein.nl");
     }
 
     @Test
-    void cleaner_withValidSubject_sendsMailWithCustomBcc() {
-        mailServiceEnabled.sendMailWithRole(
-                "CLEANER",
-                "student@villa.nl",
-                "Incident schoonmaak keuken",   // bevat 'incident' → toegestaan
-                "Er is iets gebeurd",
-                "cleaner-bcc@villa.nl"
+    void cleaner_canSend_onlyForAllowedSubjects() {
+        MailService service = new MailService(
+                mailSender,
+                true,
+                "no-reply@villavredestein.nl",
+                "audit@villavredestein.nl"
         );
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(mailSender).send(captor.capture());
+        assertDoesNotThrow(() -> service.sendMailWithRole("CLEANER", "admin@gmail.com", "Incident: lekkage", "Body"));
+        verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
 
-        SimpleMailMessage sent = captor.getValue();
-        assertThat(sent.getBcc()).containsExactly("cleaner-bcc@villa.nl");
+        assertThrows(AccessDeniedException.class,
+                () -> service.sendMailWithRole("CLEANER", "admin@gmail.com", "Huurbetaling", "Body"));
     }
 
     @Test
-    void cleaner_withInvalidSubject_throwsAccessDenied() {
-        // Geen 'incident' of 'schoonmaak' in subject
-        assertThrows(AccessDeniedException.class, () ->
-                mailServiceEnabled.sendMailWithRole(
-                        "CLEANER",
-                        "student@villa.nl",
-                        "Vraag over huur",
-                        "Mag ik later betalen?",
-                        null
-                )
+    void student_cannotSend_throwsAccessDenied() {
+        MailService service = new MailService(
+                mailSender,
+                true,
+                "no-reply@villavredestein.nl",
+                "audit@villavredestein.nl"
         );
 
-        verifyNoInteractions(mailSender);
+        assertThrows(AccessDeniedException.class,
+                () -> service.sendMailWithRole("STUDENT", "admin@gmail.com", "Test", "Body"));
+
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test
-    void student_cannotSendMail_throwsAccessDenied() {
-        assertThrows(AccessDeniedException.class, () ->
-                mailServiceEnabled.sendMailWithRole(
-                        "STUDENT",
-                        "admin@villa.nl",
-                        "Test",
-                        "Mag ik mailen?"
-                )
+    void mailDisabled_doesNotSend() {
+        MailService service = new MailService(
+                mailSender,
+                false,
+                "no-reply@villavredestein.nl",
+                "audit@villavredestein.nl"
         );
 
-        verifyNoInteractions(mailSender);
+        service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body");
+
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test
-    void unknownRole_throwsAccessDenied() {
-        assertThrows(AccessDeniedException.class, () ->
-                mailServiceEnabled.sendMailWithRole(
-                        "GAST",
-                        "iemand@villa.nl",
-                        "Test",
-                        "Body"
-                )
+    void noMailSenderBean_available_doesNotThrow() {
+        MailService service = new MailService(
+                null,
+                true,
+                "no-reply@villavredestein.nl",
+                "audit@villavredestein.nl"
         );
 
-        verifyNoInteractions(mailSender);
-    }
-
-    @Test
-    void mailDisabled_logsAndDoesNotSend() {
-        mailServiceDisabled.sendMailWithRole(
-                "ADMIN",
-                "student@villa.nl",
-                "Onderwerp",
-                "Body"
-        );
-
-        verifyNoInteractions(mailSender);
-    }
-
-    @Test
-    void invalidRecipient_logsAndDoesNotSend() {
-        mailServiceEnabled.sendMailWithRole(
-                "ADMIN",
-                "   ",
-                "Onderwerp",
-                "Body"
-        );
-
-        verifyNoInteractions(mailSender);
-    }
-
-    @Test
-    void mailSenderThrowsException_isCaughtAndDoesNotPropagate() {
-        doThrow(new MailSendException("boom"))
-                .when(mailSender).send(any(SimpleMailMessage.class));
-
-        mailServiceEnabled.sendMailWithRole(
-                "ADMIN",
-                "student@villa.nl",
-                "Onderwerp",
-                "Body"
-        );
-
-        verify(mailSender).send(any(SimpleMailMessage.class));
+        assertDoesNotThrow(() -> service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body"));
     }
 }

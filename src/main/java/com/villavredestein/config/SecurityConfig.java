@@ -130,11 +130,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/validate",
+                                // Auth endpoints (both with and without /api prefix)
+                                "/auth/**",
+                                "/api/auth/**",
+
+                                // API docs
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+
+                                // Local dev console
                                 "/h2-console/**"
+                        ).permitAll()
+
+                        // Public registration endpoints (adjust if your controller uses a different path)
+                        .requestMatchers(HttpMethod.POST,
+                                "/users",
+                                "/users/register",
+                                "/api/users",
+                                "/api/users/register"
                         ).permitAll()
 
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

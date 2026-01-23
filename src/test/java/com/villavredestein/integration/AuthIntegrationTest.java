@@ -30,7 +30,7 @@ class AuthIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void login_returnsJwtToken() throws Exception {
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                           {"email":"admin@villavredestein.nl","password":"Admin123!"}

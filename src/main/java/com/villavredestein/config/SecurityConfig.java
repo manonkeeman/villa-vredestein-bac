@@ -1,7 +1,6 @@
 package com.villavredestein.config;
 
 import com.villavredestein.security.JwtAuthenticationFilter;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,15 +29,12 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173,https://*.netlify.app}")
     private String allowedOrigins;
 
-    public SecurityConfig(UserDetailsService userDetailsService,
-                          JwtAuthenticationFilter jwtAuthFilter) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
@@ -171,8 +167,6 @@ public class SecurityConfig {
                 )
 
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-
-                .userDetailsService(userDetailsService)
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

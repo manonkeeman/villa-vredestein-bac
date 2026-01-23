@@ -25,7 +25,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
     void setup() {
         userRepository.deleteAll();
 
-        // Admin user for login
         User admin = new User(
                 "admin",
                 "admin@villavredestein.nl",
@@ -72,7 +71,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
 
         int statusCode = result.getResponse().getStatus();
 
-        // Afhankelijk van jouw Spring Security config kan dit 401 (unauthorized) of 403 (forbidden) zijn.
         assertThat(statusCode).isIn(401, 403);
     }
 }

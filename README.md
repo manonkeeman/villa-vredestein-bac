@@ -1,302 +1,231 @@
-# Villa Vredestein – Backend Web-API
+# Villa Vredestein – Backend Web API
 
-Een beveiligde, modulair opgebouwde **Spring Boot** web-API voor het beheren van een studentenhuis.  
-De applicatie ondersteunt drie gebruikersrollen – **ADMIN**, **STUDENT** en **CLEANER** – elk met hun eigen rechten.
-
-De API voorziet in:
-
-- gebruikersbeheer  
-- huurbetalingen & facturen  
-- schoonmaaktaken  
-- documentbeheer (upload/download)  
-- automatische e-mailherinneringen  
-- JWT-gebaseerde authenticatie  
+Een professionele Spring Boot Web‑API voor het beheren van studentenhuis Villa Vredestein.  
+De applicatie is gebouwd volgens REST‑principes en maakt gebruik van JWT‑authenticatie** met rol‑gebaseerde autorisatie.
 
 ---
 
 ## Inhoudsopgave
 
-1. Inleiding  
-2. Belangrijkste functionaliteiten  
-3. Projectstructuur  
+1. Projectoverzicht  
+2. Functionaliteiten  
+3. Architectuur  
 4. Technische stack  
-5. Installatiehandleiding  
-   - 5.1 Benodigdheden  
-   - 5.2 Project lokaal installeren  
-   - 5.3 Configuratie (JWT, Mail, Database, environment)  
-   - 5.4 Applicatie starten  
-6. Database & data loading  
-7. Rollen & autorisaties  
-8. Bestanden uploaden & downloaden  
-9. Tests uitvoeren  
-10. Error handling  
-11. API-documentatie  
-12. Postman-collectie  
-13. Ontwikkelaar  
+5. Installatie & configuratie  
+6. Database  
+7. Rollen & testgebruikers  
+8. API‑gebruik  
+9. Teststrategie  
+10. Auteur
 
 ---
 
-## 1. Inleiding
+## 1. Projectoverzicht
 
-De backend van **Villa Vredestein** vormt de basis voor een digitaal beheersysteem van een studentenhuis in Driebergen.  
-De applicatie biedt gescheiden toegang voor studenten, schoonmakers en beheerders via een beveiligde REST API.
+Villa Vredestein is een backend applicatie voor het beheren van:
+- studenten
+- facturen en betalingen
+- schoonmaaktaken
+- documenten
+- notificaties
 
-De API is ontworpen volgens:
+Architectuur:
 
-- **REST-principes**  
-- **CLEAN code**  
-- **SOLID-principes**  
-- **laag-voor-laag architectuur** (controller → service → repository → database)
-
----
-
-## 2. Belangrijkste functionaliteiten
-
-- JWT-authenticatie en role-based autorisatie  
-- Beheer van **gebruikers**, **facturen**, **betalingen**, **documenten** en **schoonmaaktaken**  
-- Uploaden en downloaden van documenten  
-- Automatische geplande factuur herinneringen   
-- Drie rollen: **ADMIN**, **STUDENT**, **CLEANER**  
-- Exception handling met nette foutboodschappen  
-- Relationele H2-database met one-to-one en one-to-many relaties  
-- Uitgebreide testset:
-  - 100% line coverage op twee serviceklassen  
-  - Integratietests op scheduled jobs  
-  - Security tests via WebMvc / MockMvc  
+```
+Controller → Service → Repository → PostgreSQL
+```
 
 ---
 
-## 3. Projectstructuur
+## 2. Functionaliteiten
 
-`com.villavredestein`
+- JWT‑authenticatie
+- Rol‑gebaseerde autorisatie (ADMIN, STUDENT, CLEANER)
+- Gebruikersbeheer
+- Facturen & betalingen
+- Schoonmaaktaken
+- Document upload & download
+- E‑mailnotificaties
+- Scheduled jobs (factuurherinneringen)
 
-- `config` – SecurityConfig, CORS, Mail-configuratie  
-- `controller` – REST-controllers, endpoints per rol  
-- `dto` – Request/Response DTO’s  
-- `jobs` – Scheduled jobs (factuur herinneringen)  
-- `model` – Entiteiten: `User`, `Invoice`, `Payment`, `CleaningTask`, `Document`, `Room`  
-- `repository` – Spring Data JPA repositories  
-- `security` – JWT-filter, `JwtService`, `UserDetailsService`  
-- `service` – Domeinlogica per module  
+---
+
+## 3. Architectuur
+
+De applicatie is opgebouwd volgens een gelaagde architectuur:
+
+```
+com.villavredestein
+├── config        # Security, JWT, Mail
+├── controller    # REST endpoints
+├── dto           # Request/Response DTO’s
+├── jobs          # Scheduled jobs
+├── model         # JPA entiteiten
+├── repository    # JPA repositories
+├── security      # JWT filter & UserDetailsService
+├── service       # Business logica
+```
 
 ---
 
 ## 4. Technische stack
 
-| Technologie                | Rol                            |
-|---------------------------|--------------------------------|
-| **Java 21**               | Programmeertaal (LTS)          |
-| **Spring Boot 3**         | Web-API framework              |
-| **Spring Security + JWT** | Authenticatie & autorisatie    |
-| **Maven**                 | Build & dependency management  |
-| **H2 Database**           | In-memory database voor testen |
-| **JPA/Hibernate**         | ORM-laag                       |
-| **JavaMailSender**        | E-mailverzending               |
-| **JUnit 5 + Mockito**     | Testframeworks                 |
+| Technologie           | Gebruik                     |
+|-----------------------|-----------------------------|
+| Java 17               | Programmeertaal             |
+| Spring Boot 3         | Web framework               |
+| Spring Security + JWT | Authenticatie & autorisatie |
+| PostgreSQL            | Relationele database        |
+| JPA / Hibernate       | ORM                         |
+| Maven                 | Build tool                  |
+| JUnit 5               | Unit & integratietests      |
+| Mockito               | Unit testing                |
+| MockMvc               | Integratietests             |
 
 ---
 
-## 5. Installatiehandleiding
+## 5. Installatie & configuratie
 
-### 5.1 Benodigdheden
+### Vereisten
 
-- Java **17 of 21**  
-- Maven **3.8+**  
-- Git  
-- Postman  
+- Java 17
+- Maven 3.8+
+- PostgreSQL
+- Git
 
----
+### Project clonen
 
-### 5.2 Project lokaal installeren
-
-```
+```bash
 git clone https://github.com/manonkeeman/villa-vredestein-bac.git
 cd villa-vredestein-bac
-mvn clean install
+```
+
+### Applicatie starten
+
+```bash
+mvn clean spring-boot:run
+```
+
+De API draait op:
+
+```
+http://localhost:8432
 ```
 
 ---
 
-### 5.3 Configuratie (JWT, Mail, Database, environment)
+## 6. Database
 
-De basisconfiguratie staat in `src/main/resources/application.yml`.  
-Typische instellingen:
+De applicatie gebruikt PostgreSQL, ook voor integratietests.
+
+Maak lokaal een testdatabase aan:
+
+```sql
+CREATE DATABASE villa_vredestein_test;
+```
+
+Configureer environment variables:
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/villa_vredestein_test
+export DB_USERNAME=postgres
+export DB_PASSWORD=<POSTGRES_PASSWORD>
+```
+
+In het testprofiel wordt het schema automatisch aangemaakt en verwijderd:
 
 ```yaml
-jwt:
-  secret: ${JWT_SECRET:changeme}
-  expiration: 3600000    
-
-app:
-  mail:
-    enabled: false       # zet true om echte mails te versturen
-    from: ${MAIL_FROM:noreply@villavredestein.com}
-    bcc:
-      admin: ${MAIL_BCC_ADMIN:villavredestein@gmail.com}
+spring.jpa.hibernate.ddl-auto=create-drop
 ```
-
-#### Environment-variabelen / `.env`
-
-In productie (of op platforms zoals Render) worden gevoelige waarden **niet** hardcoded, maar als environment-variabelen ingesteld, bijvoorbeeld:
-
-- `JWT_SECRET` – geheime sleutel voor JWT signing  
-- `MAIL_FROM` – afzenderadres  
-- `MAIL_BCC_ADMIN` – bcc-adres voor beheerder  
-
-Spring Boot leest deze variabelen automatisch in via `${VARIABELE_NAAM:default}`.  
-Een eventueel `.env`-bestand wordt *alleen* gebruikt door tooling/deployment en staat bewust niet in versiebeheer.
-
-#### Databaseconfiguratie (H2)
-
-Standaard wordt een in-memory H2 database gebruikt:
-
-- H2-console: `http://localhost:80334/h2-console`  
-- JDBC URL: `jdbc:h2:mem:villa`  
-- User: `sa`  
-- Password: *(leeg)*  
 
 ---
 
-### 5.4 Applicatie starten
+## 7. Rollen & testgebruikers
+
+Omdat gebruikers niet via de API aangemaakt kunnen worden, zijn vaste testaccounts aanwezig.
+
+### ADMIN
+```
+email: admin@villavredestein.nl
+password: ADMIN_PASSWORD
+```
+
+### CLEANER
+```
+email: cleaner@villavredestein.nl
+password: CLEANER_PASSWORD
+```
+
+### STUDENTEN
+```
+email: student1@villavredestein.nl
+password: STUDENT_PASSWORD
+```
 
 ```
-mvn spring-boot:run
+email: student2@villavredestein.nl
+password: STUDENT_PASSWORD
 ```
-
-De API draait vervolgens op:
-
-- `http://localhost:8443`
 
 ---
 
-## 6. Database & data loading
+## 8. API‑gebruik
 
-Bestand: `src/main/resources/data.sql`
+### Inloggen (JWT ophalen)
 
-Bij het opstarten worden automatisch voorbeeldgegevens geladen, waaronder:
+```http
+POST /api/auth/login
+Content-Type: application/json
 
-- gebruikers (ADMIN, STUDENT, CLEANER)  
-- facturen en betalingen  
-- documenten  
-- schoonmaaktaken  
-- kamers (Room–User relatie)  
-
-Deze data is bedoeld als test- en demodata.
-
----
-
-## 7. Rollen & autorisaties
-
-| Rol     | Toegang                                                                  |
-|---------|--------------------------------------------------------------------------|
-| ADMIN   | Beheer van gebruikers, facturen, betalingen, documenten, schoonmaaktaken |
-| STUDENT | Inzien van eigen facturen, documenten en betalingen                     |
-| CLEANER | Inzien van en aftekenen van toegewezen schoonmaaktaken                  |
-
-Opmerking: concrete testgebruikers en wachtwoorden worden automatisch geladen via `data.sql`, maar worden bewust niet in deze README gepubliceerd.
-
----
-
-## 8. Bestanden uploaden & downloaden
-
-**Upload document (ADMIN)**  
-- `POST /api/admin/documents/upload`  
-- Multipart upload van een bestand, inclusief metadata (titel, beschrijving, roltoegang).
-
-**Download document (STUDENT)**  
-- `GET /api/student/documents/{id}`  
-- Download van een eerder geüpload document waarvoor de student rechten heeft.
-
-Ondersteunde bestandstypen (voorbeelden):
-
-- PDF  
-- afbeeldingen (JPG/PNG)  
-- tekst- en officebestanden  
-
----
-
-## 9. Tests uitvoeren
-
-Alle tests in één keer uitvoeren:
-
-```
-mvn test
-```
-
-Belangrijkste testsoorten:
-
-- Unit tests met Mockito  
-- `InvoiceServiceTest` – 100% line coverage  
-- `MailServiceTest` – 100% line coverage  
-- Integratietests:
-  - `InvoiceReminderJobTest`  
-  - `InvoiceReminderJobSeededTest`  
-  - `OverdueInvoiceJobTest`  
-- Securitytests met Spring WebMvc / MockMvc  
-
----
-
-## 10. Error handling
-
-Globale exception-afhandeling via `@ControllerAdvice`.  
-Fouten worden geretourneerd als gestructureerde JSON-responses.
-
-**Voorbeeld `404 Not Found`:**
-
-```
 {
-  "status": 404,
-  "error": "Not Found",
-  "message": "Factuur niet gevonden: 5"
+  "email": "admin@villavredestein.nl",
+  "password": "ADMIN_PASSWORD"
 }
 ```
 
-**Voorbeeld `403 Forbidden`:**
-
-```
+Response:
+```json
 {
-  "status": 403,
-  "error": "Forbidden",
-  "message": "STUDENT mag dit niet uitvoeren"
+  "token": "<jwt-token>"
 }
 ```
 
-**Voorbeeld `400 Bad Request`:**
+Gebruik dit token in vervolgrequests:
 
-Wordt gebruikt bij validatiefouten in DTO’s (bijv. ontbrekende verplichte velden).
-
----
-
-## 11. API-documentatie
-
-Uitgebreide API-documentatie met:
-
-- alle endpoints  
-- vereiste rollen per endpoint  
-- request- en response voorbeelden  
-- foutcodes en validatie  
-
-is opgenomen als:
-
-- `docs/API-DocumentatieMVKeeman.pdf`
+```
+Authorization: Bearer <jwt-token>
+```
 
 ---
 
-## 12. Postman-collectie
+## 9. Teststrategie
 
-Een Postman-collectie met alle endpoints is aanwezig in:
+### Unit tests
+- Gericht op service‑laag
+- Arrange – Act – Assert structuur
+- 100% line coverage op geselecteerde services
 
-- `postman/villa-vredestein-backend.postman_collection.json`
+Voorbeelden:
+- `InvoiceServiceTest`
+- `MailServiceTest`
 
-Deze collectie kan direct worden geïmporteerd in Postman voor het testen van de API.
+### Integratietests
+- `@SpringBootTest` + `MockMvc`
+- PostgreSQL database
+- Inclusief security en autorisatie
+
+Voorbeelden:
+- `AuthIntegrationTest`
+- `InvoiceIntegrationTest`
+
+Tests uitvoeren:
+
+```bash
+mvn clean test
+```
 
 ---
-
-## 13. Ontwikkelaar
+## 10. Auteur
 
 **Manon Keeman**  
-Full Stack Developer & Scrummaster (PSM‑1)  
-(https://www.manonkeeman.com)  
-manonkeeman@gmail.com  
-
-> “Villa Vredestein – bouwen, leven en leren onder één dak.”
+https://www.manonkeeman.com

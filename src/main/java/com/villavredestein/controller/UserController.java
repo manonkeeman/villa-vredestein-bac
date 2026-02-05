@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -43,11 +44,11 @@ public class UserController {
 
         @Email(message = "email moet geldig zijn")
         @NotBlank(message = "email is verplicht")
-        @Size(max = 255, message = "email mag maximaal 255 tekens zijn")
+        @Size(max = 100, message = "email mag maximaal 100 tekens zijn")
         private String email;
 
         @NotBlank(message = "password is verplicht")
-        @Size(min = 6, max = 72, message = "password moet tussen 6 en 72 tekens zijn")
+        @Size(min = 8, max = 72, message = "password moet tussen 8 en 72 tekens zijn")
         private String password;
 
         public String getUsername() { return username; }
@@ -68,6 +69,22 @@ public class UserController {
 
         public String getNewRole() { return newRole; }
         public void setNewRole(String newRole) { this.newRole = newRole; }
+    }
+
+    public static class ChangePasswordRequest {
+
+        @NotBlank(message = "oldPassword is verplicht")
+        private String oldPassword;
+
+        @NotBlank(message = "newPassword is verplicht")
+        @Size(min = 8, max = 72, message = "newPassword moet tussen 8 en 72 tekens zijn")
+        private String newPassword;
+
+        public String getOldPassword() { return oldPassword; }
+        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 
     // =====================================================================
@@ -130,9 +147,27 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @PutMapping(value = "/me/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponseDTO> updateMyProfile(@Valid @RequestBody UserRequestDTO dto) {
-        // userService.getMe() haalt huidige gebruiker op; daarna updaten we op basis van het eigen id
-        Long myId = userService.getMe().id();
+        Long myId = userService.getMyId();
         return ResponseEntity.ok(userService.updateProfile(myId, dto));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    @PatchMapping(value = "/me/password", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userService.changeMyPassword(request.getOldPassword(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    @PostMapping(value = "/me/profile-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponseDTO> uploadMyProfilePhoto(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.uploadMyProfilePhoto(file));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    @DeleteMapping("/me/profile-photo")
+    public ResponseEntity<UserResponseDTO> deleteMyProfilePhoto() {
+        return ResponseEntity.ok(userService.deleteMyProfilePhoto());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

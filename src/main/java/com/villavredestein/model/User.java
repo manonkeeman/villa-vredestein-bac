@@ -22,6 +22,25 @@ public class User {
         CLEANER
     }
 
+    public enum SocialPreference {
+        OPEN_FOR_CONTACT,
+        LEUK,
+        AF_EN_TOE,
+        LIEVER_OP_MEZELF
+    }
+
+    public enum MealPreference {
+        JA,
+        SOMS,
+        NEE
+    }
+
+    public enum AvailabilityStatus {
+        TENTAMENPERIODE,
+        DRUK,
+        OPEN_VOOR_CHILLEN
+    }
+
     // =====================================================================
     // # FIELDS
     // =====================================================================
@@ -35,11 +54,46 @@ public class User {
     @Column(nullable = false, length = 50)
     private String username;
 
+    @Size(max = 100, message = "Name may not exceed 100 characters")
+    @Column(length = 100)
+    private String fullName;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
     @Size(max = 100, message = "Email may not exceed 100 characters")
     @Column(nullable = false, length = 100)
     private String email;
+
+    @Size(max = 30, message = "Phone number may not exceed 30 characters")
+    @Column(length = 30)
+    private String phoneNumber;
+
+    @Size(max = 30, message = "Emergency phone number may not exceed 30 characters")
+    @Column(length = 30)
+    private String emergencyPhoneNumber;
+
+    @Size(max = 100, message = "Study/work may not exceed 100 characters")
+    @Column(length = 100)
+    private String studyOrWork;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private SocialPreference socialPreference;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private MealPreference mealPreference;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private AvailabilityStatus availabilityStatus;
+
+    @Column(nullable = false)
+    private boolean statusToggle = true;
+
+    @Size(max = 255, message = "Profile image path may not exceed 255 characters")
+    @Column(length = 255)
+    private String profileImagePath;
 
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 255, message = "Password must be at least 8 characters")
@@ -55,7 +109,7 @@ public class User {
     // # CONSTRUCTORS
     // =====================================================================
 
-    protected User() {
+    public User() {
     }
 
     public User(String username, String email, String password, Role role) {
@@ -73,8 +127,16 @@ public class User {
     @PrePersist
     @PreUpdate
     private void normalize() {
-        username = username.trim();
-        email = email.trim().toLowerCase();
+        username = clean(username);
+        email = clean(email);
+        if (email != null) {
+            email = email.toLowerCase();
+        }
+        fullName = clean(fullName);
+        phoneNumber = clean(phoneNumber);
+        emergencyPhoneNumber = clean(emergencyPhoneNumber);
+        studyOrWork = clean(studyOrWork);
+        profileImagePath = clean(profileImagePath);
     }
 
     // =====================================================================
@@ -87,6 +149,42 @@ public class User {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public String getEmergencyPhoneNumber() {
+        return emergencyPhoneNumber;
+    }
+
+    public String getStudyOrWork() {
+        return studyOrWork;
+    }
+
+    public SocialPreference getSocialPreference() {
+        return socialPreference;
+    }
+
+    public MealPreference getMealPreference() {
+        return mealPreference;
+    }
+
+    public AvailabilityStatus getAvailabilityStatus() {
+        return availabilityStatus;
+    }
+
+    public boolean isStatusToggle() {
+        return statusToggle;
+    }
+
+    public String getProfileImagePath() {
+        return profileImagePath;
     }
 
     public String getEmail() {
@@ -110,8 +208,49 @@ public class User {
         normalize();
     }
 
+    public void setFullName(String fullName) {
+        this.fullName = clean(fullName);
+        normalize();
+    }
+
     public void setEmail(String email) {
         this.email = require(email, "email");
+        normalize();
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = clean(phoneNumber);
+        normalize();
+    }
+
+    public void setEmergencyPhoneNumber(String emergencyPhoneNumber) {
+        this.emergencyPhoneNumber = clean(emergencyPhoneNumber);
+        normalize();
+    }
+
+    public void setStudyOrWork(String studyOrWork) {
+        this.studyOrWork = clean(studyOrWork);
+        normalize();
+    }
+
+    public void setSocialPreference(SocialPreference socialPreference) {
+        this.socialPreference = socialPreference;
+    }
+
+    public void setMealPreference(MealPreference mealPreference) {
+        this.mealPreference = mealPreference;
+    }
+
+    public void setAvailabilityStatus(AvailabilityStatus availabilityStatus) {
+        this.availabilityStatus = availabilityStatus;
+    }
+
+    public void setStatusToggle(boolean statusToggle) {
+        this.statusToggle = statusToggle;
+    }
+
+    public void setProfileImagePath(String profileImagePath) {
+        this.profileImagePath = clean(profileImagePath);
         normalize();
     }
 
@@ -135,6 +274,12 @@ public class User {
             throw new IllegalArgumentException(field + " may not be blank");
         }
         return value;
+    }
+
+    private String clean(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public boolean hasRole(Role expectedRole) {
@@ -162,8 +307,17 @@ public class User {
         return "User{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
+                ", fullName='" + fullName + '\'' +
                 ", email='" + email + '\'' +
                 ", role=" + role +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", emergencyPhoneNumber='" + emergencyPhoneNumber + '\'' +
+                ", studyOrWork='" + studyOrWork + '\'' +
+                ", socialPreference=" + socialPreference +
+                ", mealPreference=" + mealPreference +
+                ", availabilityStatus=" + availabilityStatus +
+                ", statusToggle=" + statusToggle +
+                ", profileImagePath='" + profileImagePath + '\'' +
                 '}';
     }
 }

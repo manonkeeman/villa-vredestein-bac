@@ -42,7 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        if (path.startsWith("/api/auth") || path.startsWith("/h2-console")) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (path.startsWith("/api/auth")
+                || path.startsWith("/h2-console")
+                || path.startsWith("/error")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -53,7 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String jwtToken = authHeader.substring("Bearer ".length());
+        String jwtToken = authHeader.substring("Bearer ".length()).trim();
+
+        if (jwtToken.isEmpty()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String username;
         try {

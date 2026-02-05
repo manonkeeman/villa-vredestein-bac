@@ -6,41 +6,56 @@ import com.villavredestein.model.User;
 import com.villavredestein.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@EnabledIfSystemProperty(named = "runIT", matches = "true")
 class InvoiceIntegrationTest extends BaseIntegrationTest {
 
-    @Autowired UserRepository userRepository;
-    @Autowired ObjectMapper objectMapper;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private String adminPassword;
 
     @BeforeEach
     void setup() {
         userRepository.deleteAll();
 
+        adminPassword = UUID.randomUUID().toString();
+
         User admin = new User(
-                "admin",
-                "admin@villavredestein.nl",
-                passwordEncoder.encode("Admin123!"),
+                ADMIN_USERNAME,
+                ADMIN_EMAIL,
+                passwordEncoder.encode(adminPassword),
                 User.Role.ADMIN
         );
+
         userRepository.save(admin);
     }
 
     private String loginAndGetToken() throws Exception {
+        var payload = objectMapper.createObjectNode();
+        payload.put("email", ADMIN_EMAIL);
+        payload.put("password", adminPassword);
+
         String body = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"email":"admin@villavredestein.nl","password":"Admin123!"}
-                                """))
+                        .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -48,8 +63,10 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
 
         JsonNode json = objectMapper.readTree(body);
         JsonNode token = json.get("token");
-        assertThat(token).isNotNull();
-        assertThat(token.asText()).isNotBlank();
+
+        assertThat(token).as("Response moet een 'token' field bevatten").isNotNull();
+        assertThat(token.asText()).as("Token mag niet leeg zijn").isNotBlank();
+
         return token.asText();
     }
 
@@ -60,7 +77,8 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/invoices")
                         .accept(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
     }
 
     @Test
@@ -69,8 +87,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andReturn();
 
-        int statusCode = result.getResponse().getStatus();
-
-        assertThat(statusCode).isIn(401, 403);
+        assertThat(result.getResponse().getStatus()).isIn(401, 403);
     }
 }

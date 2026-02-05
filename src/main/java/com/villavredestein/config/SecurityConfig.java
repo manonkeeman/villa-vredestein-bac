@@ -116,18 +116,20 @@ public class SecurityConfig {
                     auth.requestMatchers(
                             "/api/auth/**",
                             "/swagger-ui/**",
+                            "/swagger-ui.html",
                             "/v3/api-docs/**",
+                            "/actuator/health",
+                            "/actuator/healthz",
+                            "/actuator/info",
                             "/error"
                     ).permitAll();
 
-                    // Self-service endpoints (must be BEFORE /api/users/** admin rules)
                     auth.requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
                     auth.requestMatchers(HttpMethod.PUT, "/api/users/me/profile").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
                     auth.requestMatchers(HttpMethod.PATCH, "/api/users/me/password").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
                     auth.requestMatchers(HttpMethod.POST, "/api/users/me/profile-photo").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/users/me/profile-photo").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
 
-                    // Admin-only endpoints
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN");
@@ -137,7 +139,7 @@ public class SecurityConfig {
 
                     auth.anyRequest().authenticated();
                 })
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

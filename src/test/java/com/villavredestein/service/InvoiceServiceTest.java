@@ -42,11 +42,11 @@ class InvoiceServiceTest {
         dto.setAmount(new BigDecimal("500.00"));
         dto.setIssueDate(LocalDate.of(2025, 7, 1));
         dto.setDueDate(LocalDate.of(2025, 7, 31));
-        dto.setStudentEmail("student@example.com");
+        dto.setStudentEmail("student@villavredestein.com");
 
-        User student = new User("student1", "student@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
-        when(userRepository.findByEmailIgnoreCase("student@example.com"))
+        when(userRepository.findByEmailIgnoreCase("student@villavredestein.com"))
                 .thenReturn(Optional.of(student));
 
         Invoice saved = new Invoice(
@@ -69,9 +69,9 @@ class InvoiceServiceTest {
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Huur juli");
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("500.00"));
-        assertThat(result.getStudentEmail()).isEqualTo("student@example.com");
+        assertThat(result.getStudentEmail()).isEqualTo("student@villavredestein.com");
 
-        verify(userRepository).findByEmailIgnoreCase("student@example.com");
+        verify(userRepository).findByEmailIgnoreCase("student@villavredestein.com");
         verify(invoiceRepository).save(any(Invoice.class));
     }
 
@@ -82,21 +82,21 @@ class InvoiceServiceTest {
         dto.setAmount(new BigDecimal("500.00"));
         dto.setIssueDate(LocalDate.of(2025, 7, 1));
         dto.setDueDate(LocalDate.of(2025, 7, 31));
-        dto.setStudentEmail("missing@example.com");
+        dto.setStudentEmail("student@villavredestein.com");
 
-        when(userRepository.findByEmailIgnoreCase("missing@example.com"))
+        when(userRepository.findByEmailIgnoreCase("student@villavredestein.com"))
                 .thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> invoiceService.createInvoice(dto));
 
-        verify(userRepository).findByEmailIgnoreCase("missing@example.com");
+        verify(userRepository).findByEmailIgnoreCase("student@villavredestein.com");
         verify(invoiceRepository, never()).save(any());
     }
 
     @Test
     void getAllInvoices_returnsMappedDtoList() {
-        User student1 = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
-        User student2 = new User("student2", "s2@example.com", "Password123!", User.Role.STUDENT);
+        User student1 = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
+        User student2 = new User("student2", "student2@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
         Invoice inv1 = new Invoice(
                 "Factuur 1", null, new BigDecimal("100.00"),
@@ -118,16 +118,16 @@ class InvoiceServiceTest {
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getId()).isEqualTo(2L);
-        assertThat(result.get(0).getStudentEmail()).isEqualTo("s2@example.com");
+        assertThat(result.get(0).getStudentEmail()).isEqualTo("student2@villavredestein.com");
         assertThat(result.get(1).getId()).isEqualTo(1L);
-        assertThat(result.get(1).getStudentEmail()).isEqualTo("s1@example.com");
+        assertThat(result.get(1).getStudentEmail()).isEqualTo("student@villavredestein.com");
 
         verify(invoiceRepository).findAllByOrderByIdDesc();
     }
 
     @Test
     void getInvoiceById_existing_returnsDto() {
-        User student = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
         Invoice inv = new Invoice(
                 "Factuur 1", null, new BigDecimal("150.00"),
@@ -142,7 +142,7 @@ class InvoiceServiceTest {
 
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getTitle()).isEqualTo("Factuur 1");
-        assertThat(result.getStudentEmail()).isEqualTo("s1@example.com");
+        assertThat(result.getStudentEmail()).isEqualTo("student@villavredestein.com");
 
         verify(invoiceRepository).findById(1L);
     }
@@ -158,7 +158,7 @@ class InvoiceServiceTest {
 
     @Test
     void updateStatus_existing_updatesAndReturnsDto() {
-        User student = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
         Invoice inv = new Invoice(
                 "Factuur 1", null, new BigDecimal("150.00"),
@@ -174,7 +174,6 @@ class InvoiceServiceTest {
         assertThat(result.getStatus()).isEqualTo("PAID");
 
         verify(invoiceRepository).findById(1L);
-        // BELANGRIJK: jouw service lijkt geen save() te doen (dus niet verifiëren).
         verify(invoiceRepository, never()).save(any());
     }
 
@@ -190,7 +189,7 @@ class InvoiceServiceTest {
 
     @Test
     void deleteInvoice_existing_deletes() {
-        User student = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
         Invoice inv = new Invoice(
                 "Factuur 1", null, new BigDecimal("150.00"),
                 LocalDate.of(2025, 3, 1), LocalDate.of(2025, 3, 31),
@@ -218,7 +217,7 @@ class InvoiceServiceTest {
 
     @Test
     void getAllOpenInvoices_returnsOnlyOpenInvoices() {
-        User student = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
         Invoice open1 = new Invoice("Inv1", null, new BigDecimal("10.00"),
                 LocalDate.now(), LocalDate.now().plusDays(10),
@@ -246,7 +245,7 @@ class InvoiceServiceTest {
 
     @Test
     void getUpcomingInvoices_returnsUpcomingOpenInvoices() {
-        User student = new User("student1", "s1@example.com", "Password123!", User.Role.STUDENT);
+        User student = new User("student", "student@villavredestein.com", "$2a$10$7QJZyq9ZQKQ7kG8xFv4Z7e9cYlQwZpZk1p9l4n0v2qXK0Qyq1FZ3K", User.Role.STUDENT);
 
         Invoice upcoming = new Invoice("Soon", null, new BigDecimal("10.00"),
                 LocalDate.now(), LocalDate.now().plusDays(3),

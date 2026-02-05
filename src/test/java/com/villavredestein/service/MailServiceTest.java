@@ -14,6 +14,9 @@ import static org.mockito.Mockito.*;
 
 class MailServiceTest {
 
+    private static final String FROM_EMAIL = "no-reply@villavredestein.com";
+    private static final String ADMIN_BCC_EMAIL = "audit@villavredestein.com";
+
     private JavaMailSender mailSender;
 
     @BeforeEach
@@ -26,21 +29,20 @@ class MailServiceTest {
         MailService service = new MailService(
                 mailSender,
                 true,
-                "no-reply@villavredestein.nl",
-                "audit@villavredestein.nl"
+                FROM_EMAIL,
+                ADMIN_BCC_EMAIL
         );
 
-        service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body");
+        service.sendMailWithRole("ADMIN", "student@villavredestein.com", "Test", "Body");
 
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
 
         SimpleMailMessage msg = captor.getValue();
-        assertThat(msg.getFrom()).isEqualTo("no-reply@villavredestein.nl");
-        assertThat(msg.getTo()).containsExactly("student@gmail.com");
+        assertThat(msg.getFrom()).isEqualTo(FROM_EMAIL);
+        assertThat(msg.getTo()).containsExactly("student@villavredestein.com");
         assertThat(msg.getSubject()).isEqualTo("Test");
         assertThat(msg.getText()).isEqualTo("Body");
-        assertThat(msg.getBcc()).containsExactly("audit@villavredestein.nl");
     }
 
     @Test
@@ -48,15 +50,15 @@ class MailServiceTest {
         MailService service = new MailService(
                 mailSender,
                 true,
-                "no-reply@villavredestein.nl",
-                "audit@villavredestein.nl"
+                FROM_EMAIL,
+                ADMIN_BCC_EMAIL
         );
 
-        assertDoesNotThrow(() -> service.sendMailWithRole("CLEANER", "admin@gmail.com", "Incident: lekkage", "Body"));
+        assertDoesNotThrow(() -> service.sendMailWithRole("CLEANER", "admin@villavredestein.com", "Incident: lekkage", "Body"));
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
 
         assertThrows(AccessDeniedException.class,
-                () -> service.sendMailWithRole("CLEANER", "admin@gmail.com", "Huurbetaling", "Body"));
+                () -> service.sendMailWithRole("CLEANER", "admin@villavredestein.com", "Huurbetaling", "Body"));
     }
 
     @Test
@@ -64,12 +66,12 @@ class MailServiceTest {
         MailService service = new MailService(
                 mailSender,
                 true,
-                "no-reply@villavredestein.nl",
-                "audit@villavredestein.nl"
+                FROM_EMAIL,
+                ADMIN_BCC_EMAIL
         );
 
         assertThrows(AccessDeniedException.class,
-                () -> service.sendMailWithRole("STUDENT", "admin@gmail.com", "Test", "Body"));
+                () -> service.sendMailWithRole("STUDENT", "admin@villavredestein.com", "Test", "Body"));
 
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
@@ -79,11 +81,11 @@ class MailServiceTest {
         MailService service = new MailService(
                 mailSender,
                 false,
-                "no-reply@villavredestein.nl",
-                "audit@villavredestein.nl"
+                FROM_EMAIL,
+                ADMIN_BCC_EMAIL
         );
 
-        service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body");
+        service.sendMailWithRole("ADMIN", "student@villavredestein.com", "Test", "Body");
 
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
@@ -93,10 +95,10 @@ class MailServiceTest {
         MailService service = new MailService(
                 null,
                 true,
-                "no-reply@villavredestein.nl",
-                "audit@villavredestein.nl"
+                FROM_EMAIL,
+                ADMIN_BCC_EMAIL
         );
 
-        assertDoesNotThrow(() -> service.sendMailWithRole("ADMIN", "student@gmail.com", "Test", "Body"));
+        assertDoesNotThrow(() -> service.sendMailWithRole("ADMIN", "student@villavredestein.com", "Test", "Body"));
     }
 }

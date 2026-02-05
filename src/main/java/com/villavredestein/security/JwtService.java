@@ -1,21 +1,17 @@
 package com.villavredestein.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.Keys;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.util.Arrays;
-import java.util.Date;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,138 +20,195 @@ public class JwtService {
 
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
-    @Value("${jwt.secret:MySuperSecretKeyForVillaVredesteinThatIsLongEnough!!}")
-    private String jwtSecret;
+    private final ObjectMapper objectMapper;
+    private final byte[] secret;
+    private final long expirySeconds;
 
-    @Value("${jwt.expiration:86400000}")
-    private long jwtExpirationMs;
-
-    // =====================================================================
-    // # Token creation
-    // =====================================================================
-
-    public String generateToken(String username, String role) {
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Username is required");
+    public JwtService(ObjectMapper objectMapper,
+                      @Value("${jwt.secret}") String jwtSecret,
+                      @Value("${jwt.expiry-seconds:3600}") long expirySeconds) {
+        this.objectMapper = objectMapper;
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("Missing required property: jwt.secret");
         }
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", normalizeRoleClaim(role));
-
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtExpirationMs);
-
-        return Jwts.builder()
-                .setSubject(username.trim())
-                .addClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+        this.secret = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        this.expirySeconds = expirySeconds <= 0 ? 3600 : expirySeconds;
     }
 
     // =====================================================================
-    // # Validation
-    // =====================================================================
-
-    public boolean validateToken(String token, String username) {
-        if (token == null || token.isBlank()) {
-            log.warn("JWT missing or empty");
-            return false;
-        }
-        if (username == null || username.isBlank()) {
-            log.warn("JWT validation failed: username is missing");
-            return false;
-        }
-
-        try {
-            Claims claims = extractAllClaims(token);
-            String extractedUsername = claims.getSubject();
-
-            if (extractedUsername == null || extractedUsername.isBlank()) {
-                log.warn("JWT invalid: missing subject");
-                return false;
-            }
-
-            if (!extractedUsername.equals(username)) {
-                log.warn("JWT invalid: username mismatch (tokenUser={}, expectedUser={})",
-                        maskEmail(extractedUsername), maskEmail(username));
-                return false;
-            }
-
-            Date exp = claims.getExpiration();
-            if (exp == null) {
-                log.warn("JWT invalid: missing expiration");
-                return false;
-            }
-
-            if (exp.before(new Date())) {
-                log.warn("JWT invalid: token expired");
-                return false;
-            }
-
-            return true;
-
-        } catch (ExpiredJwtException e) {
-            log.warn("JWT expired: {}", e.getMessage());
-        } catch (UnsupportedJwtException | MalformedJwtException | SecurityException e) {
-            log.warn("JWT invalid: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.warn("JWT parsing failed: {}", e.getMessage());
-        }
-
-        return false;
-    }
-
-    // =====================================================================
-    // # Extraction
+    // # EXTRACT
     // =====================================================================
 
     public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
+        JsonNode payload = readPayload(token);
+        if (payload == null) return null;
+
+        String sub = asTextOrNull(payload.get("sub"));
+        if (sub != null && !sub.isBlank()) return sub;
+
+        // backward compatibility if you ever stored different keys
+        String username = asTextOrNull(payload.get("username"));
+        if (username != null && !username.isBlank()) return username;
+
+        String email = asTextOrNull(payload.get("email"));
+        if (email != null && !email.isBlank()) return email;
+
+        return null;
     }
 
     public String extractRole(String token) {
-        Object role = extractAllClaims(token).get("role");
-        return role != null ? role.toString() : null;
+        JsonNode payload = readPayload(token);
+        if (payload == null) return null;
+
+        String role = asTextOrNull(payload.get("role"));
+        if (role == null || role.isBlank()) return null;
+        return role;
     }
 
     // =====================================================================
-    // # Internals
+    // # VALIDATION
     // =====================================================================
 
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    public boolean validateToken(String token, String expectedUsername) {
+        if (token == null || token.isBlank()) return false;
+        if (!verifySignature(token)) return false;
+
+        String actual = extractUsername(token);
+        if (actual == null || expectedUsername == null) return false;
+        if (!actual.equalsIgnoreCase(expectedUsername.trim())) return false;
+
+        return !isExpired(token);
     }
 
-    private Key getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+    private boolean isExpired(String token) {
+        JsonNode payload = readPayload(token);
+        if (payload == null) return true;
 
-        if (keyBytes.length < 32) {
-            log.warn("jwt.secret is shorter than 32 bytes; it will be padded. Use a longer secret.");
-            keyBytes = Arrays.copyOf(keyBytes, 32);
+        JsonNode expNode = payload.get("exp");
+        if (expNode == null || expNode.isNull()) {
+            // If exp is missing, treat as expired (safer)
+            return true;
         }
 
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-    private String normalizeRoleClaim(String role) {
-        if (role == null || role.isBlank()) {
-            return "ROLE_STUDENT";
+        long expSeconds;
+        if (expNode.isNumber()) {
+            expSeconds = expNode.asLong();
+        } else {
+            String expText = asTextOrNull(expNode);
+            if (expText == null) return true;
+            try {
+                expSeconds = Long.parseLong(expText);
+            } catch (NumberFormatException e) {
+                return true;
+            }
         }
-        String r = role.trim().toUpperCase();
-        return r.startsWith("ROLE_") ? r : "ROLE_" + r;
+
+        long now = Instant.now().getEpochSecond();
+        return now >= expSeconds;
     }
 
-    private String maskEmail(String email) {
-        if (email == null || email.isBlank()) return "(no-email)";
-        String trimmed = email.trim();
-        int at = trimmed.indexOf('@');
-        if (at <= 1) return "***";
-        return trimmed.charAt(0) + "***" + trimmed.substring(at);
+    private boolean verifySignature(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) return false;
+
+            String signingInput = parts[0] + "." + parts[1];
+            String expectedSig = base64UrlEncode(hmacSha256(signingInput.getBytes(StandardCharsets.UTF_8)));
+
+            return constantTimeEquals(expectedSig, parts[2]);
+        } catch (Exception e) {
+            log.debug("JWT signature verification failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    // =====================================================================
+    // # READ PAYLOAD
+    // =====================================================================
+
+    private JsonNode readPayload(String token) {
+        if (token == null) return null;
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) return null;
+
+            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            String json = new String(decoded, StandardCharsets.UTF_8);
+            return objectMapper.readTree(json);
+        } catch (Exception e) {
+            log.debug("Failed to parse JWT payload: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String asTextOrNull(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        String v = node.asText(null);
+        if (v == null) return null;
+        return v.trim();
+    }
+
+    // =====================================================================
+    // # GENERATE
+    // =====================================================================
+
+    public String generateToken(String username, String role) {
+        try {
+            if (username == null || username.isBlank()) {
+                throw new IllegalArgumentException("username is required");
+            }
+
+            Map<String, Object> header = new HashMap<>();
+            header.put("alg", "HS256");
+            header.put("typ", "JWT");
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("sub", username.trim());
+            if (role != null && !role.isBlank()) {
+                payload.put("role", role.trim());
+            }
+
+            long now = Instant.now().getEpochSecond();
+            payload.put("iat", now);
+            payload.put("exp", now + expirySeconds);
+
+            String headerJson = objectMapper.writeValueAsString(header);
+            String payloadJson = objectMapper.writeValueAsString(payload);
+
+            String headerB64 = base64UrlEncode(headerJson.getBytes(StandardCharsets.UTF_8));
+            String payloadB64 = base64UrlEncode(payloadJson.getBytes(StandardCharsets.UTF_8));
+
+            String signingInput = headerB64 + "." + payloadB64;
+            String sigB64 = base64UrlEncode(hmacSha256(signingInput.getBytes(StandardCharsets.UTF_8)));
+
+            return signingInput + "." + sigB64;
+        } catch (Exception e) {
+            log.debug("Failed to generate JWT: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // =====================================================================
+    // # CRYPTO + UTILS
+    // =====================================================================
+
+    private byte[] hmacSha256(byte[] data) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret, "HmacSHA256"));
+        return mac.doFinal(data);
+    }
+
+    private String base64UrlEncode(byte[] bytes) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        if (a.length() != b.length()) return false;
+        int result = 0;
+        for (int i = 0; i < a.length(); i++) {
+            result |= a.charAt(i) ^ b.charAt(i);
+        }
+        return result == 0;
     }
 }

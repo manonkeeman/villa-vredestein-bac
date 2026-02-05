@@ -13,14 +13,23 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -33,10 +42,12 @@ public class UserService implements org.springframework.security.core.userdetail
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Path uploadDir;
 
-    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
     // =====================================================================
@@ -48,8 +59,7 @@ public class UserService implements org.springframework.security.core.userdetail
         if (email == null || email.isBlank()) {
             throw new UsernameNotFoundException("Email is required");
         }
-
-        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        String normalizedEmail = normalizeEmail(email);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> {
@@ -57,7 +67,7 @@ public class UserService implements org.springframework.security.core.userdetail
                     return new UsernameNotFoundException("User not found");
                 });
 
-        User.Role role = user.getRole() != null ? user.getRole() : User.Role.STUDENT;
+        User.Role role = user.getRole() == null ? User.Role.STUDENT : user.getRole();
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
@@ -71,11 +81,24 @@ public class UserService implements org.springframework.security.core.userdetail
     // =====================================================================
 
     public UserResponseDTO createStudent(String username, String email, String rawPassword) {
+        return createUser(username, email, rawPassword, User.Role.STUDENT);
+    }
+
+    private UserResponseDTO createUser(String username, String email, String rawPassword, User.Role role) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Username is required");
         }
         if (rawPassword == null || rawPassword.isBlank()) {
             throw new IllegalArgumentException("Password is required");
+        }
+        if (rawPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters");
+        }
+        if (role == null) {
+            throw new IllegalArgumentException("Role is required");
+        }
+        if (!ALLOWED_ROLES.contains(role)) {
+            throw new IllegalArgumentException("Role must be ADMIN, STUDENT or CLEANER");
         }
 
         String normalizedEmail = normalizeEmail(email);
@@ -87,7 +110,7 @@ public class UserService implements org.springframework.security.core.userdetail
                 username.trim(),
                 normalizedEmail,
                 passwordEncoder.encode(rawPassword),
-                User.Role.STUDENT
+                role
         );
 
         return toDTO(userRepository.save(user));
@@ -120,6 +143,11 @@ public class UserService implements org.springframework.security.core.userdetail
         return toDTO(currentUser());
     }
 
+    @Transactional(readOnly = true)
+    public Long getMyId() {
+        return currentUser().getId();
+    }
+
     // =====================================================================
     // # UPDATE
     // =====================================================================
@@ -147,6 +175,38 @@ public class UserService implements org.springframework.security.core.userdetail
             target.setUsername(dto.getUsername().trim());
         }
 
+        if (dto.getFullName() != null) {
+            target.setFullName(dto.getFullName());
+        }
+
+        if (dto.getPhoneNumber() != null) {
+            target.setPhoneNumber(dto.getPhoneNumber());
+        }
+
+        if (dto.getEmergencyPhoneNumber() != null) {
+            target.setEmergencyPhoneNumber(dto.getEmergencyPhoneNumber());
+        }
+
+        if (dto.getStudyOrWork() != null) {
+            target.setStudyOrWork(dto.getStudyOrWork());
+        }
+
+        if (dto.getSocialPreference() != null) {
+            target.setSocialPreference(dto.getSocialPreference());
+        }
+
+        if (dto.getMealPreference() != null) {
+            target.setMealPreference(dto.getMealPreference());
+        }
+
+        if (dto.getAvailabilityStatus() != null) {
+            target.setAvailabilityStatus(dto.getAvailabilityStatus());
+        }
+
+        if (dto.getStatusToggle() != null) {
+            target.setStatusToggle(dto.getStatusToggle());
+        }
+
         if (dto.getEmail() != null && !dto.getEmail().isBlank()
                 && !dto.getEmail().equalsIgnoreCase(target.getEmail())) {
 
@@ -158,6 +218,87 @@ public class UserService implements org.springframework.security.core.userdetail
         }
 
         return toDTO(target);
+    }
+
+    public void changeMyPassword(String oldPassword, String newPassword) {
+        if (oldPassword == null || oldPassword.isBlank()) {
+            throw new IllegalArgumentException("Old password is required");
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("New password is required");
+        }
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters");
+        }
+
+        User me = currentUser();
+        if (!passwordEncoder.matches(oldPassword, me.getPassword())) {
+            throw new AccessDeniedException("Old password is incorrect");
+        }
+
+        me.setPassword(passwordEncoder.encode(newPassword));
+    }
+
+    public UserResponseDTO uploadMyProfilePhoto(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is required");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !(contentType.equalsIgnoreCase("image/jpeg")
+                || contentType.equalsIgnoreCase("image/png")
+                || contentType.equalsIgnoreCase("image/webp"))) {
+            throw new IllegalArgumentException("Only JPEG, PNG or WEBP images are allowed");
+        }
+
+        User me = currentUser();
+
+        try {
+            Files.createDirectories(uploadDir);
+
+            String extension = switch (contentType.toLowerCase()) {
+                case "image/png" -> ".png";
+                case "image/webp" -> ".webp";
+                default -> ".jpg";
+            };
+
+            String filename = "profile_" + me.getId() + "_" + UUID.randomUUID() + extension;
+            Path targetPath = uploadDir.resolve(filename).normalize();
+
+            if (!targetPath.startsWith(uploadDir)) {
+                throw new IllegalArgumentException("Invalid file path");
+            }
+
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // best effort: remove old photo
+            deleteFileQuietly(me.getProfileImagePath());
+
+            me.setProfileImagePath(filename);
+            return toDTO(me);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store profile photo", e);
+        }
+    }
+
+    public UserResponseDTO deleteMyProfilePhoto() {
+        User me = currentUser();
+        deleteFileQuietly(me.getProfileImagePath());
+        me.setProfileImagePath(null);
+        return toDTO(me);
+    }
+
+    private void deleteFileQuietly(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) return;
+        try {
+            Path p = uploadDir.resolve(relativePath).normalize();
+            if (p.startsWith(uploadDir)) {
+                Files.deleteIfExists(p);
+            }
+        } catch (Exception ignored) {
+            // best effort
+        }
     }
 
     // =====================================================================
@@ -188,20 +329,25 @@ public class UserService implements org.springframework.security.core.userdetail
     }
 
     private String currentEmail() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new AccessDeniedException("Not authenticated");
         }
-        return auth.getName(); // email
+        String name = auth.getName();
+        if (name == null || name.isBlank()) {
+            throw new AccessDeniedException("Not authenticated");
+        }
+        return name; // email
     }
 
     private boolean isAdmin() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) return false;
-
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
         return auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(a -> a.equals("ROLE_ADMIN"));
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     private void assertOwnerOrAdmin(Long targetUserId) {
@@ -244,8 +390,17 @@ public class UserService implements org.springframework.security.core.userdetail
         return new UserResponseDTO(
                 user.getId(),
                 user.getUsername(),
+                user.getFullName(),
                 user.getEmail(),
-                user.getRole() != null ? user.getRole().name() : null
+                user.getRole() != null ? user.getRole().name() : null,
+                user.getPhoneNumber(),
+                user.getEmergencyPhoneNumber(),
+                user.getStudyOrWork(),
+                user.getSocialPreference() != null ? user.getSocialPreference().name() : null,
+                user.getMealPreference() != null ? user.getMealPreference().name() : null,
+                user.getAvailabilityStatus() != null ? user.getAvailabilityStatus().name() : null,
+                user.isStatusToggle(),
+                user.getProfileImagePath()
         );
     }
 }

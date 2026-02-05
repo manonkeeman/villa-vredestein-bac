@@ -2,6 +2,7 @@ package com.villavredestein.config;
 
 import com.villavredestein.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,7 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Value;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,33 +30,26 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173,https://*.netlify.app}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,https://*.netlify.app,https://villavredestein.com,https://www.villavredestein.com}")
     private String allowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
-        this.jwtAuthFilter = jwtAuthFilter;
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
-
-    // =====================================================================
-    // CORS
-    // =====================================================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        String rawOrigins = allowedOrigins;
-        List<String> originPatterns = Arrays.stream(rawOrigins.split(","))
+        List<String> originPatterns = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
                 .toList();
 
         config.setAllowedOriginPatterns(originPatterns);
-
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-
         config.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
@@ -65,21 +59,14 @@ public class SecurityConfig {
                 "Access-Control-Request-Method",
                 "Access-Control-Request-Headers"
         ));
-
         config.setExposedHeaders(List.of("Authorization"));
-
         config.setAllowCredentials(true);
-
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
-    // =====================================================================
-    // 401 / 403 HANDLERS
-    // =====================================================================
 
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
@@ -88,9 +75,9 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  \"status\": 401,
-                  \"error\": \"Unauthorized\",
-                  \"message\": \"Authentication required or token is invalid\"
+                  "status": 401,
+                  "error": "Unauthorized",
+                  "message": "Authentication required or token is invalid"
                 }
                 """);
         };
@@ -103,17 +90,13 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  \"status\": 403,
-                  \"error\": \"Forbidden\",
-                  \"message\": \"You do not have access to this resource\"
+                  "status": 403,
+                  "error": "Forbidden",
+                  "message": "You do not have access to this resource"
                 }
                 """);
         };
     }
-
-    // =====================================================================
-    // SECURITY FILTER CHAIN
-    // =====================================================================
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -126,69 +109,40 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler())
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> {
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(
-                                // Auth endpoints (both with and without /api prefix)
-                                "/auth/**",
-                                "/api/auth/**",
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
-                                // API docs
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
+                    auth.requestMatchers(
+                            "/api/auth/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/error"
+                    ).permitAll();
 
-                                // Local dev console
-                                "/h2-console/**"
-                        ).permitAll()
+                    // Self-service endpoints (must be BEFORE /api/users/** admin rules)
+                    auth.requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/users/me/profile").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/users/me/password").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
+                    auth.requestMatchers(HttpMethod.POST, "/api/users/me/profile-photo").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/users/me/profile-photo").hasAnyRole("ADMIN", "STUDENT", "CLEANER");
 
-                        // Public registration endpoints (adjust if your controller uses a different path)
-                        .requestMatchers(HttpMethod.POST,
-                                "/users",
-                                "/users/register",
-                                "/api/users",
-                                "/api/users/register"
-                        ).permitAll()
+                    // Admin-only endpoints
+                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN");
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    auth.anyRequest().authenticated();
+                })
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
-                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/api/rooms/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.POST, "/api/rooms/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").hasRole("ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.POST, "/api/cleaning/**").hasAnyRole("ADMIN", "CLEANER")
-                        .requestMatchers(HttpMethod.PUT, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/cleaning/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/cleaning/**").hasRole("ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/api/documents/**").hasAnyRole("ADMIN", "STUDENT", "CLEANER")
-                        .requestMatchers(HttpMethod.POST, "/api/documents/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/documents/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/documents/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/documents/**").hasRole("ADMIN")
-
-                        .anyRequest().authenticated()
-                )
-
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
-    // =====================================================================
-    // AUTH / PASSWORD BEANS
-    // =====================================================================
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

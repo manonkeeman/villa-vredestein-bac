@@ -13,10 +13,9 @@ De applicatie is gebouwd volgens REST‑principes en maakt gebruik van JWT‑aut
 4. Technische stack  
 5. Installatie & configuratie  
 6. Database  
-7. Rollen & testgebruikers  
-8. API‑gebruik  
-9. Teststrategie  
-10. Auteur
+7. API‑gebruik
+8. Teststrategie
+9. Auteur
 
 ---
 
@@ -109,7 +108,7 @@ mvn clean spring-boot:run
 De API draait op:
 
 ```
-http://localhost:8432
+http://localhost:8080
 ```
 
 ---
@@ -127,7 +126,7 @@ CREATE DATABASE villa_vredestein_test;
 Configureer environment variables:
 
 ```bash
-export DB_URL=jdbc:postgresql://localhost:5432/villa_vredestein_test
+export DB_URL=jdbc:postgresql://localhost:8080/villa_vredestein_test
 export DB_USERNAME=postgres
 export DB_PASSWORD=<POSTGRES_PASSWORD>
 ```
@@ -140,46 +139,18 @@ spring.jpa.hibernate.ddl-auto=create-drop
 
 ---
 
-## 7. Rollen & testgebruikers
 
-Omdat gebruikers niet via de API aangemaakt kunnen worden, zijn vaste testaccounts aanwezig.
+## 7. API‑gebruik
 
-### ADMIN
-```
-email: admin@villavredestein.nl
-password: ADMIN_PASSWORD
-```
-
-### CLEANER
-```
-email: cleaner@villavredestein.nl
-password: CLEANER_PASSWORD
-```
-
-### STUDENTEN
-```
-email: student1@villavredestein.nl
-password: STUDENT_PASSWORD
-```
-
-```
-email: student2@villavredestein.nl
-password: STUDENT_PASSWORD
-```
-
----
-
-## 8. API‑gebruik
-
-### Inloggen (JWT ophalen)
+### Inloggen 
 
 ```http
 POST /api/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@villavredestein.nl",
-  "password": "ADMIN_PASSWORD"
+  "email": "admin@villavredestein.com",
+  "password": "<admin-password-via-environment-variable>"
 }
 ```
 
@@ -198,34 +169,49 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 9. Teststrategie
+## 8. Teststrategie
 
 ### Unit tests
-- Gericht op service‑laag
+- Gericht op de service-laag
 - Arrange – Act – Assert structuur
-- 100% line coverage op geselecteerde services
+- Geen afhankelijkheid van externe systemen of secrets
 
 Voorbeelden:
 - `InvoiceServiceTest`
 - `MailServiceTest`
 
-### Integratietests
-- `@SpringBootTest` + `MockMvc`
-- PostgreSQL database
-- Inclusief security en autorisatie
+### Integratietests & security
 
-Voorbeelden:
-- `AuthIntegrationTest`
-- `InvoiceIntegrationTest`
+De applicatie bevat integratietests die gebruikmaken van beveiligde gebruikers (zoals ADMIN) en JWT-authenticatie.
 
-Tests uitvoeren:
+Om te voorkomen dat wachtwoorden of andere gevoelige gegevens in de codebase, testbestanden of Git-repository terechtkomen,
+wordt alle secret-configuratie uitsluitend via environment variables aangeleverd.
+
+#### Vereiste environment variables
+
+Voor het uitvoeren van alle integratietests is de volgende environment variable vereist:
+
+- `SEED_ADMIN_PASSWORD`
+
+Deze variabele wordt gebruikt om tijdens integratietests een ADMIN-gebruiker te seeden met een versleuteld wachtwoord.
+
+
+#### Optioneel: alle integratietests uitvoeren
+
+Indien gewenst kan een examinator lokaal alle integratietests uitvoeren door vooraf één environment variable te zetten:
+
+```bash
+export SEED_ADMIN_PASSWORD=local_test_only_password
+```
+
+Daarna kunnen alle tests worden uitgevoerd met:
 
 ```bash
 mvn clean test
 ```
 
----
-## 10. Auteur
+
+## 9. Auteur
 
 **Manon Keeman**  
 https://www.manonkeeman.com

@@ -10,7 +10,6 @@ RUN mvn -q -DskipTests clean package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Render geeft PORT door; Spring leest PORT via application.yml
 ENV PORT=8080
 
 COPY --from=build /app/target/*.jar /app/app.jar

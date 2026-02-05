@@ -35,8 +35,6 @@ management:
       base-path: /actuator
       exposure:
         include: health,info
-      path-mapping:
-        health: healthz
   endpoint:
     health:
       show-details: never

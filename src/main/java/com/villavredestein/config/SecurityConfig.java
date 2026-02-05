@@ -75,9 +75,9 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  "status": 401,
-                  "error": "Unauthorized",
-                  "message": "Authentication required or token is invalid"
+                  \"status\": 401,
+                  \"error\": \"Unauthorized\",
+                  \"message\": \"Authentication required or token is invalid\"
                 }
                 """);
         };
@@ -90,9 +90,9 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.getWriter().write("""
                 {
-                  "status": 403,
-                  "error": "Forbidden",
-                  "message": "You do not have access to this resource"
+                  \"status\": 403,
+                  \"error\": \"Forbidden\",
+                  \"message\": \"You do not have access to this resource\"
                 }
                 """);
         };

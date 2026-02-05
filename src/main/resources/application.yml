@@ -3,12 +3,13 @@ spring:
     name: villa-vredestein-bac
 
   profiles:
+
     active: ${SPRING_PROFILES_ACTIVE:prod}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/villavredestein}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
 
   jpa:
     open-in-view: false
@@ -27,6 +28,18 @@ spring:
 
 server:
   port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info
+      path-mapping:
+        health: healthz
+  endpoint:
+    health:
+      show-details: never
 
 seed:
   enabled: ${SEED_ENABLED:false}

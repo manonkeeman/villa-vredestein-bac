@@ -99,15 +99,42 @@ git clone https://github.com/manonkeeman/villa-vredestein-bac.git
 cd villa-vredestein-bac
 ```
 
+
+### Environment variables (verplicht)
+
+er worden geen secrets in code of configuratiebestanden opgeslagen. 
+Alle gevoelige configuratie wordt aangeleverd via environment variables.
+
+Minimaal vereist om de applicatie te starten:
+
+```bash
+export SPRING_PROFILES_ACTIVE=dev
+export DB_URL=jdbc:postgresql://localhost:5432/villavredestein
+export DB_USERNAME=postgres
+export DB_PASSWORD=<POSTGRES_PASSWORD>
+export JWT_SECRET=<RANDOM_32_CHAR_SECRET>
+```
+
+Optioneel (automatisch seeden van gebruikers bij eerste start):
+
+```bash
+export SEED_ADMIN_EMAIL=admin@villavredestein.com
+export SEED_ADMIN_PASSWORD=<ADMIN_PASSWORD>
+export SEED_CLEANER_EMAIL=cleaner@villavredestein.com
+export SEED_CLEANER_PASSWORD=<CLEANER_PASSWORD>
+```
+
+NIeuwe studenten worden alleen aangemaakt als zij een kamer krijgen toegewezen.
+
 ### Applicatie starten
 
 ```bash
 mvn clean spring-boot:run
 ```
 
-De API draait op:
+De API draait standaard op:
 
-```
+```text
 http://localhost:8080
 ```
 
@@ -115,7 +142,7 @@ http://localhost:8080
 
 ## 6. Database
 
-De applicatie gebruikt PostgreSQL, ook voor integratietests.
+De applicatie gebruikt PostgreSQL voor zowel runtime als integratietests.
 
 Maak lokaal een testdatabase aan:
 
@@ -171,6 +198,10 @@ Authorization: Bearer <jwt-token>
 
 ## 8. Teststrategie
 
+- Integratietests draaien tegen PostgreSQL
+- Geen hard‑coded secrets of wachtwoorden
+- JWT‑authenticatie wordt end‑to‑end getest
+
 ### Unit tests
 - Gericht op de service-laag
 - Arrange – Act – Assert structuur
@@ -198,7 +229,7 @@ Deze variabele wordt gebruikt om tijdens integratietests een ADMIN-gebruiker te 
 
 #### Optioneel: alle integratietests uitvoeren
 
-Indien gewenst kan een examinator lokaal alle integratietests uitvoeren door vooraf één environment variable te zetten:
+Indien gewenst kan lokaal alle integratietests uitvoeren door vooraf één environment variable te zetten:
 
 ```bash
 export SEED_ADMIN_PASSWORD=local_test_only_password
@@ -210,6 +241,11 @@ Daarna kunnen alle tests worden uitgevoerd met:
 mvn clean test
 ```
 
+Alle tests kunnen lokaal uitgevoerd worden met:
+
+```bash
+mvn clean test
+```
 
 ## 9. Auteur
 

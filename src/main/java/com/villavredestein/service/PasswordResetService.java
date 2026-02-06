@@ -1,78 +1,109 @@
 package com.villavredestein.service;
 
+import com.villavredestein.dto.ResetPasswordRequestDTO;
 import com.villavredestein.model.PasswordResetToken;
 import com.villavredestein.model.User;
-import com.villavredestein.repository.PasswordResetTokenRepository;
+import com.villavredestein.dto.PasswordResetTokenRepository;
 import com.villavredestein.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
 import java.util.Locale;
-import java.util.UUID;
+import java.util.Optional;
 
 @Service
 @Transactional
 public class PasswordResetService {
 
-    private static final long EXPIRATION_MINUTES = 30;
-
-    private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final long resetExpiryMinutes;
 
     public PasswordResetService(
-            PasswordResetTokenRepository tokenRepository,
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordResetTokenRepository tokenRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.password-reset.expiry-minutes:30}") long resetExpiryMinutes
     ) {
-        this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.resetExpiryMinutes = resetExpiryMinutes;
     }
 
-    public String createResetToken(String email) {
-        String normalizedEmail = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
-        if (normalizedEmail == null || normalizedEmail.isBlank()) {
-            throw new IllegalArgumentException("Email is required");
-        }
+    // -----------------------------
+    // Preferred API (veilig)
+    // -----------------------------
 
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown email"));
+    public Optional<String> createResetTokenIfUserExists(String emailRaw) {
+        String email = normalizeEmail(emailRaw);
+        if (email.isBlank()) return Optional.empty();
 
-        String token = generateUniqueToken();
-        Instant expiresAt = Instant.now().plus(EXPIRATION_MINUTES, ChronoUnit.MINUTES);
+        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email);
+        if (userOpt.isEmpty()) return Optional.empty();
+
+        User user = userOpt.get();
+
+        String token = generateToken64Hex();
+        Instant expiresAt = Instant.now().plus(resetExpiryMinutes, ChronoUnit.MINUTES);
 
         tokenRepository.save(new PasswordResetToken(token, user, expiresAt));
-        return token;
+        return Optional.of(token);
+    }
+
+    public void resetPassword(ResetPasswordRequestDTO dto) {
+        if (dto == null) throw new IllegalArgumentException("Request is required");
+
+        String token = dto.token();
+        String newPassword = dto.newPassword();
+
+        if (token == null || token.isBlank()) throw new IllegalArgumentException("Token is required");
+        if (newPassword == null || newPassword.isBlank()) throw new IllegalArgumentException("New password is required");
+        if (newPassword.length() < 8) throw new IllegalArgumentException("New password must be at least 8 characters");
+
+        PasswordResetToken prt = tokenRepository.findById(token.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
+
+        if (prt.isUsed()) throw new IllegalArgumentException("Token already used");
+        if (prt.isExpired()) throw new IllegalArgumentException("Token expired");
+
+        User user = prt.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        prt.markUsed();
+    }
+
+    // -----------------------------
+    // Backwards compatible API
+    // -----------------------------
+
+    public String createResetToken(String emailRaw) {
+        return createResetTokenIfUserExists(emailRaw).orElse(null);
     }
 
     public void resetPassword(String token, String newPassword) {
-        PasswordResetToken resetToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
-
-        if (resetToken.isExpired()) throw new IllegalStateException("Password reset token expired");
-        if (resetToken.isUsed()) throw new IllegalStateException("Password reset token already used");
-        if (newPassword == null || newPassword.isBlank()) throw new IllegalArgumentException("New password is required");
-
-        User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        resetToken.markUsed();
-        tokenRepository.save(resetToken);
+        resetPassword(new ResetPasswordRequestDTO(token, newPassword));
     }
 
-    private String generateUniqueToken() {
-        String raw = UUID.randomUUID().toString().replace("-", "");
-        String token = raw.length() > 64 ? raw.substring(0, 64) : raw;
+    // -----------------------------
+    // Helpers
+    // -----------------------------
 
-        while (tokenRepository.existsByToken(token)) {
-            raw = UUID.randomUUID().toString().replace("-", "");
-            token = raw.length() > 64 ? raw.substring(0, 64) : raw;
-        }
-        return token;
+    private String normalizeEmail(String email) {
+        if (email == null) return "";
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String generateToken64Hex() {
+        byte[] bytes = new byte[32]; // 32 bytes = 64 hex chars
+        new SecureRandom().nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 }

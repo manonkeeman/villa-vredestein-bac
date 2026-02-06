@@ -1,5 +1,7 @@
 package com.villavredestein.service;
 
+import com.villavredestein.model.Room;
+import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.dto.UserRequestDTO;
 import com.villavredestein.dto.UserResponseDTO;
 import com.villavredestein.model.User;
@@ -42,11 +44,18 @@ public class UserService implements org.springframework.security.core.userdetail
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoomRepository roomRepository;
     private final Path uploadDir;
 
-    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, @Value("${app.upload-dir:uploads}") String uploadDir) {
+    public UserService(
+            UserRepository userRepository,
+            @Lazy PasswordEncoder passwordEncoder,
+            RoomRepository roomRepository,
+            @Value("${app.upload-dir:uploads}") String uploadDir
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.roomRepository = roomRepository;
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -387,12 +396,18 @@ public class UserService implements org.springframework.security.core.userdetail
     // =====================================================================
 
     private UserResponseDTO toDTO(User user) {
+
+        String roomName = roomRepository.findByOccupant_Id(user.getId())
+                .map(Room::getName)
+                .orElse(null);
+
         return new UserResponseDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getFullName(),
                 user.getEmail(),
                 user.getRole() != null ? user.getRole().name() : null,
+                roomName,
                 user.getPhoneNumber(),
                 user.getEmergencyPhoneNumber(),
                 user.getStudyOrWork(),

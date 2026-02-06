@@ -93,6 +93,25 @@ public class UserService implements org.springframework.security.core.userdetail
         return createUser(username, email, rawPassword, User.Role.STUDENT);
     }
 
+    public UserResponseDTO createAdmin(String username, String email, String rawPassword) {
+        return createUser(username, email, rawPassword, User.Role.ADMIN);
+    }
+
+    public UserResponseDTO createCleaner(String username, String email, String rawPassword) {
+        return createUser(username, email, rawPassword, User.Role.CLEANER);
+    }
+
+    public UserResponseDTO seedUserIfMissing(String username, String email, String rawPassword, User.Role role) {
+        String normalizedEmail = normalizeEmail(email);
+
+        return userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .map(this::toDTO)
+                .orElseGet(() -> {
+                    log.info("Seeding user {} with role {}", maskEmail(normalizedEmail), role);
+                    return createUser(username, normalizedEmail, rawPassword, role);
+                });
+    }
+
     private UserResponseDTO createUser(String username, String email, String rawPassword, User.Role role) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Username is required");
@@ -280,7 +299,6 @@ public class UserService implements org.springframework.security.core.userdetail
 
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            // best effort: remove old photo
             deleteFileQuietly(me.getProfileImagePath());
 
             me.setProfileImagePath(filename);
@@ -346,7 +364,7 @@ public class UserService implements org.springframework.security.core.userdetail
         if (name == null || name.isBlank()) {
             throw new AccessDeniedException("Not authenticated");
         }
-        return name; // email
+        return name;
     }
 
     private boolean isAdmin() {

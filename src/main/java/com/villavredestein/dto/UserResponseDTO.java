@@ -6,6 +6,7 @@ public record UserResponseDTO(
         String fullName,
         String email,
         String role,
+        String roomName,
         String phoneNumber,
         String emergencyPhoneNumber,
         String studyOrWork,
@@ -14,5 +15,4 @@ public record UserResponseDTO(
         String availabilityStatus,
         boolean statusToggle,
         String profileImagePath
-) {
-}
+) {}

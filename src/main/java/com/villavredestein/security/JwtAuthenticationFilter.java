@@ -29,10 +29,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
-    // =====================================================================
-    // # Filter
-    // =====================================================================
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -61,22 +57,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String jwtToken = authHeader.substring("Bearer ".length()).trim();
-
         if (jwtToken.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String username;
+        String email;
         try {
-            username = jwtService.extractUsername(jwtToken);
+            email = jwtService.extractEmail(jwtToken); // <— PAS DIT AAN als jouw JwtService anders heet
         } catch (Exception e) {
             log.warn("JWT parsing failed: {}", e.getMessage());
             filterChain.doFilter(request, response);
             return;
         }
 
-        if (username == null || username.isBlank()) {
+        if (email == null || email.isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -86,39 +81,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        UserDetails userDetails;
+        boolean isValid;
         try {
-            userDetails = userDetailsService.loadUserByUsername(username);
+            isValid = jwtService.validateToken(jwtToken); // <— 1 parameter (zoals jouw compile error liet zien)
         } catch (Exception e) {
-            log.warn("User referenced in token does not exist: {}", maskEmail(username));
+            log.warn("JWT validation failed for {}: {}", maskEmail(email), e.getMessage());
             filterChain.doFilter(request, response);
             return;
         }
 
-        boolean isValid = jwtService.validateToken(jwtToken, userDetails.getUsername());
-
-        if (isValid) {
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
-            );
-
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-
-            log.debug("JWT valid -> authenticated user {} with roles {}",
-                    maskEmail(username), userDetails.getAuthorities());
-        } else {
-            log.warn("Invalid JWT token for user {}", maskEmail(username));
+        if (!isValid) {
+            log.warn("Invalid JWT token for user {}", maskEmail(email));
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUsername(email);
+        } catch (Exception e) {
+            log.warn("User referenced in token does not exist: {}", maskEmail(email));
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (userDetails.getUsername() == null || !userDetails.getUsername().equalsIgnoreCase(email)) {
+            log.warn("JWT subject mismatch (token={}, userDetails={})",
+                    maskEmail(email), maskEmail(userDetails.getUsername()));
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
     }
-
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private String maskEmail(String email) {
         if (email == null || email.isBlank()) return "(no-email)";

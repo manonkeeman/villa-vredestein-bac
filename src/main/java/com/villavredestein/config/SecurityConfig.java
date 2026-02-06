@@ -113,8 +113,13 @@ public class SecurityConfig {
 
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
 
+                    auth.requestMatchers(HttpMethod.POST,
+                            "/api/auth/login",
+                            "/api/auth/password/forgot",
+                            "/api/auth/password/reset"
+                    ).permitAll();
+
                     auth.requestMatchers(
-                            "/api/auth/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
                             "/v3/api-docs/**",

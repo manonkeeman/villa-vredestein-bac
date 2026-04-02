@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -40,4 +41,15 @@ public interface CleaningTaskRepository extends JpaRepository<CleaningTask, Long
             """)
     List<CleaningTask> findAccessibleForRoleByWeek(@Param("role") String role,
                                                   @Param("weekNumber") int weekNumber);
+
+    List<CleaningTask> findByAssignedTo_EmailIgnoreCaseOrderByWeekNumberAscIdAsc(String email);
+
+    @Query("""
+            SELECT t FROM CleaningTask t
+            WHERE t.deadline < :today
+              AND t.completed = false
+              AND t.assignedTo IS NOT NULL
+            ORDER BY t.deadline ASC
+            """)
+    List<CleaningTask> findOverdueTasks(@Param("today") LocalDate today);
 }

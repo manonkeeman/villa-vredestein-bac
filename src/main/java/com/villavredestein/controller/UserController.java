@@ -61,6 +61,38 @@ public class UserController {
         public void setPassword(String password) { this.password = password; }
     }
 
+    public static class CreateUserRequest {
+
+        @NotBlank(message = "username is verplicht")
+        @Size(min = 2, max = 50, message = "username moet tussen 2 en 50 tekens zijn")
+        private String username;
+
+        @Email(message = "email moet geldig zijn")
+        @NotBlank(message = "email is verplicht")
+        @Size(max = 100, message = "email mag maximaal 100 tekens zijn")
+        private String email;
+
+        @NotBlank(message = "password is verplicht")
+        @Size(min = 8, max = 72, message = "password moet tussen 8 en 72 tekens zijn")
+        private String password;
+
+        @NotBlank(message = "role is verplicht")
+        @Pattern(regexp = "^(ADMIN|STUDENT|CLEANER)$", message = "role moet ADMIN, STUDENT of CLEANER zijn")
+        private String role;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
+    }
+
     public static class ChangeRoleRequest {
 
         @NotBlank(message = "newRole is verplicht")
@@ -90,6 +122,18 @@ public class UserController {
     // =====================================================================
     // CREATE
     // =====================================================================
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody CreateUserRequest request) {
+        UserResponseDTO created = userService.createUserWithRole(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getRole()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/students", consumes = MediaType.APPLICATION_JSON_VALUE)

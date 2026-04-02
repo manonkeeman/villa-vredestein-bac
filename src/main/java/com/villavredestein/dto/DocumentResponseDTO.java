@@ -5,6 +5,7 @@ public record DocumentResponseDTO(
         String title,
         String description,
         String roleAccess,
-        String uploadedBy
+        String uploadedBy,
+        String downloadUrl
 ) {
 }

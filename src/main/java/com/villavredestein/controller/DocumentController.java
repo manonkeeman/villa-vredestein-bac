@@ -13,6 +13,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
+import java.io.IOException;
+import java.nio.file.Files;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -85,7 +88,7 @@ public class DocumentController {
     // =====================================================================
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
-    @GetMapping(value = "/{id}/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @GetMapping("/{id}/download")
     public ResponseEntity<FileSystemResource> downloadDocument(
             Authentication authentication,
             @PathVariable @Positive Long id
@@ -102,21 +105,29 @@ public class DocumentController {
             }
         }
 
-        FileSystemResource resource = documentService.download(id);
+        DocumentService.DownloadResult result = documentService.download(id);
 
-        String filename = (resource.getFilename() == null || resource.getFilename().isBlank())
-                ? "document"
-                : resource.getFilename();
+        String filename = (result.title() != null && !result.title().isBlank())
+                ? result.title()
+                : "document";
 
-        ContentDisposition contentDisposition = ContentDisposition
-                .attachment()
-                .filename(filename, StandardCharsets.UTF_8)
-                .build();
+        MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+        try {
+            String probed = Files.probeContentType(result.storagePath());
+            if (probed != null) {
+                contentType = MediaType.parseMediaType(probed);
+            }
+        } catch (IOException ignored) {}
+
+        boolean isPdf = MediaType.parseMediaType("application/pdf").isCompatibleWith(contentType);
+        ContentDisposition disposition = isPdf
+                ? ContentDisposition.inline().filename(filename, StandardCharsets.UTF_8).build()
+                : ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource);
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(contentType)
+                .body(result.resource());
     }
 
     // =====================================================================

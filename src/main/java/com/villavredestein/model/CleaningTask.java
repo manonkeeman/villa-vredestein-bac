@@ -1,5 +1,6 @@
 package com.villavredestein.model;
 
+import java.time.LocalDate;
 import java.util.Locale;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -48,6 +49,9 @@ public class CleaningTask {
 
     @Column(length = 1000)
     private String incidentReport;
+
+    @Column(name = "deadline")
+    private LocalDate deadline;
 
     @Column(name = "role_access", nullable = false, length = 20)
     private String roleAccess = ROLE_ALL;
@@ -138,10 +142,17 @@ public class CleaningTask {
         return roleAccess;
     }
 
+    public LocalDate getDeadline() {
+        return deadline;
+    }
+
     public User getAssignedTo() {
         return assignedTo;
     }
 
+    public void setDeadline(LocalDate deadline) {
+        this.deadline = deadline;
+    }
 
     public void setWeekNumber(int weekNumber) {
         this.weekNumber = weekNumber;

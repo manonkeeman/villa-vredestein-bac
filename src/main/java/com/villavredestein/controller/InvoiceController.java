@@ -52,10 +52,15 @@ public class InvoiceController {
     // =====================================================================
     // # READ – by id
     // =====================================================================
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<InvoiceResponseDTO> getInvoiceById(@PathVariable @Positive Long id) {
-        return ResponseEntity.ok(invoiceService.getInvoiceById(id));
+    public ResponseEntity<InvoiceResponseDTO> getInvoiceById(
+            @PathVariable @Positive Long id,
+            Authentication authentication
+    ) {
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(invoiceService.getInvoiceByIdForCaller(id, authentication.getName(), isAdmin));
     }
 
     // =====================================================================

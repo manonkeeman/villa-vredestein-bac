@@ -26,6 +26,11 @@ spring:
 
 app:
   upload-dir: ${APP_UPLOAD_DIR:./target/test-uploads}
+  mail:
+    enabled: false
+    from: no-reply@test.local
+    bcc:
+      admin: ""
 
 logging:
   level:

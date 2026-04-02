@@ -40,6 +40,16 @@ public class CleaningTaskController {
     }
 
     // =====================================================================
+    // # READ – own tasks
+    // =====================================================================
+    @GetMapping("/tasks/me")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    public ResponseEntity<List<CleaningTaskResponseDTO>> getMyTasks(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(cleaningService.getTasksForCaller(email));
+    }
+
+    // =====================================================================
     // # READ – tasks
     // =====================================================================
     @GetMapping("/tasks")

@@ -35,7 +35,7 @@ public class Document {
     private String description;
 
     @NotBlank(message = "storagePath is verplicht")
-    @Column(name = "storage_path", nullable = false, length = 255, unique = true)
+    @Column(name = "storage_path", nullable = false, length = 512, unique = true)
     private String storagePath;
 
     @Column(name = "role_access", nullable = false, length = 20)

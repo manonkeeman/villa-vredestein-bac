@@ -1,5 +1,7 @@
 package com.villavredestein.dto;
 
+import java.time.LocalDate;
+
 public class CleaningTaskResponseDTO {
 
     private final Long id;
@@ -10,6 +12,7 @@ public class CleaningTaskResponseDTO {
     private final String assignedTo;
     private final String comment;
     private final String incidentReport;
+    private final LocalDate deadline;
 
     public CleaningTaskResponseDTO(Long id,
                                    int weekNumber,
@@ -18,7 +21,8 @@ public class CleaningTaskResponseDTO {
                                    boolean completed,
                                    String assignedTo,
                                    String comment,
-                                   String incidentReport) {
+                                   String incidentReport,
+                                   LocalDate deadline) {
         this.id = id;
         this.weekNumber = weekNumber;
         this.name = name;
@@ -27,6 +31,7 @@ public class CleaningTaskResponseDTO {
         this.assignedTo = assignedTo;
         this.comment = comment;
         this.incidentReport = incidentReport;
+        this.deadline = deadline;
     }
 
     public Long getId() {
@@ -59,5 +64,9 @@ public class CleaningTaskResponseDTO {
 
     public String getIncidentReport() {
         return incidentReport;
+    }
+
+    public LocalDate getDeadline() {
+        return deadline;
     }
 }

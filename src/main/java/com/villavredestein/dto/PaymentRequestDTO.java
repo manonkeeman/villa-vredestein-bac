@@ -16,6 +16,7 @@ public class PaymentRequestDTO {
     private String description;
 
     @NotBlank(message = "Status is required")
+    @Pattern(regexp = "^(OPEN|PAID|OVERDUE|CANCELLED)$", message = "Status moet OPEN, PAID, OVERDUE of CANCELLED zijn")
     private String status;
 
     @PastOrPresent(message = "Paid date may not be in the future")

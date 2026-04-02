@@ -8,7 +8,10 @@ import com.villavredestein.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -69,10 +72,10 @@ public class PasswordResetService {
         if (newPassword.length() < 8) throw new IllegalArgumentException("New password must be at least 8 characters");
 
         PasswordResetToken prt = tokenRepository.findById(token.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
+                .orElseThrow(() -> new EntityNotFoundException("Invalid or unknown token"));
 
-        if (prt.isUsed()) throw new IllegalArgumentException("Token already used");
-        if (prt.isExpired()) throw new IllegalArgumentException("Token expired");
+        if (prt.isUsed()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Token already used");
+        if (prt.isExpired()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Token expired");
 
         User user = prt.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));

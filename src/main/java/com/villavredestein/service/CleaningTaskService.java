@@ -100,6 +100,7 @@ public class CleaningTaskService {
         task.setCompleted(dto.isCompleted());
         task.setComment(dto.getComment());
         task.setIncidentReport(dto.getIncidentReport());
+        task.setDeadline(dto.getDueDate());
         task.setAssignedTo(resolveAssignee(dto.getAssignedTo()));
 
         return toResponseDTO(taskRepository.save(task));
@@ -195,6 +196,15 @@ public class CleaningTaskService {
         return value.trim();
     }
 
+    public List<CleaningTaskResponseDTO> getTasksForCaller(String callerEmail) {
+        if (callerEmail == null || callerEmail.isBlank()) {
+            throw new IllegalArgumentException("Email is verplicht");
+        }
+        return taskRepository
+                .findByAssignedTo_EmailIgnoreCaseOrderByWeekNumberAscIdAsc(callerEmail)
+                .stream().map(this::toResponseDTO).toList();
+    }
+
     private CleaningTaskResponseDTO toResponseDTO(CleaningTask task) {
         String assignedTo = task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null;
 
@@ -206,7 +216,8 @@ public class CleaningTaskService {
                 task.isCompleted(),
                 assignedTo,
                 task.getComment(),
-                task.getIncidentReport()
+                task.getIncidentReport(),
+                task.getDeadline()
         );
     }
 }

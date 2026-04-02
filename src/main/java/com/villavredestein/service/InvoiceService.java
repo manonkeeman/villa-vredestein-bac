@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -85,6 +86,16 @@ public class InvoiceService {
 
     public InvoiceResponseDTO getInvoiceById(Long id) {
         return toDTO(findInvoiceOrThrow(id));
+    }
+
+    public InvoiceResponseDTO getInvoiceByIdForCaller(Long id, String callerEmail, boolean isAdmin) {
+        Invoice invoice = findInvoiceOrThrow(id);
+
+        if (!isAdmin && !invoice.getStudent().getEmail().equalsIgnoreCase(callerEmail)) {
+            throw new AccessDeniedException("You can only view your own invoices");
+        }
+
+        return toDTO(invoice);
     }
 
     public List<InvoiceResponseDTO> getInvoicesForStudent(String studentEmail) {
@@ -168,14 +179,6 @@ public class InvoiceService {
     // =====================================================================
 
     private InvoiceResponseDTO toDTO(Invoice invoice) {
-
-        if (invoice == null) {
-            throw new IllegalArgumentException("Invoice mag niet null zijn");
-        }
-        if (invoice.getStudent() == null) {
-            throw new IllegalArgumentException("Invoice heeft geen gekoppelde student");
-        }
-
         return new InvoiceResponseDTO(
                 invoice.getId(),
                 invoice.getTitle(),

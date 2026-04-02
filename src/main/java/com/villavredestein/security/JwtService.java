@@ -20,6 +20,11 @@ import java.util.Map;
 @Service
 public class JwtService {
 
+    private static final String ROLE_CLAIM = "role";
+    private static final String TOKEN_TYPE_CLAIM = "type";
+    private static final String ACCESS_TOKEN_TYPE = "access";
+    private static final long MINIMUM_SECRET_BYTES = 32;
+
     @Value("${jwt.secret:}")
     private String secret;
 
@@ -37,44 +42,46 @@ public class JwtService {
         byte[] keyBytes;
         try {
             keyBytes = Decoders.BASE64.decode(secret);
-        } catch (IllegalArgumentException ignore) {
+        } catch (IllegalArgumentException exception) {
             keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         }
 
-        if (keyBytes.length < 32) {
+        if (keyBytes.length < MINIMUM_SECRET_BYTES) {
             throw new IllegalStateException("jwt.secret must be at least 32 bytes (256-bit) for HS256");
         }
 
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // =====================================================================
-    // # TOKEN CREATION
-    // =====================================================================
-
     public String generateToken(String email, String role) {
+        validateTokenInput(email, role);
+
         Instant now = Instant.now();
-        Instant exp = now.plusSeconds(expirationSeconds);
+        Instant expiration = now.plusSeconds(expirationSeconds);
 
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(email.trim())
                 .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(exp))
-                .addClaims(Map.of("role", role))
+                .setExpiration(Date.from(expiration))
+                .claim(ROLE_CLAIM, normalizeRole(role))
+                .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // =====================================================================
-    // # TOKEN PARSING / VALIDATION
-    // =====================================================================
-
     public boolean isTokenValid(String token) {
         try {
             Claims claims = parse(token).getBody();
-            Date exp = claims.getExpiration();
-            return exp != null && exp.after(new Date());
-        } catch (JwtException | IllegalArgumentException ex) {
+            Date expiration = claims.getExpiration();
+            String subject = claims.getSubject();
+            String tokenType = claims.get(TOKEN_TYPE_CLAIM, String.class);
+
+            return subject != null
+                    && !subject.isBlank()
+                    && expiration != null
+                    && expiration.after(new Date())
+                    && ACCESS_TOKEN_TYPE.equals(tokenType);
+        } catch (JwtException | IllegalArgumentException exception) {
             return false;
         }
     }
@@ -84,8 +91,7 @@ public class JwtService {
     }
 
     public String extractRole(String token) {
-        Object role = parse(token).getBody().get("role");
-        return role != null ? role.toString() : null;
+        return parse(token).getBody().get(ROLE_CLAIM, String.class);
     }
 
     public String getEmailFromToken(String token) {
@@ -98,6 +104,27 @@ public class JwtService {
 
     public boolean validateToken(String token) {
         return isTokenValid(token);
+    }
+
+    private void validateTokenInput(String email, String role) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email is required to generate a token");
+        }
+
+        if (role == null || role.isBlank()) {
+            throw new IllegalArgumentException("Role is required to generate a token");
+        }
+
+        if (expirationSeconds <= 0) {
+            throw new IllegalStateException("jwt.expiration-seconds must be greater than 0");
+        }
+    }
+
+    private String normalizeRole(String role) {
+        String normalizedRole = role.trim().toUpperCase();
+        return normalizedRole.startsWith("ROLE_")
+                ? normalizedRole.substring(5)
+                : normalizedRole;
     }
 
     private Jws<Claims> parse(String token) {

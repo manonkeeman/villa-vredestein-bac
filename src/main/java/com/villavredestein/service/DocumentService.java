@@ -40,13 +40,15 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
+    private final MailService mailService;
 
     @Value("${app.upload-dir}")
     private String uploadDirPath;
 
-    public DocumentService(DocumentRepository documentRepository, UserRepository userRepository) {
+    public DocumentService(DocumentRepository documentRepository, UserRepository userRepository, MailService mailService) {
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
+        this.mailService = mailService;
     }
 
     // ============================================================
@@ -100,6 +102,8 @@ public class DocumentService {
 
         Document saved = documentRepository.save(document);
 
+        notifyStudentsOfNewDocument(saved);
+
         String downloadUrl = "/api/documents/" + saved.getId() + "/download";
         return new UploadResponseDTO(saved.getId(), saved.getTitle(), downloadUrl);
     }
@@ -145,7 +149,9 @@ public class DocumentService {
     // DOWNLOAD
     // ============================================================
 
-    public FileSystemResource download(Long id) {
+    public record DownloadResult(FileSystemResource resource, String title, Path storagePath) {}
+
+    public DownloadResult download(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("Document id is ongeldig");
         }
@@ -158,7 +164,7 @@ public class DocumentService {
             throw new EntityNotFoundException("Bestand voor document " + id + " niet gevonden");
         }
 
-        return new FileSystemResource(path);
+        return new DownloadResult(new FileSystemResource(path), doc.getTitle(), path);
     }
 
     // ============================================================
@@ -188,14 +194,49 @@ public class DocumentService {
 
     private DocumentResponseDTO toResponseDTO(Document doc) {
         String uploadedBy = doc.getUploadedBy() != null ? doc.getUploadedBy().getUsername() : null;
+        String downloadUrl = "/api/documents/" + doc.getId() + "/download";
 
         return new DocumentResponseDTO(
                 doc.getId(),
                 doc.getTitle(),
                 doc.getDescription(),
                 doc.getRoleAccess(),
-                uploadedBy
+                uploadedBy,
+                downloadUrl
         );
+    }
+
+    private void notifyStudentsOfNewDocument(Document document) {
+        String roleAccess = document.getRoleAccess();
+        boolean studentsCanAccess = roleAccess == null
+                || Document.ROLE_ALL.equalsIgnoreCase(roleAccess)
+                || "STUDENT".equalsIgnoreCase(roleAccess);
+
+        if (!studentsCanAccess) {
+            return;
+        }
+
+        List<User> students = userRepository.findByRole(User.Role.STUDENT);
+        for (User student : students) {
+            if (student.getEmail() == null || student.getEmail().isBlank()) continue;
+            try {
+                String subject = "Nieuw document beschikbaar: " + document.getTitle();
+                String body = String.format("""
+                        Beste %s,
+
+                        Er is een nieuw document beschikbaar gesteld op Villa Vredestein: "%s".
+
+                        Je kunt het inzien via de app.
+
+                        Met vriendelijke groet,
+                        Villa Vredestein
+                        """, student.getUsername() != null ? student.getUsername() : "bewoner", document.getTitle());
+
+                mailService.sendMailWithRole("ADMIN", student.getEmail(), subject, body);
+            } catch (Exception e) {
+                log.warn("Could not notify student {} of new document {}: {}", student.getEmail(), document.getId(), e.getMessage());
+            }
+        }
     }
 
     private Path ensureUploadDirectory() {

@@ -24,6 +24,10 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0cy1vbmx5LTMyYnl0ZXM=
+  expiry-seconds: 3600
+
 app:
   upload-dir: ${APP_UPLOAD_DIR:./target/test-uploads}
   mail:

@@ -30,45 +30,6 @@ REST API voor het beheersysteem van Villa Vredestein, een studentenpension. Gebo
 
 ---
 
-## Functionaliteiten
-
-### 1. Authenticatie
-- Inloggen met e-mail en wachtwoord via `POST /api/auth/login`
-- JWT token als response, verplicht meegestuurd als `Authorization: Bearer <token>`
-- Studenten moeten bij inloggen hun kamernaam bevestigen
-- Wachtwoord vergeten / reset via e-mail token
-
-### 2. Gebruikersbeheer
-- Admin kan gebruikers aanmaken, inzien, bewerken en verwijderen
-- Iedere gebruiker kan zijn eigen profiel bijwerken en profielfoto uploaden
-- Wachtwoord wijzigen via `/api/users/me/password`
-
-### 3. Kamers
-- Overzicht van alle kamers en wie erin woont
-- Admin koppelt kamers aan studenten
-
-### 4. Documenten
-- Admin upload documenten (PDF, etc.) met rolgebaseerde toegang (`ALL`, `STUDENT`, `CLEANER`, `ADMIN`)
-- Studenten ontvangen automatisch een e-mailnotificatie bij een nieuw document
-- Downloaden via `GET /api/documents/{id}/download` — PDFs openen inline in de browser
-
-### 5. Facturen & Betalingen
-- Admin maakt facturen aan per student per maand
-- Statussen: `OPEN`, `PAID`, `OVERDUE`, `CANCELLED`
-- Studenten zien eigen facturen via `GET /api/invoices/me`
-- Betalingsgeschiedenis via `GET /api/payments/me`
-- Automatische herinneringsmail X dagen voor vervaldatum (standaard 4 dagen)
-- Automatische vervallen-mail na de vervaldatum
-
-### 6. Schoonmaaktaken
-- Wekelijkse taakverdeling (week 1–4 rotatie)
-- Taken hebben een deadline, naam, beschrijving en toegewezen bewoner
-- Student ziet eigen taken via `GET /api/cleaning/tasks/me`
-- Admin en cleaner zien alles en kunnen commentaar en incidenten toevoegen
-- Automatische e-mailnotificatie bij niet-voltooide taken na de deadline
-
----
-
 ## API endpoints (overzicht)
 
 ### Auth
@@ -167,30 +128,32 @@ Maak een `.env` bestand aan in de root van het project (zie `.env.example` voor 
 SPRING_PROFILES_ACTIVE=dev
 
 DB_URL=jdbc:postgresql://localhost:5432/villavredestein
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_USERNAME=<jouw-db-gebruiker>
+DB_PASSWORD=<jouw-db-wachtwoord>
 
-JWT_SECRET=<minimaal-32-tekens-willekeurige-string>
+JWT_SECRET=<willekeurige-string-van-minimaal-32-tekens>
 JWT_EXPIRY_SECONDS=86400
 
 APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 SEED_ENABLED=true
-SEED_ADMIN_EMAIL=admin@voorbeeld.com
-SEED_ADMIN_PASSWORD=AdminWachtwoord1!
-SEED_CLEANER_EMAIL=cleaner@voorbeeld.com
-SEED_CLEANER_PASSWORD=CleanerWachtwoord1!
-SEED_STUDENT_EMAILS=student1@voorbeeld.com,student2@voorbeeld.com
-SEED_STUDENT_PASSWORD=StudentWachtwoord1!
+SEED_ADMIN_EMAIL=<admin-email>
+SEED_ADMIN_PASSWORD=<admin-wachtwoord>
+SEED_CLEANER_EMAIL=<cleaner-email>
+SEED_CLEANER_PASSWORD=<cleaner-wachtwoord>
+SEED_STUDENT_EMAILS=<email1>,<email2>
+SEED_STUDENT_PASSWORD=<student-wachtwoord>
 
 MAIL_ENABLED=false
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_FROM=
-MAIL_BCC_ADMIN=
+MAIL_USERNAME=<gmail-adres>
+MAIL_PASSWORD=<gmail-app-wachtwoord>
+MAIL_FROM=<gmail-adres>
+MAIL_BCC_ADMIN=<gmail-adres>
 ```
+
+> **Nooit echte wachtwoorden in de README of in git plaatsen.** Het `.env` bestand staat in `.gitignore`.
 
 > **Let op:** gebruik een Gmail App Password, niet je normale Gmail wachtwoord. Activeer dit via Google Account → Beveiliging → App-wachtwoorden.
 

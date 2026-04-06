@@ -111,7 +111,8 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator/healthz",
                                 "/actuator/info",
-                                "/error"
+                                "/error",
+                                "/uploads/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole(USER_ROLES)
                         .requestMatchers(HttpMethod.PUT, "/api/users/me/profile").hasAnyRole(USER_ROLES)

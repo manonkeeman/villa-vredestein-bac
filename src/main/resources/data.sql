@@ -8,26 +8,26 @@ BEGIN;
 -- USERS
 -- ==================================================
 
--- Admin
-INSERT INTO users (email, username, password, role)
+-- Admin (Vredestein1906!)
+INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('villavredestein@gmail.com', 'Admin', '$2a$10$SKodiL2.Mb6IZG7/Xzgh3O5JXFQZcNs/91o/MGSXmmt2E/97o9Nii', 'ADMIN')
+  ('villavredestein@gmail.com', 'Admin', '$2a$10$C6cl7EPzdrsj2xIZ7ECJbeZzAUVqAICC6qG0uQ.GwSnQjqlbnmiGm', 'ADMIN', true)
 ON CONFLICT (email) DO NOTHING;
 
--- Students
-INSERT INTO users (email, username, password, role)
+-- Students (Student1234!)
+INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('arwenleonor@gmail.com',   'Arwen',   '$2a$10$f.uYDURDl4qwpisty/XrR.ofByjHgIYRoxo9MD6NmI4ydzDKPMjlG', 'STUDENT'),
-  ('ikheetalvar@gmail.com',   'Alvar',   '$2a$10$f.uYDURDl4qwpisty/XrR.ofByjHgIYRoxo9MD6NmI4ydzDKPMjlG', 'STUDENT'),
-  ('desmondstaal@gmail.com',  'Desmond', '$2a$10$f.uYDURDl4qwpisty/XrR.ofByjHgIYRoxo9MD6NmI4ydzDKPMjlG', 'STUDENT'),
-  ('medocstaal@gmail.com',    'Medoc',   '$2a$10$f.uYDURDl4qwpisty/XrR.ofByjHgIYRoxo9MD6NmI4ydzDKPMjlG', 'STUDENT'),
-  ('simontalsma2@gmail.com',  'Simon',   '$2a$10$f.uYDURDl4qwpisty/XrR.ofByjHgIYRoxo9MD6NmI4ydzDKPMjlG', 'STUDENT')
+  ('arwenleonor@gmail.com',   'Arwen',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
+  ('ikheetalvar@gmail.com',   'Alvar',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
+  ('desmondstaal@gmail.com',  'Desmond', '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
+  ('medocstaal@gmail.com',    'Medoc',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
+  ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
--- Cleaner
-INSERT INTO users (email, username, password, role)
+-- Cleaner (Cleaner1234!)
+INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('cleaner@villavredestein.com', 'Cleaner', '$2a$10$PLlkWJLXVcgREF1r91h7v.US8xmX/lriMrIrAT.ePPby7N7tMSNOC', 'CLEANER')
+  ('cleaner@villavredestein.com', 'Cleaner', '$2a$10$lsHY1ORj580Kn9Dt3sbWF.yu/iNfsbOvsynzxZKy0sb9osdcpFQqS', 'CLEANER', true)
 ON CONFLICT (email) DO NOTHING;
 
 -- ==================================================

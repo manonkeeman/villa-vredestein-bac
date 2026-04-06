@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 @Validated
 @RestController
 @RequestMapping(value = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);

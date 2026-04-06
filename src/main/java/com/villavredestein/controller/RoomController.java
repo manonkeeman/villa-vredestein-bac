@@ -18,7 +18,6 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping(value = "/api/rooms", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin
 public class RoomController {
 
     private final RoomService roomService;

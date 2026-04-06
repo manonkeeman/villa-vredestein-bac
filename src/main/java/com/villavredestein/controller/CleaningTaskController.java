@@ -21,7 +21,6 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping("/api/cleaning")
-@CrossOrigin
 public class CleaningTaskController {
 
     private final CleaningTaskService cleaningService;

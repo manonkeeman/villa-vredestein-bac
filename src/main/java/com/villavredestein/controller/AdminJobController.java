@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/api/admin/jobs", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminJobController {
 

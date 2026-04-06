@@ -23,7 +23,6 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping(value = "/api/users", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin
 public class UserController {
 
     private final UserService userService;

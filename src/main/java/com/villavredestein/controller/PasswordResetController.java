@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 @RestController
 @RequestMapping(value = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin
 public class PasswordResetController {
 
     private final PasswordResetService passwordResetService;

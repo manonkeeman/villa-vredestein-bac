@@ -104,8 +104,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/login",
-                                "/api/auth/password/forgot",
-                                "/api/auth/password/reset"
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(
                                 "/actuator/health",

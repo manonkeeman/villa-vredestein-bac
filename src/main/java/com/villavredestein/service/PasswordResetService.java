@@ -27,18 +27,24 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailService;
     private final long resetExpiryMinutes;
+    private final String frontendUrl;
 
     public PasswordResetService(
             UserRepository userRepository,
             PasswordResetTokenRepository tokenRepository,
             PasswordEncoder passwordEncoder,
-            @Value("${app.password-reset.expiry-minutes:30}") long resetExpiryMinutes
+            MailService mailService,
+            @Value("${app.password-reset.expiry-minutes:30}") long resetExpiryMinutes,
+            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mailService = mailService;
         this.resetExpiryMinutes = resetExpiryMinutes;
+        this.frontendUrl = frontendUrl;
     }
 
     // -----------------------------
@@ -58,6 +64,10 @@ public class PasswordResetService {
         Instant expiresAt = Instant.now().plus(resetExpiryMinutes, ChronoUnit.MINUTES);
 
         tokenRepository.save(new PasswordResetToken(token, user, expiresAt));
+
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
+        mailService.sendPasswordResetMail(user.getEmail(), resetLink);
+
         return Optional.of(token);
     }
 

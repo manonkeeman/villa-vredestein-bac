@@ -95,6 +95,44 @@ public class MailService {
         sendInternal("CLEANER", MailCategory.CLEANING_TASK, to, "Cleaning task", body, null, maskEmail(to));
     }
 
+    public void sendPasswordResetMail(String to, String resetLink) {
+        requireValidRecipient(to);
+        String subject = "Wachtwoord opnieuw instellen – Villa Vredestein";
+        String body = """
+                Hallo,
+
+                Je hebt een verzoek ingediend om je wachtwoord opnieuw in te stellen.
+                Klik op de onderstaande link om een nieuw wachtwoord in te stellen:
+
+                %s
+
+                Deze link is 30 minuten geldig. Als je dit verzoek niet hebt gedaan, kun je deze e-mail negeren.
+
+                Met vriendelijke groet,
+                Villa Vredestein
+                """.formatted(resetLink);
+
+        if (!mailEnabled) {
+            log.warn("[MAIL DISABLED] Password reset mail for {}: {}", maskEmail(to), resetLink);
+            return;
+        }
+        if (mailSender == null) {
+            log.warn("[MAIL ENABLED] but no mailSender configured for password reset (to={})", maskEmail(to));
+            return;
+        }
+        try {
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(from);
+            msg.setTo(to);
+            msg.setSubject(subject);
+            msg.setText(body);
+            mailSender.send(msg);
+            log.info("Password reset mail sent to {}", maskEmail(to));
+        } catch (MailException e) {
+            log.error("Failed to send password reset mail to {}: {}", maskEmail(to), e.getMessage());
+        }
+    }
+
     public void sendInvoiceReminderMail(String to, String subject, String body) {
         requireValidRecipient(to);
 

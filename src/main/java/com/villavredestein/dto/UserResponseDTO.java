@@ -10,6 +10,8 @@ public record UserResponseDTO(
         String phoneNumber,
         String emergencyPhoneNumber,
         String studyOrWork,
+        String parentsAddress,
+        String favoriteMeal,
         String socialPreference,
         String mealPreference,
         String availabilityStatus,

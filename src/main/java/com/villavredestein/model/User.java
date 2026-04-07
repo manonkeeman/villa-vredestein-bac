@@ -76,6 +76,14 @@ public class User {
     @Column(length = 100)
     private String studyOrWork;
 
+    @Size(max = 255, message = "Parents address may not exceed 255 characters")
+    @Column(length = 255)
+    private String parentsAddress;
+
+    @Size(max = 100, message = "Favorite meal may not exceed 100 characters")
+    @Column(length = 100)
+    private String favoriteMeal;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
     private SocialPreference socialPreference;
@@ -136,6 +144,8 @@ public class User {
         phoneNumber = clean(phoneNumber);
         emergencyPhoneNumber = clean(emergencyPhoneNumber);
         studyOrWork = clean(studyOrWork);
+        parentsAddress = clean(parentsAddress);
+        favoriteMeal = clean(favoriteMeal);
         profileImagePath = clean(profileImagePath);
     }
 
@@ -165,6 +175,14 @@ public class User {
 
     public String getStudyOrWork() {
         return studyOrWork;
+    }
+
+    public String getParentsAddress() {
+        return parentsAddress;
+    }
+
+    public String getFavoriteMeal() {
+        return favoriteMeal;
     }
 
     public SocialPreference getSocialPreference() {
@@ -230,6 +248,16 @@ public class User {
 
     public void setStudyOrWork(String studyOrWork) {
         this.studyOrWork = clean(studyOrWork);
+        normalize();
+    }
+
+    public void setParentsAddress(String parentsAddress) {
+        this.parentsAddress = clean(parentsAddress);
+        normalize();
+    }
+
+    public void setFavoriteMeal(String favoriteMeal) {
+        this.favoriteMeal = clean(favoriteMeal);
         normalize();
     }
 

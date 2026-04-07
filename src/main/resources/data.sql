@@ -24,6 +24,12 @@ VALUES
   ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
+-- Set Medoc's contract file
+UPDATE users
+SET contract_file = 'Woonafspraken 2023-Frankrijk-Medoc.pdf'
+WHERE email = 'medocstaal@gmail.com'
+  AND (contract_file IS NULL OR contract_file != 'Woonafspraken 2023-Frankrijk-Medoc.pdf');
+
 -- Cleaner (Cleaner1234!)
 INSERT INTO users (email, username, password, role, status_toggle)
 VALUES

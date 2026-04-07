@@ -103,6 +103,10 @@ public class User {
     @Column(length = 255)
     private String profileImagePath;
 
+    @Size(max = 255, message = "Contract file may not exceed 255 characters")
+    @Column(length = 255)
+    private String contractFile;
+
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 255, message = "Password must be at least 8 characters")
     @Column(nullable = false)
@@ -147,6 +151,7 @@ public class User {
         parentsAddress = clean(parentsAddress);
         favoriteMeal = clean(favoriteMeal);
         profileImagePath = clean(profileImagePath);
+        contractFile = clean(contractFile);
     }
 
     // =====================================================================
@@ -203,6 +208,10 @@ public class User {
 
     public String getProfileImagePath() {
         return profileImagePath;
+    }
+
+    public String getContractFile() {
+        return contractFile;
     }
 
     public String getEmail() {
@@ -279,6 +288,11 @@ public class User {
 
     public void setProfileImagePath(String profileImagePath) {
         this.profileImagePath = clean(profileImagePath);
+        normalize();
+    }
+
+    public void setContractFile(String contractFile) {
+        this.contractFile = clean(contractFile);
         normalize();
     }
 

@@ -461,7 +461,8 @@ public class UserService implements UserDetailsService {
                 user.getMealPreference() != null ? user.getMealPreference().name() : null,
                 user.getAvailabilityStatus() != null ? user.getAvailabilityStatus().name() : null,
                 user.isStatusToggle(),
-                user.getProfileImagePath()
+                user.getProfileImagePath(),
+                user.getContractFile()
         );
     }
 }

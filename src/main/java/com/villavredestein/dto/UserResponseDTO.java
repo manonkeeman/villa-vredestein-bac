@@ -16,5 +16,6 @@ public record UserResponseDTO(
         String mealPreference,
         String availabilityStatus,
         boolean statusToggle,
-        String profileImagePath
+        String profileImagePath,
+        String contractFile
 ) {}

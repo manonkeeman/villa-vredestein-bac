@@ -28,11 +28,14 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
+    private final InvoicePdfService invoicePdfService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          InvoicePdfService invoicePdfService) {
         this.invoiceRepository = invoiceRepository;
         this.userRepository = userRepository;
+        this.invoicePdfService = invoicePdfService;
     }
 
     // =====================================================================
@@ -156,6 +159,14 @@ public class InvoiceService {
         LocalDate today = LocalDate.now();
         LocalDate inFourDays = today.plusDays(4);
         return invoiceRepository.findByStatusAndDueDateBetweenOrderByDueDateAsc(InvoiceStatus.OPEN, today, inFourDays);
+    }
+
+    public byte[] generatePdf(Long id, String callerEmail, boolean isAdmin) {
+        Invoice invoice = findInvoiceOrThrow(id);
+        if (!isAdmin && !invoice.getStudent().getEmail().equalsIgnoreCase(callerEmail)) {
+            throw new AccessDeniedException("You can only download your own invoices");
+        }
+        return invoicePdfService.generate(invoice);
     }
 
     public void saveReminderMeta(Invoice invoice) {

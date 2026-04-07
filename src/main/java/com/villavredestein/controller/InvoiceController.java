@@ -6,6 +6,8 @@ import com.villavredestein.service.InvoiceService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +62,27 @@ public class InvoiceController {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         return ResponseEntity.ok(invoiceService.getInvoiceByIdForCaller(id, authentication.getName(), isAdmin));
+    }
+
+    // =====================================================================
+    // # PDF DOWNLOAD
+    // =====================================================================
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> downloadInvoicePdf(
+            @PathVariable @Positive Long id,
+            Authentication authentication
+    ) {
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        byte[] pdf = invoiceService.generatePdf(id, authentication.getName(), isAdmin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+                ContentDisposition.attachment().filename("factuur-" + id + ".pdf").build()
+        );
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
     // =====================================================================

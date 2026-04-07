@@ -2,6 +2,7 @@ package com.villavredestein.controller;
 
 import com.villavredestein.jobs.InvoiceReminderJob;
 import com.villavredestein.jobs.MissedCleaningTaskJob;
+import com.villavredestein.jobs.MonthlyRentReminderJob;
 import com.villavredestein.jobs.OverdueInvoiceJob;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,14 @@ public class AdminJobController {
     private final InvoiceReminderJob invoiceReminderJob;
     private final OverdueInvoiceJob overdueInvoiceJob;
     private final MissedCleaningTaskJob missedCleaningTaskJob;
+    private final MonthlyRentReminderJob monthlyRentReminderJob;
 
-    public AdminJobController(InvoiceReminderJob invoiceReminderJob, OverdueInvoiceJob overdueInvoiceJob, MissedCleaningTaskJob missedCleaningTaskJob) {
+    public AdminJobController(InvoiceReminderJob invoiceReminderJob, OverdueInvoiceJob overdueInvoiceJob,
+                              MissedCleaningTaskJob missedCleaningTaskJob, MonthlyRentReminderJob monthlyRentReminderJob) {
         this.invoiceReminderJob = invoiceReminderJob;
         this.overdueInvoiceJob = overdueInvoiceJob;
         this.missedCleaningTaskJob = missedCleaningTaskJob;
+        this.monthlyRentReminderJob = monthlyRentReminderJob;
     }
 
     @PostMapping("/reminders/trigger")
@@ -43,5 +47,11 @@ public class AdminJobController {
     public ResponseEntity<Map<String, String>> triggerMissedCleaning() {
         missedCleaningTaskJob.sendMissedTaskNotifications();
         return ResponseEntity.ok(Map.of("message", "Missed cleaning task job triggered"));
+    }
+
+    @PostMapping("/rent-reminder/trigger")
+    public ResponseEntity<Map<String, String>> triggerRentReminder() {
+        monthlyRentReminderJob.sendRentReminders();
+        return ResponseEntity.ok(Map.of("message", "Rent reminder sent to all students"));
     }
 }

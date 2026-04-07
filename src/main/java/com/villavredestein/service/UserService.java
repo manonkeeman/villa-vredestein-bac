@@ -195,6 +195,14 @@ public class UserService implements UserDetailsService {
             target.setStudyOrWork(dto.getStudyOrWork());
         }
 
+        if (dto.getParentsAddress() != null) {
+            target.setParentsAddress(dto.getParentsAddress());
+        }
+
+        if (dto.getFavoriteMeal() != null) {
+            target.setFavoriteMeal(dto.getFavoriteMeal());
+        }
+
         if (dto.getSocialPreference() != null) {
             target.setSocialPreference(dto.getSocialPreference());
         }
@@ -447,6 +455,8 @@ public class UserService implements UserDetailsService {
                 user.getPhoneNumber(),
                 user.getEmergencyPhoneNumber(),
                 user.getStudyOrWork(),
+                user.getParentsAddress(),
+                user.getFavoriteMeal(),
                 user.getSocialPreference() != null ? user.getSocialPreference().name() : null,
                 user.getMealPreference() != null ? user.getMealPreference().name() : null,
                 user.getAvailabilityStatus() != null ? user.getAvailabilityStatus().name() : null,

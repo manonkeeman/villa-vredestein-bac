@@ -25,6 +25,12 @@ public class UserRequestDTO {
     @Size(max = 100, message = "Studie/werk mag maximaal 100 tekens zijn")
     private String studyOrWork;
 
+    @Size(max = 255, message = "Adres ouders mag maximaal 255 tekens zijn")
+    private String parentsAddress;
+
+    @Size(max = 100, message = "Lievelingseten mag maximaal 100 tekens zijn")
+    private String favoriteMeal;
+
     private User.SocialPreference socialPreference;
     private User.MealPreference mealPreference;
     private User.AvailabilityStatus availabilityStatus;
@@ -51,6 +57,12 @@ public class UserRequestDTO {
 
     public String getStudyOrWork() { return studyOrWork; }
     public void setStudyOrWork(String studyOrWork) { this.studyOrWork = studyOrWork; }
+
+    public String getParentsAddress() { return parentsAddress; }
+    public void setParentsAddress(String parentsAddress) { this.parentsAddress = parentsAddress; }
+
+    public String getFavoriteMeal() { return favoriteMeal; }
+    public void setFavoriteMeal(String favoriteMeal) { this.favoriteMeal = favoriteMeal; }
 
     public User.SocialPreference getSocialPreference() { return socialPreference; }
     public void setSocialPreference(User.SocialPreference socialPreference) { this.socialPreference = socialPreference; }

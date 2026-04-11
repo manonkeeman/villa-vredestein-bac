@@ -169,66 +169,91 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM invoices WHERE title = 'Rent current month - Simon');
 
 -- ==================================================
--- CLEANING TASKS – WEEK 1 + 2
+-- CLEANING TASKS
+-- 6 tasks × 6 rotation weeks = 36 rows
+-- Rotation: rotationWeek = ((isoWeek - 1) % 6) + 1
+--
+-- Students (index 0–5):
+--   0 = Arwen   (arwenleonor@gmail.com)
+--   1 = Alvar   (ikheetalvar@gmail.com)
+--   2 = Desmond (desmondstaal@gmail.com)
+--   3 = Medoc   (medocstaal@gmail.com)
+--   4 = Simon   (simontalsma2@gmail.com)
+--   5 = Japan   (room empty — assigned_to_id = NULL)
+--
+-- Tasks (index 0–5):
+--   0 = Kitchen & dishwasher
+--   1 = Bathroom & toilet
+--   2 = Take out the trash
+--   3 = Hallway & stairs
+--   4 = Living room
+--   5 = Garden & outdoor
+--
+-- Rule: student[i] gets task[(i + rotationWeek - 1) % 6]
 -- ==================================================
 
--- Week 1
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 1, 'Kitchen & dishwasher',
-  'Empty the dishwasher, clean the countertop and clean the oven & induction plate.',
-  FALSE, 'Check dishwasher filter', NULL,
-  (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 1 AND name = 'Kitchen & dishwasher');
+-- Clean up old seed data so the rotation is always correct
+DELETE FROM cleaning_tasks WHERE week_number BETWEEN 1 AND 6;
 
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 1, 'Bathroom & toilet',
-  'Clean the sink, shower, mirror and toilet thoroughly and dry everything.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 1 AND name = 'Bathroom & toilet');
+-- ── Week 1 ────────────────────────────────────────
+-- Arwen=Kitchen, Alvar=Bathroom, Desmond=Trash, Medoc=Hallway, Simon=Living room, Japan=Garden
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (1, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (1, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (1, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (1, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (1, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (1, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, NULL, 'ALL');
 
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 1, 'Take out the trash',
-  'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles = shared pot.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 1 AND name = 'Take out the trash');
+-- ── Week 2 ────────────────────────────────────────
+-- Arwen=Bathroom, Alvar=Trash, Desmond=Hallway, Medoc=Living room, Simon=Garden, Japan=Kitchen
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (2, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (2, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (2, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (2, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (2, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (2, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
 
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 1, 'Hallway & stairs vacuum/mop',
-  'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 1 AND name = 'Hallway & stairs vacuum/mop');
+-- ── Week 3 ────────────────────────────────────────
+-- Arwen=Trash, Alvar=Hallway, Desmond=Living room, Medoc=Garden, Simon=Kitchen, Japan=Bathroom
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (3, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (3, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (3, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (3, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (3, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (3, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL');
 
--- Week 2
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 2, 'Kitchen & dishwasher',
-  'Empty the dishwasher, clean the countertop and clean the oven.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 2 AND name = 'Kitchen & dishwasher');
+-- ── Week 4 ────────────────────────────────────────
+-- Arwen=Hallway, Alvar=Living room, Desmond=Garden, Medoc=Kitchen, Simon=Bathroom, Japan=Trash
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (4, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (4, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (4, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (4, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (4, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (4, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
 
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 2, 'Bathroom & toilet',
-  'Clean the sink, shower, mirror and toilet thoroughly and dry everything.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 2 AND name = 'Bathroom & toilet');
+-- ── Week 5 ────────────────────────────────────────
+-- Arwen=Living room, Alvar=Garden, Desmond=Kitchen, Medoc=Bathroom, Simon=Trash, Japan=Hallway
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (5, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (5, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (5, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (5, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (5, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (5, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL');
 
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 2, 'Take out the trash',
-  'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 2 AND name = 'Take out the trash');
-
-INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access)
-SELECT 2, 'Living room vacuum/mop',
-  'Vacuum and mop the living room, hallway and stairs and keep the table clean and tidy.',
-  FALSE, NULL, NULL,
-  (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'
-WHERE NOT EXISTS (SELECT 1 FROM cleaning_tasks WHERE week_number = 2 AND name = 'Living room vacuum/mop');
+-- ── Week 6 ────────────────────────────────────────
+-- Arwen=Garden, Alvar=Kitchen, Desmond=Bathroom, Medoc=Trash, Simon=Hallway, Japan=Living room
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (6, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (6, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (6, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (6, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (6, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (6, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL');
 
 -- ==================================================
 -- VIEW

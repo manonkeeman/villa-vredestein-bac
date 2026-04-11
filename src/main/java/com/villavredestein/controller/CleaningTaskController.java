@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 // =====================================================================
 // # CleaningTaskController
@@ -28,6 +29,19 @@ public class CleaningTaskController {
 
     public CleaningTaskController(CleaningTaskService cleaningService) {
         this.cleaningService = cleaningService;
+    }
+
+    // =====================================================================
+    // # Schedule info — ISO week + rotation week
+    // =====================================================================
+    @GetMapping("/schedule/info")
+    @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
+    public ResponseEntity<Map<String, Integer>> getScheduleInfo() {
+        Map<String, Integer> info = new LinkedHashMap<>();
+        info.put("isoWeek", cleaningService.getCurrentIsoWeek());
+        info.put("rotationWeek", cleaningService.getCurrentRotationWeek());
+        info.put("year", cleaningService.getCurrentIsoYear());
+        return ResponseEntity.ok(info);
     }
 
     // =====================================================================

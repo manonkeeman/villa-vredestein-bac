@@ -3,7 +3,6 @@ package com.villavredestein.controller;
 import com.villavredestein.dto.LoginRequestDTO;
 import com.villavredestein.dto.LoginResponseDTO;
 import com.villavredestein.dto.UserResponseDTO;
-import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.security.JwtService;
 import com.villavredestein.service.UserService;
 import jakarta.validation.Valid;
@@ -35,18 +34,15 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
-    private final RoomRepository roomRepository;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             JwtService jwtService,
-            UserService userService,
-            RoomRepository roomRepository
+            UserService userService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.userService = userService;
-        this.roomRepository = roomRepository;
     }
 
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -89,9 +85,8 @@ public class AuthController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kies eerst je kamer.");
             }
 
-            String assignedRoom = roomRepository.findByOccupant_Id(me.id())
-                    .map(r -> r.getName())
-                    .orElse(null);
+            // Reuse roomName already fetched in getUserByEmail → toDTO, no extra query needed
+            String assignedRoom = me.roomName();
 
             if (assignedRoom == null) {
                 throw new ResponseStatusException(
@@ -124,7 +119,8 @@ public class AuthController {
                 displayUsername,
                 principalEmail,
                 primaryRole,
-                token
+                token,
+                me
         ));
     }
 

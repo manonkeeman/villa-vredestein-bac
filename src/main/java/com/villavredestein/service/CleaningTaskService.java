@@ -32,9 +32,13 @@ public class CleaningTaskService {
     // --------------------------------------------------------------
     // Rotation week helper (1..4)
     // --------------------------------------------------------------
-    private int getCurrentRotationWeek() {
+    public int getCurrentRotationWeek() {
         int currentWeekOfYear = LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
         return ((currentWeekOfYear - 1) % 4) + 1;
+    }
+
+    public int getCurrentIsoWeek() {
+        return LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
     }
 
     // ==============================================================
@@ -206,7 +210,8 @@ public class CleaningTaskService {
     }
 
     private CleaningTaskResponseDTO toResponseDTO(CleaningTask task) {
-        String assignedTo = task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null;
+        String assignedTo      = task.getAssignedTo() != null ? task.getAssignedTo().getUsername() : null;
+        String assignedToEmail = task.getAssignedTo() != null ? task.getAssignedTo().getEmail()    : null;
 
         return new CleaningTaskResponseDTO(
                 task.getId(),
@@ -215,6 +220,7 @@ public class CleaningTaskService {
                 task.getDescription(),
                 task.isCompleted(),
                 assignedTo,
+                assignedToEmail,
                 task.getComment(),
                 task.getIncidentReport(),
                 task.getDeadline()

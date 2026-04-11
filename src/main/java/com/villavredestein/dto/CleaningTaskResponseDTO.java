@@ -10,6 +10,7 @@ public class CleaningTaskResponseDTO {
     private final String description;
     private final boolean completed;
     private final String assignedTo;
+    private final String assignedToEmail;
     private final String comment;
     private final String incidentReport;
     private final LocalDate deadline;
@@ -20,6 +21,7 @@ public class CleaningTaskResponseDTO {
                                    String description,
                                    boolean completed,
                                    String assignedTo,
+                                   String assignedToEmail,
                                    String comment,
                                    String incidentReport,
                                    LocalDate deadline) {
@@ -29,44 +31,20 @@ public class CleaningTaskResponseDTO {
         this.description = description;
         this.completed = completed;
         this.assignedTo = assignedTo;
+        this.assignedToEmail = assignedToEmail;
         this.comment = comment;
         this.incidentReport = incidentReport;
         this.deadline = deadline;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public int getWeekNumber() {
-        return weekNumber;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public String getAssignedTo() {
-        return assignedTo;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public String getIncidentReport() {
-        return incidentReport;
-    }
-
-    public LocalDate getDeadline() {
-        return deadline;
-    }
+    public Long getId() { return id; }
+    public int getWeekNumber() { return weekNumber; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
+    public boolean isCompleted() { return completed; }
+    public String getAssignedTo() { return assignedTo; }
+    public String getAssignedToEmail() { return assignedToEmail; }
+    public String getComment() { return comment; }
+    public String getIncidentReport() { return incidentReport; }
+    public LocalDate getDeadline() { return deadline; }
 }

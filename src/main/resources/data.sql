@@ -170,90 +170,77 @@ WHERE NOT EXISTS (SELECT 1 FROM invoices WHERE title = 'Rent current month - Sim
 
 -- ==================================================
 -- CLEANING TASKS
--- 6 tasks × 6 rotation weeks = 36 rows
--- Rotation: rotationWeek = ((isoWeek - 1) % 6) + 1
+-- 4 taken × 6 rotatieweken = 24 rijen
+-- Rotatie: rotatieWeek = ((isoWeek - 1) % 6) + 1
 --
--- Students (index 0–5):
+-- Studenten (index 0–5):
 --   0 = Arwen   (arwenleonor@gmail.com)
 --   1 = Alvar   (ikheetalvar@gmail.com)
 --   2 = Desmond (desmondstaal@gmail.com)
 --   3 = Medoc   (medocstaal@gmail.com)
 --   4 = Simon   (simontalsma2@gmail.com)
---   5 = Japan   (room empty — assigned_to_id = NULL)
+--   5 = Japan   (kamer leeg — assigned_to_id = NULL)
 --
--- Tasks (index 0–5):
---   0 = Kitchen & dishwasher
---   1 = Bathroom & toilet
---   2 = Take out the trash
---   3 = Hallway & stairs
---   4 = Living room
---   5 = Garden & outdoor
+-- Taken (index 0–3):
+--   0 = Keuken & vaatwasser
+--   1 = Badkamer & toilet
+--   2 = Vuilnis & was
+--   3 = Woonkamer & gang
 --
--- Rule: student[i] gets task[(i + rotationWeek - 1) % 6]
+-- Regel: taak[i] → student[(i + rotatieWeek - 1) % 6]
+-- Elke week: 4 studenten hebben een taak, 2 zijn vrij
 -- ==================================================
 
--- Clean up old seed data so the rotation is always correct
+-- Verwijder oude data zodat de rotatie altijd klopt
 DELETE FROM cleaning_tasks WHERE week_number BETWEEN 1 AND 6;
 
 -- ── Week 1 ────────────────────────────────────────
--- Arwen=Kitchen, Alvar=Bathroom, Desmond=Trash, Medoc=Hallway, Simon=Living room, Japan=Garden
+-- Keuken=Arwen, Badkamer=Alvar, Vuilnis=Desmond, Woonkamer=Medoc | Simon vrij, Japan vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (1, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
-  (1, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
-  (1, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (1, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
-  (1, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (1, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, NULL, 'ALL');
+  (1, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (1, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (1, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (1, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL');
 
 -- ── Week 2 ────────────────────────────────────────
--- Arwen=Bathroom, Alvar=Trash, Desmond=Hallway, Medoc=Living room, Simon=Garden, Japan=Kitchen
+-- Keuken=Alvar, Badkamer=Desmond, Vuilnis=Medoc, Woonkamer=Simon | Arwen vrij, Japan vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (2, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (2, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
-  (2, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
-  (2, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (2, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
-  (2, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
+  (2, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (2, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (2, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (2, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
 
 -- ── Week 3 ────────────────────────────────────────
--- Arwen=Trash, Alvar=Hallway, Desmond=Living room, Medoc=Garden, Simon=Kitchen, Japan=Bathroom
+-- Keuken=Desmond, Badkamer=Medoc, Vuilnis=Simon, Woonkamer=Japan(null) | Arwen vrij, Alvar vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (3, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (3, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (3, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
-  (3, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
-  (3, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (3, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL');
+  (3, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (3, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (3, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (3, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
 
 -- ── Week 4 ────────────────────────────────────────
--- Arwen=Hallway, Alvar=Living room, Desmond=Garden, Medoc=Kitchen, Simon=Bathroom, Japan=Trash
+-- Keuken=Medoc, Badkamer=Simon, Vuilnis=Japan(null), Woonkamer=Arwen | Alvar vrij, Desmond vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (4, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
-  (4, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (4, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (4, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
-  (4, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
-  (4, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
+  (4, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
+  (4, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (4, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (4, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL');
 
 -- ── Week 5 ────────────────────────────────────────
--- Arwen=Living room, Alvar=Garden, Desmond=Kitchen, Medoc=Bathroom, Simon=Trash, Japan=Hallway
+-- Keuken=Simon, Badkamer=Japan(null), Vuilnis=Arwen, Woonkamer=Alvar | Desmond vrij, Medoc vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (5, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (5, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
-  (5, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (5, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (5, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
-  (5, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL');
+  (5, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (5, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (5, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (5, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL');
 
 -- ── Week 6 ────────────────────────────────────────
--- Arwen=Garden, Alvar=Kitchen, Desmond=Bathroom, Medoc=Trash, Simon=Hallway, Japan=Living room
+-- Keuken=Japan(null), Badkamer=Arwen, Vuilnis=Alvar, Woonkamer=Desmond | Medoc vrij, Simon vrij
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (6, 'Kitchen & dishwasher',    'Empty the dishwasher, clean the countertop, oven and induction plate.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
-  (6, 'Bathroom & toilet',       'Clean the sink, shower, mirror and toilet thoroughly and dry everything.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (6, 'Take out the trash',      'Separate: organic, plastics/metal, paper/cardboard, residual waste, deposit bottles.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'),   'ALL'),
-  (6, 'Hallway & stairs',        'Vacuum and mop the hallway and stairs. Keep the dining table clean and tidy.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (6, 'Living room',             'Vacuum and mop the living room. Dust the shelves and keep surfaces tidy.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (6, 'Garden & outdoor',        'Tidy the garden, sweep the terrace and clear the outdoor area.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL');
+  (6, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (6, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'),  'ALL'),
+  (6, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'ikheetalvar@gmail.com'),   'ALL'),
+  (6, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
 
 -- ==================================================
 -- VIEW

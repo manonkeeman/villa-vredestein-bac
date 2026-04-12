@@ -13,8 +13,9 @@ import jakarta.validation.constraints.NotBlank;
 @Table(
         name = "cleaning_tasks",
         indexes = {
-                @Index(name = "idx_cleaning_task_week", columnList = "week_number"),
-                @Index(name = "idx_cleaning_task_completed", columnList = "completed")
+                @Index(name = "idx_cleaning_task_week_id", columnList = "week_number, id"),
+                @Index(name = "idx_cleaning_task_completed", columnList = "completed"),
+                @Index(name = "idx_cleaning_task_assigned", columnList = "assigned_to_id")
         }
 )
 public class CleaningTask {

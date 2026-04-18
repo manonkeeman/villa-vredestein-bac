@@ -34,6 +34,7 @@ workspace.xml
 # Local/generated data
 # ==========================================
 uploads/
+!src/main/resources/static/uploads/
 *.log
 *.tmp
 *.bak

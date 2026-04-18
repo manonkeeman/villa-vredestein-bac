@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
@@ -24,4 +25,14 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByStatusAndDueDateBetweenOrderByDueDateAsc(Invoice.InvoiceStatus status, LocalDate start, LocalDate end);
 
     boolean existsByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
+
+    // Mollie webhook lookup
+    Optional<Invoice> findByMolliePaymentId(String molliePaymentId);
+
+    // For reminder jobs: all invoices of a given month/year that aren't paid/cancelled
+    List<Invoice> findByInvoiceMonthAndInvoiceYearAndStatusNotIn(
+            int invoiceMonth, int invoiceYear, List<Invoice.InvoiceStatus> excludedStatuses);
+
+    // For admin overview: all invoices of a given month/year
+    List<Invoice> findByInvoiceMonthAndInvoiceYearOrderByStudentUsernameAsc(int invoiceMonth, int invoiceYear);
 }

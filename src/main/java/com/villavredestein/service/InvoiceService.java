@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -189,6 +190,27 @@ public class InvoiceService {
     // # DTO MAPPING
     // =====================================================================
 
+    public void attachMolliePayment(Invoice invoice, String mollieId, String checkoutUrl) {
+        invoice.setMolliePaymentId(mollieId);
+        invoice.setCheckoutUrl(checkoutUrl);
+        invoiceRepository.save(invoice);
+    }
+
+    public Optional<Invoice> findByMolliePaymentId(String mollieId) {
+        return invoiceRepository.findByMolliePaymentId(mollieId);
+    }
+
+    public Invoice getRawById(Long id) {
+        return findInvoiceOrThrow(id);
+    }
+
+    public List<Invoice> getUnpaidForMonth(int month, int year) {
+        return invoiceRepository.findByInvoiceMonthAndInvoiceYearAndStatusNotIn(
+                month, year,
+                List.of(Invoice.InvoiceStatus.PAID, Invoice.InvoiceStatus.CANCELLED)
+        );
+    }
+
     private InvoiceResponseDTO toDTO(Invoice invoice) {
         return new InvoiceResponseDTO(
                 invoice.getId(),
@@ -197,9 +219,13 @@ public class InvoiceService {
                 invoice.getAmount(),
                 invoice.getIssueDate(),
                 invoice.getDueDate(),
+                invoice.getInvoiceMonth(),
+                invoice.getInvoiceYear(),
                 invoice.getStatus().name(),
                 invoice.getReminderCount(),
                 invoice.getLastReminderSentAt(),
+                invoice.getCheckoutUrl(),
+                invoice.getPaidAt(),
                 invoice.getStudent().getUsername(),
                 invoice.getStudent().getEmail()
         );

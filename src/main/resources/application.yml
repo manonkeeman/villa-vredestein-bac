@@ -86,3 +86,11 @@ app:
 jwt:
   secret: ${JWT_SECRET:}
   expiry-seconds: ${JWT_EXPIRY_SECONDS:3600}
+
+mollie:
+  api-key: ${MOLLIE_API_KEY:}
+  webhook-url: ${MOLLIE_WEBHOOK_URL:}
+
+app:
+  rent:
+    amount: ${RENT_AMOUNT:350.00}

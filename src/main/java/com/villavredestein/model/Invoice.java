@@ -76,6 +76,15 @@ public class Invoice {
     @Column(nullable = false, length = 20)
     private InvoiceStatus status = InvoiceStatus.OPEN;
 
+    @Column(name = "mollie_payment_id", length = 50)
+    private String molliePaymentId;
+
+    @Column(name = "checkout_url", length = 512)
+    private String checkoutUrl;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
@@ -245,6 +254,20 @@ public class Invoice {
 
     public void setStudent(User student) {
         this.student = student;
+    }
+
+    public String getMolliePaymentId() { return molliePaymentId; }
+    public void setMolliePaymentId(String molliePaymentId) { this.molliePaymentId = molliePaymentId; }
+
+    public String getCheckoutUrl() { return checkoutUrl; }
+    public void setCheckoutUrl(String checkoutUrl) { this.checkoutUrl = checkoutUrl; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public void markPaid() {
+        this.status = InvoiceStatus.PAID;
+        this.paidAt = LocalDateTime.now();
     }
 
     public void markReminderSentNow() {

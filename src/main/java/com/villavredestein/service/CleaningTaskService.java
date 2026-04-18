@@ -30,8 +30,8 @@ public class CleaningTaskService {
     }
 
     // --------------------------------------------------------------
-    // ISO week + rotation helpers (1..6)
-    // 6 students × 6 tasks → 6-week cycle
+    // ISO week + rotation helpers (1..4)
+    // 4 kamers × 4 taken → 4-week cycle
     // --------------------------------------------------------------
     public int getCurrentIsoWeek() {
         return LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
@@ -43,7 +43,7 @@ public class CleaningTaskService {
 
     public int getCurrentRotationWeek() {
         int isoWeek = getCurrentIsoWeek();
-        return ((isoWeek - 1) % 6) + 1;
+        return ((isoWeek - 1) % 4) + 1;
     }
 
     // ==============================================================
@@ -178,8 +178,8 @@ public class CleaningTaskService {
         if (weekNumber == null) {
             throw new IllegalArgumentException("Weeknummer is verplicht");
         }
-        if (weekNumber < 1 || weekNumber > 6) {
-            throw new IllegalArgumentException("Weeknummer moet tussen 1 en 6 liggen");
+        if (weekNumber < 1 || weekNumber > 4) {
+            throw new IllegalArgumentException("Weeknummer moet tussen 1 en 4 liggen");
         }
         return weekNumber;
     }

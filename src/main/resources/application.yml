@@ -82,6 +82,8 @@ app:
     from: ${MAIL_FROM:${MAIL_USERNAME:no-reply@villavredestein.com}}
     bcc:
       admin: ${MAIL_BCC_ADMIN:}
+  rent:
+    amount: ${RENT_AMOUNT:350.00}
 
 jwt:
   secret: ${JWT_SECRET:}
@@ -90,7 +92,3 @@ jwt:
 mollie:
   api-key: ${MOLLIE_API_KEY:}
   webhook-url: ${MOLLIE_WEBHOOK_URL:}
-
-app:
-  rent:
-    amount: ${RENT_AMOUNT:350.00}

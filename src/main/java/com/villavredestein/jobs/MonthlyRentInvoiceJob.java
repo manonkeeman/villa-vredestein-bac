@@ -118,13 +118,10 @@ public class MonthlyRentInvoiceJob {
 
             // Create Mollie payment
             String description = "Huur " + maand + " – Villa Vredestein";
-            MollieService.MolliePaymentResult mollie = mollieService.createPayment(rentAmount, description, invoiceId);
+            MollieService.MolliePaymentResult mollie = mollieService.createPayment(studentRent, description, invoiceId);
 
             String betaalLink = "";
             if (mollie != null) {
-                // Fetch the real Invoice entity to attach Mollie data
-                var invoiceOpt = invoiceService.findByMolliePaymentId(mollie.molliePaymentId());
-                // The invoice was just created, find it by id
                 Invoice invoice = invoiceService.getRawById(invoiceId);
                 invoiceService.attachMolliePayment(invoice, mollie.molliePaymentId(), mollie.checkoutUrl());
                 betaalLink = mollie.checkoutUrl() != null ? mollie.checkoutUrl() : "";

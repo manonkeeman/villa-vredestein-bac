@@ -66,9 +66,7 @@ public class MonthlyRentInvoiceJob {
 
         String maand = today.format(MONTH_NL);
         String vervaldatum = dueDate.format(DATE_NL);
-        String bedragFormatted = formatBedrag(rentAmount);
-
-        log.info("MonthlyRentInvoiceJob started (maand={}, bedrag={})", maand, bedragFormatted);
+        log.info("MonthlyRentInvoiceJob started (maand={})", maand);
 
         List<User> students = userRepository.findByRole(User.Role.STUDENT);
         log.info("Creating invoices for {} students", students.size());
@@ -76,7 +74,9 @@ public class MonthlyRentInvoiceJob {
         EmailTemplate template = loadTemplate();
 
         for (User student : students) {
-            processStudent(student, month, year, dueDate, maand, vervaldatum, bedragFormatted, template);
+            BigDecimal studentRent = student.getRentAmount() != null ? student.getRentAmount() : rentAmount;
+            String studentBedrag = formatBedrag(studentRent);
+            processStudent(student, month, year, dueDate, maand, vervaldatum, studentBedrag, studentRent, template);
         }
 
         log.info("MonthlyRentInvoiceJob finished");
@@ -92,14 +92,14 @@ public class MonthlyRentInvoiceJob {
 
     private void processStudent(User student, int month, int year, LocalDate dueDate,
                                 String maand, String vervaldatum, String bedragFormatted,
-                                EmailTemplate template) {
+                                BigDecimal studentRent, EmailTemplate template) {
         try {
             // Create invoice via DTO
             var dto = new com.villavredestein.dto.InvoiceRequestDTO();
             dto.setStudentEmail(student.getEmail());
             dto.setTitle("Huur " + maand);
             dto.setDescription("Maandelijkse huur voor " + maand);
-            dto.setAmount(rentAmount);
+            dto.setAmount(studentRent);
             dto.setIssueDate(LocalDate.now());
             dto.setDueDate(dueDate);
 

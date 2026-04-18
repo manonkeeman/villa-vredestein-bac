@@ -107,6 +107,13 @@ public class User {
     @Column(length = 255)
     private String contractFile;
 
+    /**
+     * Student-specific monthly rent amount.
+     * Null means use the application-level default (app.rent.amount).
+     */
+    @Column(name = "rent_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal rentAmount;
+
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 255, message = "Password must be at least 8 characters")
     @Column(nullable = false)
@@ -214,6 +221,10 @@ public class User {
         return contractFile;
     }
 
+    public java.math.BigDecimal getRentAmount() {
+        return rentAmount;
+    }
+
     public String getEmail() {
         return email;
     }
@@ -294,6 +305,10 @@ public class User {
     public void setContractFile(String contractFile) {
         this.contractFile = clean(contractFile);
         normalize();
+    }
+
+    public void setRentAmount(java.math.BigDecimal rentAmount) {
+        this.rentAmount = rentAmount;
     }
 
     public void setPassword(String password) {

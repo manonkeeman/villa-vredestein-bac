@@ -1,27 +1,35 @@
 package com.villavredestein.controller;
 
+import com.villavredestein.dto.InvoiceRequestDTO;
+import com.villavredestein.dto.InvoiceResponseDTO;
 import com.villavredestein.dto.UserResponseDTO;
+import com.villavredestein.model.Invoice;
 import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
+import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.MollieService;
 import com.villavredestein.service.UserService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 /**
  * Admin endpoints for student creation with room assignment and welcome email.
@@ -34,9 +42,14 @@ public class AdminStudentController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminStudentController.class);
 
+    private static final DateTimeFormatter MONTH_NL =
+            DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("nl-NL"));
+
     private final UserService userService;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final InvoiceService invoiceService;
+    private final MollieService mollieService;
     private final MailService mailService;
 
     @Value("${app.frontend-url:https://villa-vredestein.netlify.app}")
@@ -45,10 +58,14 @@ public class AdminStudentController {
     public AdminStudentController(UserService userService,
                                   UserRepository userRepository,
                                   RoomRepository roomRepository,
+                                  InvoiceService invoiceService,
+                                  MollieService mollieService,
                                   MailService mailService) {
         this.userService    = userService;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
+        this.invoiceService = invoiceService;
+        this.mollieService  = mollieService;
         this.mailService    = mailService;
     }
 
@@ -79,6 +96,11 @@ public class AdminStudentController {
         private String password;
 
         private String room;
+
+        @NotNull(message = "Huurbedrag is verplicht")
+        @DecimalMin(value = "1.00", message = "Huurbedrag moet minimaal €1 zijn")
+        private BigDecimal rentAmount;
+
         private boolean sendWelcomeEmail = true;
 
         public String getUsername()      { return username; }
@@ -89,47 +111,87 @@ public class AdminStudentController {
         public void setPassword(String v){ this.password = v; }
         public String getRoom()          { return room; }
         public void setRoom(String v)    { this.room = v; }
-        public boolean isSendWelcomeEmail()         { return sendWelcomeEmail; }
-        public void setSendWelcomeEmail(boolean v)  { this.sendWelcomeEmail = v; }
+        public BigDecimal getRentAmount()         { return rentAmount; }
+        public void setRentAmount(BigDecimal v)   { this.rentAmount = v; }
+        public boolean isSendWelcomeEmail()        { return sendWelcomeEmail; }
+        public void setSendWelcomeEmail(boolean v) { this.sendWelcomeEmail = v; }
     }
 
     @PostMapping(value = "/students", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponseDTO> createStudent(@Valid @RequestBody CreateStudentRequest req) {
 
-        // 1. Create student account
-        UserResponseDTO created = userService.createUserWithRole(
-                req.getUsername().trim(),
-                req.getEmail().trim().toLowerCase(),
-                req.getPassword(),
-                "STUDENT"
-        );
-
-        // 2. Assign room if provided
+        String email     = req.getEmail().trim().toLowerCase();
+        String naam      = req.getUsername().trim();
         String kamerNaam = req.getRoom() != null ? req.getRoom().trim() : "";
+
+        // 1. Validate room is available (not occupied) before creating anything
+        Room room = null;
         if (!kamerNaam.isEmpty()) {
-            roomRepository.findByNameIgnoreCase(kamerNaam).ifPresentOrElse(room -> {
-                User student = userRepository.findById(created.id()).orElseThrow();
-                room.assignOccupant(student);
-                roomRepository.save(room);
-                log.info("Room '{}' assigned to student id={}", kamerNaam, created.id());
-            }, () -> log.warn("Room '{}' not found — skipping assignment", kamerNaam));
+            room = roomRepository.findByNameIgnoreCase(kamerNaam)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Kamer '" + kamerNaam + "' bestaat niet."));
+            if (room.isOccupied()) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Kamer '" + kamerNaam + "' is al bezet. Kies een lege kamer.");
+            }
         }
 
-        // 3. Send welcome email
+        // 2. Create student account
+        UserResponseDTO created = userService.createUserWithRole(naam, email, req.getPassword(), "STUDENT");
+
+        // 3. Set rent amount on the user entity
+        User student = userRepository.findById(created.id()).orElseThrow();
+        student.setRentAmount(req.getRentAmount());
+        userRepository.save(student);
+
+        // 4. Assign room
+        if (room != null) {
+            room.assignOccupant(student);
+            roomRepository.save(room);
+            log.info("Room '{}' assigned to student id={}", kamerNaam, created.id());
+        }
+
+        // 5. Create invoice for current month + Mollie payment
+        try {
+            LocalDate today    = LocalDate.now();
+            LocalDate dueDate  = today.plusDays(7);
+            String maand       = today.withDayOfMonth(1).format(MONTH_NL);
+
+            InvoiceRequestDTO invoiceDto = new InvoiceRequestDTO();
+            invoiceDto.setTitle("Huur " + maand + " - " + naam);
+            invoiceDto.setDescription("Maandelijkse huur - " + naam);
+            invoiceDto.setAmount(req.getRentAmount());
+            invoiceDto.setIssueDate(today);
+            invoiceDto.setDueDate(dueDate);
+            invoiceDto.setStudentEmail(email);
+
+            InvoiceResponseDTO invoice = invoiceService.createInvoice(invoiceDto);
+
+            // Create Mollie iDEAL payment link
+            try {
+                String description = "Huur " + maand + " – Villa Vredestein";
+                MollieService.MolliePaymentResult mollie =
+                        mollieService.createPayment(req.getRentAmount(), description, invoice.getId());
+                if (mollie != null && mollie.checkoutUrl() != null) {
+                    Invoice raw = invoiceService.getRawById(invoice.getId());
+                    invoiceService.attachMolliePayment(raw, mollie.molliePaymentId(), mollie.checkoutUrl());
+                    log.info("Mollie payment created for new student invoiceId={}", invoice.getId());
+                }
+            } catch (Exception e) {
+                log.warn("Mollie payment failed for new student invoiceId={}: {}", invoice.getId(), e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Invoice creation failed for new student {}: {}", maskEmail(email), e.getMessage());
+        }
+
+        // 6. Send welcome email
         if (req.isSendWelcomeEmail()) {
             try {
-                String loginUrl = frontendUrl + "/login";
                 String kamerTekst = kamerNaam.isEmpty() ? "nog toe te wijzen" : kamerNaam;
-                mailService.sendWelcomeMail(
-                        req.getEmail().trim().toLowerCase(),
-                        req.getUsername().trim(),
-                        kamerTekst,
-                        loginUrl,
-                        req.getPassword()
-                );
+                mailService.sendWelcomeMail(email, naam, kamerTekst, frontendUrl + "/login", req.getPassword());
             } catch (Exception e) {
-                log.error("Welcome mail failed for {}: {}", maskEmail(req.getEmail()), e.getMessage());
-                // Don't fail the request — student is already created
+                log.error("Welcome mail failed for {}: {}", maskEmail(email), e.getMessage());
             }
         }
 

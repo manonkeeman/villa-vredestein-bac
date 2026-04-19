@@ -101,15 +101,16 @@ public class CleaningTaskSeeder implements ApplicationRunner {
             return true;
         }
 
-        // Check for removed students still assigned
-        boolean hasOldStudents = all.stream().anyMatch(t ->
-            t.getAssignedTo() != null && (
-                "arwenleonor@gmail.com".equalsIgnoreCase(t.getAssignedTo().getEmail()) ||
-                "ikheetalvar@gmail.com".equalsIgnoreCase(t.getAssignedTo().getEmail())
-            )
-        );
-        if (hasOldStudents) {
-            log.info("CleaningTaskSeeder: tasks still assigned to removed students");
+        // Check for tasks assigned to anyone outside the active 3 students
+        boolean hasUnknownAssignee = all.stream().anyMatch(t -> {
+            if (t.getAssignedTo() == null) return false;
+            String email = t.getAssignedTo().getEmail();
+            return !("simontalsma2@gmail.com".equalsIgnoreCase(email) ||
+                     "desmondstaal@gmail.com".equalsIgnoreCase(email) ||
+                     "medocstaal@gmail.com".equalsIgnoreCase(email));
+        });
+        if (hasUnknownAssignee) {
+            log.info("CleaningTaskSeeder: tasks assigned to unknown/removed students");
             return true;
         }
 

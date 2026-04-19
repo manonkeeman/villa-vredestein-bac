@@ -20,8 +20,6 @@ public class ContractSeeder implements ApplicationRunner {
     private static final Map<String, String> CONTRACTS = Map.of(
         "medocstaal@gmail.com",   "Woonafspraken 2023-Frankrijk-Medoc.pdf",
         "desmondstaal@gmail.com", "Woonafspraken 2022-Thailand-Desmond.pdf",
-        "ikheetalvar@gmail.com",  "Woonafspraken 2024-Oekraine-Alvar.pdf",
-        "arwenleonor@gmail.com",  "Woonafspraken 2026-Italie-Arwen.pdf",
         "simontalsma2@gmail.com", "PENSIONOVEREENKOMST 2024-Japan-SimonTalsma.pdf"
     );
 

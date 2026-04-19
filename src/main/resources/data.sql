@@ -23,21 +23,6 @@ VALUES
   ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
--- Remove old students (Italië/Oekraïne rooms) if they exist
-DELETE FROM cleaning_tasks
-WHERE assigned_to_id IN (
-  SELECT id FROM users WHERE email IN ('arwenleonor@gmail.com', 'ikheetalvar@gmail.com')
-);
-DELETE FROM invoices
-WHERE student_id IN (
-  SELECT id FROM users WHERE email IN ('arwenleonor@gmail.com', 'ikheetalvar@gmail.com')
-);
-DELETE FROM payments
-WHERE student_id IN (
-  SELECT id FROM users WHERE email IN ('arwenleonor@gmail.com', 'ikheetalvar@gmail.com')
-);
-DELETE FROM users WHERE email IN ('arwenleonor@gmail.com', 'ikheetalvar@gmail.com');
-
 -- Set per-student rent amount
 UPDATE users SET rent_amount = 350.00 WHERE email = 'desmondstaal@gmail.com';
 UPDATE users SET rent_amount = 350.00 WHERE email = 'medocstaal@gmail.com';

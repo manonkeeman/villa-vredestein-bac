@@ -5,6 +5,7 @@ import com.villavredestein.model.Invoice;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.MollieService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,13 +36,16 @@ public class PaymentReminderJob {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
+    private final MollieService mollieService;
 
     public PaymentReminderJob(InvoiceService invoiceService,
                               MailService mailService,
-                              EmailTemplateService emailTemplateService) {
+                              EmailTemplateService emailTemplateService,
+                              MollieService mollieService) {
         this.invoiceService = invoiceService;
         this.mailService = mailService;
         this.emailTemplateService = emailTemplateService;
+        this.mollieService = mollieService;
     }
 
     // =====================================================================
@@ -99,7 +103,7 @@ public class PaymentReminderJob {
             String naam = invoice.getStudent().getUsername();
             String maand = LocalDate.of(invoice.getInvoiceYear(), invoice.getInvoiceMonth(), 1).format(MONTH_NL);
             String bedrag = formatBedrag(invoice.getAmount());
-            String betaalLink = invoice.getCheckoutUrl() != null ? invoice.getCheckoutUrl() : "";
+            String betaalLink = refreshCheckoutUrl(invoice, maand);
             String vervaldatum = invoice.getDueDate() != null ? invoice.getDueDate().format(DATE_NL) : "";
 
             String subject, body;
@@ -128,6 +132,29 @@ public class PaymentReminderJob {
     // =====================================================================
     // # Helpers
     // =====================================================================
+
+    /**
+     * Creates a fresh Mollie iDEAL payment for the invoice so the reminder
+     * email always contains a valid, non-expired checkout URL.
+     * Falls back to the stored URL (or empty string) if Mollie is unavailable.
+     */
+    private String refreshCheckoutUrl(Invoice invoice, String maand) {
+        String description = "Huur " + maand + " – Villa Vredestein";
+        try {
+            MollieService.MolliePaymentResult result =
+                    mollieService.createPayment(invoice.getAmount(), description, invoice.getId());
+            if (result != null && result.checkoutUrl() != null) {
+                invoiceService.attachMolliePayment(invoice, result.molliePaymentId(), result.checkoutUrl());
+                log.info("Fresh Mollie payment created for reminder (invoiceId={}, mollieId={})",
+                        invoice.getId(), result.molliePaymentId());
+                return result.checkoutUrl();
+            }
+        } catch (Exception e) {
+            log.warn("Could not refresh Mollie link for invoiceId={}: {}", invoice.getId(), e.getMessage());
+        }
+        // Fallback to stored URL (may be expired but better than nothing)
+        return invoice.getCheckoutUrl() != null ? invoice.getCheckoutUrl() : "";
+    }
 
     private EmailTemplate loadTemplate(EmailTemplate.TemplateType type) {
         try {

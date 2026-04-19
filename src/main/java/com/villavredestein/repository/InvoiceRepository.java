@@ -35,4 +35,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     // For admin overview: all invoices of a given month/year
     List<Invoice> findByInvoiceMonthAndInvoiceYearOrderByStudentUsernameAsc(int invoiceMonth, int invoiceYear);
+
+    // For admin manual send: find invoices for a specific student + month
+    List<Invoice> findByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
 }

@@ -108,10 +108,10 @@ public class AdminStudentController {
         String kamerNaam = req.getRoom() != null ? req.getRoom().trim() : "";
         if (!kamerNaam.isEmpty()) {
             roomRepository.findByNameIgnoreCase(kamerNaam).ifPresentOrElse(room -> {
-                User student = userRepository.findById(created.getId()).orElseThrow();
+                User student = userRepository.findById(created.id()).orElseThrow();
                 room.assignOccupant(student);
                 roomRepository.save(room);
-                log.info("Room '{}' assigned to student id={}", kamerNaam, created.getId());
+                log.info("Room '{}' assigned to student id={}", kamerNaam, created.id());
             }, () -> log.warn("Room '{}' not found — skipping assignment", kamerNaam));
         }
 

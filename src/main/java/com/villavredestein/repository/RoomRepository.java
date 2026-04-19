@@ -15,4 +15,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     Optional<Room> findByNameIgnoreCase(String name);
 
     Optional<Room> findByOccupant_Id(Long occupantId);
+
+    List<Room> findByOccupantIsNullOrderByNameAsc();
 }

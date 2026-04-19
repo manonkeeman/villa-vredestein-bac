@@ -133,6 +133,35 @@ public class MailService {
         }
     }
 
+    public void sendWelcomeMail(String to, String naam, String kamer, String loginUrl, String wachtwoord) {
+        requireValidRecipient(to);
+        String subject = "Welkom bij Villa Vredestein! 🏡";
+        String body = """
+                Hoi %s,
+
+                Welkom bij Villa Vredestein! We zijn blij dat je er bent. 🎉
+
+                Hier zijn jouw inloggegevens:
+
+                   🌐 Inlogpagina : %s
+                   👤 Gebruikersnaam : %s
+                   🔑 Wachtwoord : %s
+                   🚪 Jouw kamer : %s
+
+                Log in en pas je wachtwoord meteen aan via jouw profiel.
+
+                Heb je vragen? Stuur een berichtje via de app of neem contact op met de beheerder.
+
+                Veel plezier en een warm welkom in de villa! 🏡✨
+
+                Met vriendelijke groet,
+                Villa Vredestein
+                """.formatted(naam, loginUrl, to, wachtwoord, kamer);
+
+        sendInternal("ADMIN", MailCategory.GENERIC, to, subject, body, null, maskEmail(to));
+        log.info("Welcome mail sent to {}", maskEmail(to));
+    }
+
     public void sendInvoiceReminderMail(String to, String subject, String body) {
         requireValidRecipient(to);
 

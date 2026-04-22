@@ -133,33 +133,51 @@ public class MailService {
         }
     }
 
-    public void sendWelcomeMail(String to, String naam, String kamer, String loginUrl, String wachtwoord) {
+    public void sendWelcomeMail(String to, String naam, String kamer, String loginUrl,
+                                String wachtwoord, String websiteUrl, String instagram) {
         requireValidRecipient(to);
-        String subject = "Welkom bij Villa Vredestein! 🏡";
+        String subject = "Welkom bij Villa Vredestein!";
         String body = """
                 Hoi %s,
 
-                Welkom bij Villa Vredestein! We zijn blij dat je er bent. 🎉
+                Welkom bij Villa Vredestein! We zijn ontzettend blij dat je er nu officieel bij hoort.
+                Hieronder vind je alles wat je nodig hebt om te starten.
 
-                Hier zijn jouw inloggegevens:
+                ── Jouw inloggegevens ─────────────────────────────
+                   E-mailadres  : %s
+                   Wachtwoord   : %s
+                   Jouw kamer   : %s
 
-                   🌐 Inlogpagina : %s
-                   👤 Gebruikersnaam : %s
-                   🔑 Wachtwoord : %s
-                   🚪 Jouw kamer : %s
+                ── Inloggen ────────────────────────────────────────
+                   %s
 
-                Log in en pas je wachtwoord meteen aan via jouw profiel.
+                Log in en verander direct je wachtwoord via Instellingen → Wachtwoord wijzigen.
 
-                Heb je vragen? Stuur een berichtje via de app of neem contact op met de beheerder.
+                ── Over Villa Vredestein ────────────────────────────
+                Villa Vredestein is een gezellig studentenhuis in Tilburg waar samenwonen
+                centraal staat. Via de app regel je je huur, bekijk je het schoonmaakrooster,
+                zie je mededelingen en blijf je op de hoogte van events in het huis.
 
-                Veel plezier en een warm welkom in de villa! 🏡✨
+                ── Volg ons ────────────────────────────────────────
+                   Instagram  : %s
+                   Website    : %s
+
+                Heb je vragen of hulp nodig? Neem gerust contact op met de beheerder
+                via de app of reageer op deze mail.
+
+                Welkom in de villa!
 
                 Met vriendelijke groet,
                 Villa Vredestein
-                """.formatted(naam, loginUrl, to, wachtwoord, kamer);
+                """.formatted(naam, to, wachtwoord, kamer, loginUrl, instagram, websiteUrl);
 
         sendInternal("ADMIN", MailCategory.GENERIC, to, subject, body, null, maskEmail(to));
         log.info("Welcome mail sent to {}", maskEmail(to));
+    }
+
+    /** Backwards-compatible overload (without website/instagram). */
+    public void sendWelcomeMail(String to, String naam, String kamer, String loginUrl, String wachtwoord) {
+        sendWelcomeMail(to, naam, kamer, loginUrl, wachtwoord, loginUrl.replace("/login", ""), "@villavredestein");
     }
 
     public void sendInvoiceReminderMail(String to, String subject, String body) {

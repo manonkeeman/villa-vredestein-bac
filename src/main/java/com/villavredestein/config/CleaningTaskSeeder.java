@@ -4,6 +4,7 @@ import com.villavredestein.model.CleaningTask;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.CleaningTaskRepository;
 import com.villavredestein.repository.UserRepository;
+import com.villavredestein.service.CleaningScheduleService;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,18 +13,14 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 /**
  * Runs at startup to ensure the cleaning task rotation is correct.
- *
- * Deletes all existing tasks and re-inserts the canonical 4-week Dutch rotation
- * whenever the data looks stale (wrong count, English names, or old student references).
- *
- * 4 taken × 4 rotatieweken = 16 rijen
- * Kamers: Argentinië (Simon), Thailand (Desmond), Frankrijk (Medoc), Japan (null)
- * Rotatie: taak[i] → slot[(i + week - 1) % 4]
+ * Delegates the actual seeding to CleaningScheduleService so that
+ * the same logic is used at startup AND when students are added/removed.
  */
 @Component
 @Order(20) // runs after ContractSeeder
@@ -31,36 +28,16 @@ public class CleaningTaskSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(CleaningTaskSeeder.class);
 
-    private static final int EXPECTED_TASK_COUNT = 16; // 4 tasks × 4 rotation weeks
-
-    private static final String[] TASK_NAMES = {
-        "Keuken & vaatwasser",
-        "Badkamer & toilet",
-        "Vuilnis & was",
-        "Woonkamer & gang"
-    };
-
-    private static final String[] TASK_DESCS = {
-        "Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.",
-        "Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.",
-        "Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.",
-        "Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen."
-    };
-
-    // Slot order — matches rotation formula slot[(i + week - 1) % 4]
-    private static final String[] SLOT_EMAILS = {
-        "simontalsma2@gmail.com",   // slot 0 — Argentinië
-        "desmondstaal@gmail.com",   // slot 1 — Thailand
-        "medocstaal@gmail.com",     // slot 2 — Frankrijk
-        null                        // slot 3 — Japan (leeg)
-    };
-
     private final CleaningTaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final CleaningScheduleService scheduleService;
 
-    public CleaningTaskSeeder(CleaningTaskRepository taskRepository, UserRepository userRepository) {
+    public CleaningTaskSeeder(CleaningTaskRepository taskRepository,
+                              UserRepository userRepository,
+                              CleaningScheduleService scheduleService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
+        this.scheduleService = scheduleService;
     }
 
     @Override
@@ -68,25 +45,25 @@ public class CleaningTaskSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         if (needsReseed()) {
             log.info("CleaningTaskSeeder: stale or missing tasks detected — reseeding…");
-            taskRepository.deleteAll();
-            insertRotation();
-            log.info("CleaningTaskSeeder: 16 tasks inserted (4 taken × 4 rotatieweken)");
+            scheduleService.reseedNow();
+            log.info("CleaningTaskSeeder: reseed complete");
         } else {
-            log.debug("CleaningTaskSeeder: tasks OK, skipping reseed");
+            log.debug("CleaningTaskSeeder: taken OK, overslaan");
         }
     }
 
-    // ── Condition check ──────────────────────────────────────────────
-
     private boolean needsReseed() {
         long count = taskRepository.count();
-        if (count != EXPECTED_TASK_COUNT) {
-            log.info("CleaningTaskSeeder: task count={} (expected {})", count, EXPECTED_TASK_COUNT);
+        long expected = scheduleService.expectedTaskCount();
+
+        if (count != expected) {
+            log.info("CleaningTaskSeeder: task count={} (expected {})", count, expected);
             return true;
         }
 
-        // Check for English task names (old data)
         List<CleaningTask> all = taskRepository.findAllByOrderByIdAsc();
+
+        // Verouderde Engelse taaknamen
         boolean hasEnglish = all.stream().anyMatch(t ->
             t.getName() != null && (
                 t.getName().toLowerCase().contains("kitchen") ||
@@ -97,62 +74,23 @@ public class CleaningTaskSeeder implements ApplicationRunner {
             )
         );
         if (hasEnglish) {
-            log.info("CleaningTaskSeeder: English or outdated task names detected");
+            log.info("CleaningTaskSeeder: verouderde taaknamen gevonden");
             return true;
         }
 
-        // Check for tasks assigned to anyone outside the active 3 students
+        // Taken toegewezen aan niet-studenten
+        Set<Long> studentIds = new HashSet<>();
+        userRepository.findByRole(User.Role.STUDENT).forEach(u -> studentIds.add(u.getId()));
+
         boolean hasUnknownAssignee = all.stream().anyMatch(t -> {
             if (t.getAssignedTo() == null) return false;
-            String email = t.getAssignedTo().getEmail();
-            return !("simontalsma2@gmail.com".equalsIgnoreCase(email) ||
-                     "desmondstaal@gmail.com".equalsIgnoreCase(email) ||
-                     "medocstaal@gmail.com".equalsIgnoreCase(email));
+            return !studentIds.contains(t.getAssignedTo().getId());
         });
         if (hasUnknownAssignee) {
-            log.info("CleaningTaskSeeder: tasks assigned to unknown/removed students");
+            log.info("CleaningTaskSeeder: taken toegewezen aan verwijderde/onbekende studenten");
             return true;
         }
 
         return false;
-    }
-
-    // ── Insert 4 × 4 rotation ────────────────────────────────────────
-
-    private void insertRotation() {
-        User[] slots = resolveSlots();
-
-        for (int week = 1; week <= 4; week++) {
-            for (int taskIdx = 0; taskIdx < 4; taskIdx++) {
-                int slotIdx = (taskIdx + week - 1) % 4;
-                User assignee = slots[slotIdx];
-
-                CleaningTask task = new CleaningTask(
-                    week,
-                    TASK_NAMES[taskIdx],
-                    TASK_DESCS[taskIdx],
-                    null
-                );
-                task.setAssignedTo(assignee);
-                task.setCompleted(false);
-                taskRepository.save(task);
-            }
-        }
-    }
-
-    private User[] resolveSlots() {
-        User[] slots = new User[4];
-        for (int i = 0; i < SLOT_EMAILS.length; i++) {
-            if (SLOT_EMAILS[i] != null) {
-                Optional<User> u = userRepository.findByEmailIgnoreCase(SLOT_EMAILS[i]);
-                if (u.isPresent()) {
-                    slots[i] = u.get();
-                } else {
-                    log.warn("CleaningTaskSeeder: user not found for slot {}: {}", i, SLOT_EMAILS[i]);
-                    slots[i] = null;
-                }
-            }
-        }
-        return slots;
     }
 }

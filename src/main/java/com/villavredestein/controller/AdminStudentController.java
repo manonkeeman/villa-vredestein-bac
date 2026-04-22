@@ -8,6 +8,7 @@ import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
+import com.villavredestein.service.CleaningScheduleService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
 import com.villavredestein.service.MollieService;
@@ -51,22 +52,28 @@ public class AdminStudentController {
     private final InvoiceService invoiceService;
     private final MollieService mollieService;
     private final MailService mailService;
+    private final CleaningScheduleService cleaningScheduleService;
 
     @Value("${app.frontend-url:https://villa-vredestein.netlify.app}")
     private String frontendUrl;
+
+    @Value("${app.instagram:@villavredestein}")
+    private String instagram;
 
     public AdminStudentController(UserService userService,
                                   UserRepository userRepository,
                                   RoomRepository roomRepository,
                                   InvoiceService invoiceService,
                                   MollieService mollieService,
-                                  MailService mailService) {
-        this.userService    = userService;
-        this.userRepository = userRepository;
-        this.roomRepository = roomRepository;
-        this.invoiceService = invoiceService;
-        this.mollieService  = mollieService;
-        this.mailService    = mailService;
+                                  MailService mailService,
+                                  CleaningScheduleService cleaningScheduleService) {
+        this.userService              = userService;
+        this.userRepository           = userRepository;
+        this.roomRepository           = roomRepository;
+        this.invoiceService           = invoiceService;
+        this.mollieService            = mollieService;
+        this.mailService              = mailService;
+        this.cleaningScheduleService  = cleaningScheduleService;
     }
 
     // ── GET /api/admin/rooms/available ────────────────────────────────────
@@ -185,11 +192,20 @@ public class AdminStudentController {
             log.error("Invoice creation failed for new student {}: {}", maskEmail(email), e.getMessage());
         }
 
-        // 6. Send welcome email
+        // 6. Schoonmaakrooster opnieuw genereren met de nieuwe student
+        try {
+            cleaningScheduleService.reseedNow();
+            log.info("Cleaning schedule reseeded after new student id={}", created.id());
+        } catch (Exception e) {
+            log.warn("Cleaning reseed failed after student creation: {}", e.getMessage());
+        }
+
+        // 7. Send welcome email
         if (req.isSendWelcomeEmail()) {
             try {
                 String kamerTekst = kamerNaam.isEmpty() ? "nog toe te wijzen" : kamerNaam;
-                mailService.sendWelcomeMail(email, naam, kamerTekst, frontendUrl + "/login", req.getPassword());
+                mailService.sendWelcomeMail(email, naam, kamerTekst, frontendUrl + "/login",
+                        req.getPassword(), frontendUrl, instagram);
             } catch (Exception e) {
                 log.error("Welcome mail failed for {}: {}", maskEmail(email), e.getMessage());
             }

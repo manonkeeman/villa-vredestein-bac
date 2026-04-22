@@ -1,8 +1,10 @@
 package com.villavredestein.repository;
 
 import com.villavredestein.model.CleaningTask;
+import com.villavredestein.model.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -57,4 +59,10 @@ public interface CleaningTaskRepository extends JpaRepository<CleaningTask, Long
             ORDER BY t.deadline ASC
             """)
     List<CleaningTask> findOverdueTasks(@Param("today") LocalDate today);
+
+    List<CleaningTask> findByAssignedTo(User user);
+
+    @Modifying
+    @Query("UPDATE CleaningTask t SET t.assignedTo = NULL WHERE t.assignedTo = :user")
+    void unassignAllForUser(@Param("user") User user);
 }

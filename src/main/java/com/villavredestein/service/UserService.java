@@ -2,8 +2,11 @@ package com.villavredestein.service;
 
 import com.villavredestein.dto.UserRequestDTO;
 import com.villavredestein.dto.UserResponseDTO;
+import com.villavredestein.model.Invoice;
 import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
+import com.villavredestein.repository.CleaningTaskRepository;
+import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -51,17 +54,26 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoomRepository roomRepository;
+    private final CleaningTaskRepository cleaningTaskRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final CleaningScheduleService cleaningScheduleService;
     private final Path uploadDir;
 
     public UserService(
             UserRepository userRepository,
             @Lazy PasswordEncoder passwordEncoder,
             RoomRepository roomRepository,
+            CleaningTaskRepository cleaningTaskRepository,
+            InvoiceRepository invoiceRepository,
+            @Lazy CleaningScheduleService cleaningScheduleService,
             @Value("${app.upload-dir:uploads}") String uploadDir
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roomRepository = roomRepository;
+        this.cleaningTaskRepository = cleaningTaskRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.cleaningScheduleService = cleaningScheduleService;
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -293,7 +305,33 @@ public class UserService implements UserDetailsService {
 
     public void deleteUser(Long id) {
         User user = findUserByIdOrThrow(id);
+
+        // 1. Kamer vrijmaken
+        roomRepository.findByOccupant_Id(id).ifPresent(room -> {
+            room.removeOccupant();
+            roomRepository.save(room);
+        });
+
+        // 2. Schoonmaaktaken loskoppelen (FK → NULL zodat user verwijderd kan worden)
+        cleaningTaskRepository.unassignAllForUser(user);
+
+        // 3. Facturen verwijderen (student_id NOT NULL, dus eerst deleten)
+        List<Invoice> invoices = invoiceRepository.findByStudentOrderByIdDesc(user);
+        if (!invoices.isEmpty()) {
+            invoiceRepository.deleteAll(invoices);
+        }
+
+        // 4. Gebruiker verwijderen
         userRepository.delete(user);
+
+        // 5. Schoonmaakrooster opnieuw genereren zonder deze student
+        try {
+            cleaningScheduleService.reseedNow();
+        } catch (Exception e) {
+            log.warn("Cleaning reseed failed after user deletion: {}", e.getMessage());
+        }
+
+        log.info("User id={} volledig verwijderd (kamer, facturen, taken, account)", id);
     }
 
     private void validateNewUserInput(String username, String rawPassword, User.Role role) {

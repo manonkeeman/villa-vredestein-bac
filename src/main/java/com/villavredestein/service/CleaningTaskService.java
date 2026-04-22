@@ -23,15 +23,18 @@ public class CleaningTaskService {
 
     private final CleaningTaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final CleaningScheduleService scheduleService;
 
-    public CleaningTaskService(CleaningTaskRepository taskRepository, UserRepository userRepository) {
+    public CleaningTaskService(CleaningTaskRepository taskRepository,
+                               UserRepository userRepository,
+                               CleaningScheduleService scheduleService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
+        this.scheduleService = scheduleService;
     }
 
     // --------------------------------------------------------------
-    // ISO week + rotation helpers (1..4)
-    // 4 kamers × 4 taken → 4-week cycle
+    // ISO week + rotation helpers (dynamisch op basis van studenten)
     // --------------------------------------------------------------
     public int getCurrentIsoWeek() {
         return LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
@@ -43,7 +46,12 @@ public class CleaningTaskService {
 
     public int getCurrentRotationWeek() {
         int isoWeek = getCurrentIsoWeek();
-        return ((isoWeek - 1) % 4) + 1;
+        int slots = scheduleService.rotationLength();
+        return ((isoWeek - 1) % slots) + 1;
+    }
+
+    public int getRotationLength() {
+        return scheduleService.rotationLength();
     }
 
     // ==============================================================
@@ -178,8 +186,8 @@ public class CleaningTaskService {
         if (weekNumber == null) {
             throw new IllegalArgumentException("Weeknummer is verplicht");
         }
-        if (weekNumber < 1 || weekNumber > 4) {
-            throw new IllegalArgumentException("Weeknummer moet tussen 1 en 4 liggen");
+        if (weekNumber < 1) {
+            throw new IllegalArgumentException("Weeknummer moet minimaal 1 zijn");
         }
         return weekNumber;
     }

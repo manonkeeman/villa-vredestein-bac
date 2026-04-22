@@ -15,24 +15,31 @@ VALUES
 ON CONFLICT (email) DO NOTHING;
 
 -- Students (Student1234!)
--- Simon: €550/maand   Desmond + Medoc: €350/maand
+-- Simon: €550/maand   Desmond + Medoc + Arwen: €350/maand
 INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
   ('desmondstaal@gmail.com',  'Desmond', '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
   ('medocstaal@gmail.com',    'Medoc',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
-  ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
+  ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
+  ('arwenleonor@gmail.com',   'Arwen',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Set per-student rent amount
 UPDATE users SET rent_amount = 350.00 WHERE email = 'desmondstaal@gmail.com';
 UPDATE users SET rent_amount = 350.00 WHERE email = 'medocstaal@gmail.com';
 UPDATE users SET rent_amount = 550.00 WHERE email = 'simontalsma2@gmail.com';
+UPDATE users SET rent_amount = 350.00 WHERE email = 'arwenleonor@gmail.com';
 
--- Set Medoc's contract file
+-- Set contract files
 UPDATE users
 SET contract_file = 'Woonafspraken 2023-Frankrijk-Medoc.pdf'
 WHERE email = 'medocstaal@gmail.com'
   AND (contract_file IS NULL OR contract_file != 'Woonafspraken 2023-Frankrijk-Medoc.pdf');
+
+UPDATE users
+SET contract_file = 'Woonafspraken 2023-Italie-Arwen.pdf'
+WHERE email = 'arwenleonor@gmail.com'
+  AND (contract_file IS NULL OR contract_file != 'Woonafspraken 2023-Italie-Arwen.pdf');
 
 -- Cleaner (Cleaner1234!)
 INSERT INTO users (email, username, password, role, status_toggle)
@@ -44,18 +51,19 @@ ON CONFLICT (email) DO NOTHING;
 -- ROOMS
 -- ==================================================
 
--- Ensure the four active rooms exist
+-- Ensure the five active rooms exist
 INSERT INTO rooms (name, occupant_id)
 VALUES
   ('Japan',       NULL),
   ('Argentinië',  NULL),
   ('Thailand',    NULL),
-  ('Frankrijk',   NULL)
+  ('Frankrijk',   NULL),
+  ('Italië',      NULL)
 ON CONFLICT (name) DO NOTHING;
 
--- Remove old rooms (Italië, Oekraïne)
-UPDATE rooms SET occupant_id = NULL WHERE name IN ('Italië', 'Oekraïne');
-DELETE FROM rooms WHERE name IN ('Italië', 'Oekraïne')
+-- Remove old rooms (Oekraïne)
+UPDATE rooms SET occupant_id = NULL WHERE name IN ('Oekraïne');
+DELETE FROM rooms WHERE name IN ('Oekraïne')
   AND occupant_id IS NULL;
 
 -- Thailand → Desmond
@@ -75,6 +83,12 @@ UPDATE rooms
 SET occupant_id = (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com')
 WHERE name = 'Argentinië'
   AND (occupant_id IS DISTINCT FROM (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'));
+
+-- Italië → Arwen
+UPDATE rooms
+SET occupant_id = (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com')
+WHERE name = 'Italië'
+  AND (occupant_id IS DISTINCT FROM (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'));
 
 -- Japan blijft leeg
 UPDATE rooms SET occupant_id = NULL WHERE name = 'Japan';
@@ -139,16 +153,31 @@ WHERE NOT EXISTS (
     AND invoice_year  = CAST(EXTRACT(YEAR  FROM CURRENT_DATE) AS int)
 );
 
+INSERT INTO invoices (title, description, amount, issue_date, due_date, invoice_month, invoice_year, reminder_count, status, student_id)
+SELECT
+  'Huur huidige maand - Arwen', 'Maandelijkse huur - Arwen', 350.00,
+  CURRENT_DATE, CURRENT_DATE + INTERVAL '7 day',
+  CAST(EXTRACT(MONTH FROM CURRENT_DATE) AS int), CAST(EXTRACT(YEAR FROM CURRENT_DATE) AS int),
+  0, 'OPEN',
+  (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com')
+WHERE NOT EXISTS (
+  SELECT 1 FROM invoices
+  WHERE student_id = (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com')
+    AND invoice_month = CAST(EXTRACT(MONTH FROM CURRENT_DATE) AS int)
+    AND invoice_year  = CAST(EXTRACT(YEAR  FROM CURRENT_DATE) AS int)
+);
+
 -- ==================================================
 -- CLEANING TASKS
--- 4 taken × 4 rotatieweken = 16 rijen
--- Rotatie: rotatieWeek = ((isoWeek - 1) % 4) + 1
+-- 4 taken × 5 rotatieweken = 20 rijen
+-- Rotatie: rotatieWeek = ((isoWeek - 1) % 5) + 1
 --
--- Kamers / slots (index 0–3):
+-- Kamers / slots (index 0–4):
 --   0 = Argentinië → simontalsma2@gmail.com  (Simon)
 --   1 = Thailand   → desmondstaal@gmail.com  (Desmond)
 --   2 = Frankrijk  → medocstaal@gmail.com    (Medoc)
---   3 = Japan      → NULL (kamer leeg)
+--   3 = Italië     → arwenleonor@gmail.com   (Arwen)
+--   4 = Japan      → NULL (kamer leeg)
 --
 -- Taken (index 0–3):
 --   0 = Keuken & vaatwasser
@@ -156,44 +185,52 @@ WHERE NOT EXISTS (
 --   2 = Vuilnis & was
 --   3 = Woonkamer & gang
 --
--- Regel: taak[i] → slot[(i + rotatieWeek - 1) % 4]
--- Elke week: 3 studenten hebben een taak, Japan-slot = NULL
+-- Regel: taak[i] → slot[(i + rotatieWeek - 1) % 5]
+-- Elke week: 4 studenten hebben een taak, vrije slot roteert mee
 -- ==================================================
 
 -- Verwijder alle bestaande taken zodat rotatie altijd klopt
 DELETE FROM cleaning_tasks;
 
 -- ── Week 1 ────────────────────────────────────────
--- Keuken=Simon(0), Badkamer=Desmond(1), Vuilnis=Medoc(2), Woonkamer=Japan(NULL)
+-- Keuken=Simon(0), Badkamer=Desmond(1), Vuilnis=Medoc(2), Woonkamer=Arwen(3) [Japan vrij]
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
   (1, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
   (1, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
   (1, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (1, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
+  (1, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL');
 
 -- ── Week 2 ────────────────────────────────────────
--- Keuken=Desmond(1), Badkamer=Medoc(2), Vuilnis=Japan(NULL), Woonkamer=Simon(0)
+-- Keuken=Desmond(1), Badkamer=Medoc(2), Vuilnis=Arwen(3), Woonkamer=Japan(NULL) [Simon vrij]
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
   (2, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
   (2, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (2, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (2, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
+  (2, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
+  (2, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
 
 -- ── Week 3 ────────────────────────────────────────
--- Keuken=Medoc(2), Badkamer=Japan(NULL), Vuilnis=Simon(0), Woonkamer=Desmond(1)
+-- Keuken=Medoc(2), Badkamer=Arwen(3), Vuilnis=Japan(NULL), Woonkamer=Simon(0) [Desmond vrij]
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
   (3, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (3, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (3, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (3, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
+  (3, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
+  (3, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (3, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
 
 -- ── Week 4 ────────────────────────────────────────
--- Keuken=Japan(NULL), Badkamer=Simon(0), Vuilnis=Desmond(1), Woonkamer=Medoc(2)
+-- Keuken=Arwen(3), Badkamer=Japan(NULL), Vuilnis=Simon(0), Woonkamer=Desmond(1) [Medoc vrij]
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (4, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (4, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (4, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (4, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL');
+  (4, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
+  (4, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (4, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (4, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
+
+-- ── Week 5 ────────────────────────────────────────
+-- Keuken=Japan(NULL), Badkamer=Simon(0), Vuilnis=Desmond(1), Woonkamer=Medoc(2) [Arwen vrij]
+INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
+  (5, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (5, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
+  (5, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (5, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL');
 
 -- ==================================================
 -- VIEW

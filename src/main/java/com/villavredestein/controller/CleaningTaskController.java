@@ -38,9 +38,10 @@ public class CleaningTaskController {
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<Map<String, Integer>> getScheduleInfo() {
         Map<String, Integer> info = new LinkedHashMap<>();
-        info.put("isoWeek", cleaningService.getCurrentIsoWeek());
-        info.put("rotationWeek", cleaningService.getCurrentRotationWeek());
-        info.put("year", cleaningService.getCurrentIsoYear());
+        info.put("isoWeek",        cleaningService.getCurrentIsoWeek());
+        info.put("rotationWeek",   cleaningService.getCurrentRotationWeek());
+        info.put("rotationLength", cleaningService.getRotationLength());
+        info.put("year",           cleaningService.getCurrentIsoYear());
         return ResponseEntity.ok(info);
     }
 

@@ -16,6 +16,7 @@ public record LoginRequestDTO(
 
         @Pattern(
                 regexp = "STUDENT|CLEANER|ADMIN",
+                flags = Pattern.Flag.CASE_INSENSITIVE,
                 message = "loginMode must be STUDENT, CLEANER or ADMIN"
         )
         String loginMode,

@@ -15,4 +15,8 @@ ENV PORT=8080
 COPY --from=build /app/target/*.jar /app/app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["sh","-c","java -Dserver.port=$PORT -jar /app/app.jar"]
+ENTRYPOINT ["sh","-c","java \
+  -Dserver.port=$PORT \
+  -Djava.security.egd=file:/dev/./urandom \
+  -XX:TieredStopAtLevel=1 \
+  -jar /app/app.jar"]

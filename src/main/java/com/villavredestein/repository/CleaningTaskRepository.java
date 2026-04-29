@@ -65,4 +65,8 @@ public interface CleaningTaskRepository extends JpaRepository<CleaningTask, Long
     @Modifying
     @Query("UPDATE CleaningTask t SET t.assignedTo = NULL WHERE t.assignedTo = :user")
     void unassignAllForUser(@Param("user") User user);
+
+    @Modifying
+    @Query("DELETE FROM CleaningTask t")
+    void deleteAllTasks();
 }

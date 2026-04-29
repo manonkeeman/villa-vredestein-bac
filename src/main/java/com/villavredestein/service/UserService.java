@@ -479,9 +479,9 @@ public class UserService implements UserDetailsService {
     }
 
     private UserResponseDTO toDTO(User user) {
-        String roomName = roomRepository.findByOccupant_Id(user.getId())
-                .map(Room::getName)
-                .orElse(null);
+        String roomName = user.getRole() == User.Role.STUDENT
+                ? roomRepository.findByOccupant_Id(user.getId()).map(Room::getName).orElse(null)
+                : null;
 
         return new UserResponseDTO(
                 user.getId(),

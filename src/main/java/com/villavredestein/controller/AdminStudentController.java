@@ -211,7 +211,8 @@ public class AdminStudentController {
             }
         }
 
-        return ResponseEntity.ok(created);
+        UserResponseDTO finalDto = userService.getUserById(created.id()).orElse(created);
+        return ResponseEntity.ok(finalDto);
     }
 
     private String maskEmail(String email) {

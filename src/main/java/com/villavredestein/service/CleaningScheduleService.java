@@ -58,9 +58,9 @@ public class CleaningScheduleService {
 
         int slots = students.size() + 1; // +1 voor de vrije week (Japan-slot)
 
-        cleaningTaskRepository.deleteAll();
-        cleaningTaskRepository.flush();
+        cleaningTaskRepository.deleteAllTasks();
 
+        List<CleaningTask> tasks = new java.util.ArrayList<>(slots * 4);
         for (int week = 1; week <= slots; week++) {
             for (int taskIdx = 0; taskIdx < 4; taskIdx++) {
                 int slotIdx = (taskIdx + week - 1) % slots;
@@ -70,9 +70,10 @@ public class CleaningScheduleService {
                         week, TASK_NAMES[taskIdx], TASK_DESCS[taskIdx], null);
                 task.setAssignedTo(assignee);
                 task.setCompleted(false);
-                cleaningTaskRepository.save(task);
+                tasks.add(task);
             }
         }
+        cleaningTaskRepository.saveAll(tasks);
 
         log.info("CleaningScheduleService: {} taken aangemaakt ({} studenten, {} weken)",
                 slots * 4, students.size(), slots);

@@ -76,8 +76,7 @@ public class AuthController {
         UserResponseDTO me = userService.getUserByEmail(principalEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
-        boolean isStudentLogin = "STUDENT".equals(requestedMode)
-                || (requestedMode == null && roles.contains("ROLE_STUDENT"));
+        boolean isStudentLogin = "STUDENT".equals(requestedMode);
 
         if (isStudentLogin) {
             String chosenRoom = normalizeRoom(request.room());

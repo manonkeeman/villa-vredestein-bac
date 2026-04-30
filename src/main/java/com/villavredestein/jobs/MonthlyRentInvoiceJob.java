@@ -22,10 +22,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Runs on the 1st of each month at 08:00 Amsterdam time.
- * Creates invoices for all active students and sends a PAYMENT_NEW email with an iDEAL link.
- */
 @Component
 @ConditionalOnProperty(value = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class MonthlyRentInvoiceJob {
@@ -56,7 +52,6 @@ public class MonthlyRentInvoiceJob {
         this.emailTemplateService = emailTemplateService;
     }
 
-    // 1st of each month at 08:00 Amsterdam time
     @Scheduled(cron = "0 0 8 1 * *", zone = "Europe/Amsterdam")
     public void createMonthlyInvoices() {
         LocalDate today = LocalDate.now();
@@ -86,15 +81,11 @@ public class MonthlyRentInvoiceJob {
         createMonthlyInvoices();
     }
 
-    // =====================================================================
-    // # Per student
-    // =====================================================================
 
     private void processStudent(User student, int month, int year, LocalDate dueDate,
                                 String maand, String vervaldatum, String bedragFormatted,
                                 BigDecimal studentRent, EmailTemplate template) {
         try {
-            // Create invoice via DTO
             var dto = new com.villavredestein.dto.InvoiceRequestDTO();
             dto.setStudentEmail(student.getEmail());
             dto.setTitle("Huur " + maand);
@@ -116,7 +107,6 @@ public class MonthlyRentInvoiceJob {
 
             Long invoiceId = invoiceDTO.getId();
 
-            // Create Mollie payment
             String description = "Huur " + maand + " – Villa Vredestein";
             MollieService.MolliePaymentResult mollie = mollieService.createPayment(studentRent, description, invoiceId);
 
@@ -130,7 +120,6 @@ public class MonthlyRentInvoiceJob {
                 log.warn("Mollie disabled — no payment link for invoiceId={}", invoiceId);
             }
 
-            // Send email
             if (template != null) {
                 String naam = student.getUsername();
                 String subject = template.renderSubject(naam, bedragFormatted, maand, betaalLink, vervaldatum);
@@ -144,9 +133,6 @@ public class MonthlyRentInvoiceJob {
         }
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private EmailTemplate loadTemplate() {
         try {

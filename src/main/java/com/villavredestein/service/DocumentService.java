@@ -51,9 +51,7 @@ public class DocumentService {
         this.mailService = mailService;
     }
 
-    // ============================================================
     // UPLOAD
-    // ============================================================
 
     public UploadResponseDTO upload(String uploaderPrincipalName, MultipartFile file, String roleAccess) {
         if (uploaderPrincipalName == null || uploaderPrincipalName.isBlank()) {
@@ -119,9 +117,7 @@ public class DocumentService {
         return upload(uploader.getEmail(), file, roleAccess);
     }
 
-    // ============================================================
     // LIST
-    // ============================================================
 
     public List<DocumentResponseDTO> listAll() {
         return documentRepository.findAllByOrderByIdDesc()
@@ -145,9 +141,7 @@ public class DocumentService {
                 .toList();
     }
 
-    // ============================================================
     // DOWNLOAD
-    // ============================================================
 
     public record DownloadResult(FileSystemResource resource, String title, Path storagePath) {}
 
@@ -167,9 +161,7 @@ public class DocumentService {
         return new DownloadResult(new FileSystemResource(path), doc.getTitle(), path);
     }
 
-    // ============================================================
     // DELETE
-    // ============================================================
 
     public void delete(Long id) {
         if (id == null || id <= 0) {
@@ -188,9 +180,7 @@ public class DocumentService {
         documentRepository.delete(doc);
     }
 
-    // ============================================================
     // HELPERS
-    // ============================================================
 
     private DocumentResponseDTO toResponseDTO(Document doc) {
         String uploadedBy = doc.getUploadedBy() != null ? doc.getUploadedBy().getUsername() : null;

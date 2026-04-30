@@ -23,9 +23,6 @@ public class EmailTemplateService {
         this.repo = repo;
     }
 
-    // =====================================================================
-    // # Seed defaults on startup
-    // =====================================================================
 
     @PostConstruct
     public void seedDefaults() {
@@ -85,9 +82,6 @@ public class EmailTemplateService {
         }
     }
 
-    // =====================================================================
-    // # Read
-    // =====================================================================
 
     public List<EmailTemplate> getAll() {
         return repo.findAll();
@@ -98,9 +92,6 @@ public class EmailTemplateService {
                 .orElseThrow(() -> new IllegalStateException("Email template niet gevonden voor type: " + type));
     }
 
-    // =====================================================================
-    // # Update
-    // =====================================================================
 
     public EmailTemplate update(TemplateType type, String subject, String body) {
         EmailTemplate template = getByType(type);

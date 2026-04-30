@@ -19,11 +19,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Sends payment reminders for unpaid invoices:
- *  - PAYMENT_REMINDER_1 on the 3rd of the month at 09:00
- *  - PAYMENT_REMINDER_2 on the 7th of the month at 09:00
- */
 @Component
 @ConditionalOnProperty(value = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class PaymentReminderJob {
@@ -48,9 +43,6 @@ public class PaymentReminderJob {
         this.mollieService = mollieService;
     }
 
-    // =====================================================================
-    // # First reminder — 3rd of the month
-    // =====================================================================
 
     @Scheduled(cron = "0 0 9 3 * *", zone = "Europe/Amsterdam")
     public void sendFirstReminders() {
@@ -61,9 +53,6 @@ public class PaymentReminderJob {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_1, 1);
     }
 
-    // =====================================================================
-    // # Second reminder — 7th of the month
-    // =====================================================================
 
     @Scheduled(cron = "0 0 9 7 * *", zone = "Europe/Amsterdam")
     public void sendSecondReminders() {
@@ -74,9 +63,6 @@ public class PaymentReminderJob {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_2, 2);
     }
 
-    // =====================================================================
-    // # Core logic
-    // =====================================================================
 
     private void sendReminders(EmailTemplate.TemplateType templateType, int reminderNumber) {
         LocalDate today = LocalDate.now();
@@ -117,7 +103,6 @@ public class PaymentReminderJob {
 
             mailService.sendInvoiceReminderMail(email, subject, body);
 
-            // Track reminder metadata
             invoice.setReminderCount(invoice.getReminderCount() + 1);
             invoice.setLastReminderSentAt(LocalDateTime.now());
             invoiceService.saveReminderMeta(invoice);
@@ -129,15 +114,7 @@ public class PaymentReminderJob {
         }
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
-    /**
-     * Creates a fresh Mollie iDEAL payment for the invoice so the reminder
-     * email always contains a valid, non-expired checkout URL.
-     * Falls back to the stored URL (or empty string) if Mollie is unavailable.
-     */
     private String refreshCheckoutUrl(Invoice invoice, String maand) {
         String description = "Huur " + maand + " – Villa Vredestein";
         try {
@@ -152,7 +129,6 @@ public class PaymentReminderJob {
         } catch (Exception e) {
             log.warn("Could not refresh Mollie link for invoiceId={}: {}", invoice.getId(), e.getMessage());
         }
-        // Fallback to stored URL (may be expired but better than nothing)
         return invoice.getCheckoutUrl() != null ? invoice.getCheckoutUrl() : "";
     }
 

@@ -306,25 +306,20 @@ public class UserService implements UserDetailsService {
     public void deleteUser(Long id) {
         User user = findUserByIdOrThrow(id);
 
-        // 1. Kamer vrijmaken
         roomRepository.findByOccupant_Id(id).ifPresent(room -> {
             room.removeOccupant();
             roomRepository.save(room);
         });
 
-        // 2. Schoonmaaktaken loskoppelen (FK → NULL zodat user verwijderd kan worden)
         cleaningTaskRepository.unassignAllForUser(user);
 
-        // 3. Facturen verwijderen (student_id NOT NULL, dus eerst deleten)
         List<Invoice> invoices = invoiceRepository.findByStudentOrderByIdDesc(user);
         if (!invoices.isEmpty()) {
             invoiceRepository.deleteAll(invoices);
         }
 
-        // 4. Gebruiker verwijderen
         userRepository.delete(user);
 
-        // 5. Schoonmaakrooster opnieuw genereren zonder deze student
         try {
             cleaningScheduleService.reseedNow();
         } catch (Exception e) {
@@ -372,7 +367,6 @@ public class UserService implements UserDetailsService {
                 Files.deleteIfExists(path);
             }
         } catch (Exception ignored) {
-            // best effort cleanup
         }
     }
 

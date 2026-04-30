@@ -32,9 +32,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Admin endpoints for student creation with room assignment and welcome email.
- */
 @Validated
 @RestController
 @RequestMapping(value = "/api/admin", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -76,7 +73,6 @@ public class AdminStudentController {
         this.cleaningScheduleService  = cleaningScheduleService;
     }
 
-    // ── GET /api/admin/rooms/available ────────────────────────────────────
     @GetMapping("/rooms/available")
     public ResponseEntity<List<String>> availableRooms() {
         List<String> names = roomRepository.findByOccupantIsNullOrderByNameAsc()
@@ -86,7 +82,6 @@ public class AdminStudentController {
         return ResponseEntity.ok(names);
     }
 
-    // ── POST /api/admin/students ──────────────────────────────────────────
     public static class CreateStudentRequest {
 
         @NotBlank(message = "Naam is verplicht")
@@ -131,7 +126,6 @@ public class AdminStudentController {
         String naam      = req.getUsername().trim();
         String kamerNaam = req.getRoom() != null ? req.getRoom().trim() : "";
 
-        // 1. Validate room is available (not occupied) before creating anything
         Room room = null;
         if (!kamerNaam.isEmpty()) {
             room = roomRepository.findByNameIgnoreCase(kamerNaam)
@@ -144,22 +138,18 @@ public class AdminStudentController {
             }
         }
 
-        // 2. Create student account
         UserResponseDTO created = userService.createUserWithRole(naam, email, req.getPassword(), "STUDENT");
 
-        // 3. Set rent amount on the user entity
         User student = userRepository.findById(created.id()).orElseThrow();
         student.setRentAmount(req.getRentAmount());
         userRepository.save(student);
 
-        // 4. Assign room
         if (room != null) {
             room.assignOccupant(student);
             roomRepository.save(room);
             log.info("Room '{}' assigned to student id={}", kamerNaam, created.id());
         }
 
-        // 5. Create invoice for current month + Mollie payment
         try {
             LocalDate today    = LocalDate.now();
             LocalDate dueDate  = today.plusDays(7);
@@ -175,7 +165,6 @@ public class AdminStudentController {
 
             InvoiceResponseDTO invoice = invoiceService.createInvoice(invoiceDto);
 
-            // Create Mollie iDEAL payment link
             try {
                 String description = "Huur " + maand + " – Villa Vredestein";
                 MollieService.MolliePaymentResult mollie =
@@ -192,7 +181,6 @@ public class AdminStudentController {
             log.error("Invoice creation failed for new student {}: {}", maskEmail(email), e.getMessage());
         }
 
-        // 6. Schoonmaakrooster opnieuw genereren met de nieuwe student
         try {
             cleaningScheduleService.reseedNow();
             log.info("Cleaning schedule reseeded after new student id={}", created.id());
@@ -200,7 +188,6 @@ public class AdminStudentController {
             log.warn("Cleaning reseed failed after student creation: {}", e.getMessage());
         }
 
-        // 7. Send welcome email
         if (req.isSendWelcomeEmail()) {
             try {
                 String kamerTekst = kamerNaam.isEmpty() ? "nog toe te wijzen" : kamerNaam;

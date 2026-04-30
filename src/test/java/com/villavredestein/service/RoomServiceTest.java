@@ -28,9 +28,6 @@ class RoomServiceTest {
     @Mock UserRepository userRepository;
     @InjectMocks RoomService roomService;
 
-    // =====================================================================
-    // # getAllRoomsDTO
-    // =====================================================================
 
     @Test
     void getAllRoomsDTO_returnsListOfDTOs() {
@@ -54,9 +51,6 @@ class RoomServiceTest {
         assertThat(result).isEmpty();
     }
 
-    // =====================================================================
-    // # getRoomByIdDTO
-    // =====================================================================
 
     @Test
     void getRoomByIdDTO_found_returnsDto() {
@@ -91,9 +85,6 @@ class RoomServiceTest {
         verify(roomRepository, never()).findById(any());
     }
 
-    // =====================================================================
-    // # assignOccupantDTO
-    // =====================================================================
 
     @Test
     void assignOccupantDTO_success_assignsOccupantAndReturnsDto() {
@@ -163,9 +154,6 @@ class RoomServiceTest {
         assertThat(result.occupantUsername()).isEqualTo("student");
     }
 
-    // =====================================================================
-    // # removeOccupantDTO
-    // =====================================================================
 
     @Test
     void removeOccupantDTO_success_removesOccupantAndReturnsDto() {
@@ -186,9 +174,6 @@ class RoomServiceTest {
         assertThrows(EntityNotFoundException.class, () -> roomService.removeOccupantDTO(99L));
     }
 
-    // =====================================================================
-    // # deleteRoom
-    // =====================================================================
 
     @Test
     void deleteRoom_success_deletesRoom() {
@@ -219,9 +204,6 @@ class RoomServiceTest {
         verify(roomRepository, never()).findById(any());
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private User makeUser(long id, String username, String email) {
         User user = new User(username, email, "hash", User.Role.STUDENT);

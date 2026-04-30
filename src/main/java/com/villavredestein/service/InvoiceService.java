@@ -39,9 +39,6 @@ public class InvoiceService {
         this.invoicePdfService = invoicePdfService;
     }
 
-    // =====================================================================
-    // # CREATE INVOICE
-    // =====================================================================
 
     public InvoiceResponseDTO createInvoice(InvoiceRequestDTO dto) {
 
@@ -77,9 +74,6 @@ public class InvoiceService {
         return toDTO(saved);
     }
 
-    // =====================================================================
-    // # READ INVOICES
-    // =====================================================================
 
     public List<InvoiceResponseDTO> getAllInvoices() {
         return invoiceRepository.findAllByOrderByIdDesc()
@@ -112,9 +106,6 @@ public class InvoiceService {
                 .toList();
     }
 
-    // =====================================================================
-    // # UPDATE INVOICE STATUS
-    // =====================================================================
 
     public InvoiceResponseDTO updateStatus(Long id, InvoiceStatus newStatus) {
 
@@ -138,9 +129,6 @@ public class InvoiceService {
         }
     }
 
-    // =====================================================================
-    // # DELETE INVOICE
-    // =====================================================================
 
     public void deleteInvoice(Long id) {
         Invoice invoice = findInvoiceOrThrow(id);
@@ -148,9 +136,6 @@ public class InvoiceService {
         log.warn("🗑️ Factuur verwijderd (invoiceId={})", id);
     }
 
-    // =====================================================================
-    // # BUSINESS LOGIC FOR JOBS
-    // =====================================================================
 
     public List<Invoice> getAllOpenInvoices() {
         return invoiceRepository.findByStatusOrderByIdDesc(InvoiceStatus.OPEN);
@@ -177,18 +162,12 @@ public class InvoiceService {
         invoiceRepository.save(invoice);
     }
 
-    // =====================================================================
-    // # HELPERS
-    // =====================================================================
 
     private Invoice findInvoiceOrThrow(Long id) {
         return invoiceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Factuur niet gevonden: " + id));
     }
 
-    // =====================================================================
-    // # DTO MAPPING
-    // =====================================================================
 
     public void attachMolliePayment(Invoice invoice, String mollieId, String checkoutUrl) {
         invoice.setMolliePaymentId(mollieId);

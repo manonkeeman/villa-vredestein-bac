@@ -6,24 +6,16 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
-/**
- * Admin-editable email templates for payment notifications.
- *
- * Supported placeholders in subject/body:
- *   {{naam}}       → student username
- *   {{bedrag}}     → formatted amount (e.g. €350,00)
- *   {{maand}}      → month + year in Dutch (e.g. "april 2026")
- *   {{betaalLink}} → Mollie checkout URL
- *   {{vervaldatum}} → due date formatted
- */
 @Entity
 @Table(name = "email_templates")
 public class EmailTemplate {
 
     public enum TemplateType {
-        PAYMENT_NEW,        // Sent on 1st — new invoice with iDEAL link
-        PAYMENT_REMINDER_1, // Sent on 3rd — first reminder
-        PAYMENT_REMINDER_2  // Sent on 7th — second reminder
+        PAYMENT_NEW,
+        PAYMENT_REMINDER_1,
+        PAYMENT_REMINDER_2,
+        OVERDUE,
+        MISSED_CLEANING
     }
 
     @Id
@@ -67,7 +59,6 @@ public class EmailTemplate {
     public void setSubject(String subject) { this.subject = subject; }
     public void setBody(String body) { this.body = body; }
 
-    /** Replace all supported placeholders with real values. */
     public String renderBody(String naam, String bedrag, String maand, String betaalLink, String vervaldatum) {
         return body
                 .replace("{{naam}}", safe(naam))

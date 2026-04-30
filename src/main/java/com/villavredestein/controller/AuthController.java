@@ -84,7 +84,6 @@ public class AuthController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kies eerst je kamer.");
             }
 
-            // Reuse roomName already fetched in getUserByEmail → toDTO, no extra query needed
             String assignedRoom = me.roomName();
 
             if (assignedRoom == null) {

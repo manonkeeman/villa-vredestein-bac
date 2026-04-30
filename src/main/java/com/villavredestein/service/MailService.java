@@ -23,9 +23,6 @@ public class MailService {
     private final String from;
     private final String bccAdmin;
 
-    // =====================================================================
-    // # Categories
-    // =====================================================================
     public enum MailCategory {
         CLEANING_TASK,
         INCIDENT,
@@ -45,9 +42,6 @@ public class MailService {
         this.bccAdmin = bccAdmin;
     }
 
-    // =====================================================================
-    // # Test constructor
-    // =====================================================================
     protected MailService() {
         this.mailSender = null;
         this.mailEnabled = false;
@@ -55,9 +49,6 @@ public class MailService {
         this.bccAdmin = "";
     }
 
-    // =====================================================================
-    // # Public API
-    // =====================================================================
     public void sendMailWithRole(String role, String to, String subject, String body, @Nullable String bcc) {
         String normalizedRole = normalizeRole(role);
         requireValidRecipient(to);
@@ -175,7 +166,6 @@ public class MailService {
         log.info("Welcome mail sent to {}", maskEmail(to));
     }
 
-    /** Backwards-compatible overload (without website/instagram). */
     public void sendWelcomeMail(String to, String naam, String kamer, String loginUrl, String wachtwoord) {
         sendWelcomeMail(to, naam, kamer, loginUrl, wachtwoord, loginUrl.replace("/login", ""), "@villavredestein");
     }
@@ -193,9 +183,6 @@ public class MailService {
         sendInternal("ADMIN", MailCategory.INVOICE_REMINDER, to, subject, body, null, maskEmail(to));
     }
 
-    // =====================================================================
-    // # Internal send
-    // =====================================================================
     private void sendInternal(
             String normalizedRole,
             MailCategory category,
@@ -249,9 +236,6 @@ public class MailService {
         }
     }
 
-    // =====================================================================
-    // # Categorization
-    // =====================================================================
     private MailCategory categorize(String normalizedRole, String subject) {
         String s = subject.trim().toLowerCase(Locale.ROOT);
 
@@ -272,9 +256,6 @@ public class MailService {
         return category;
     }
 
-    // =====================================================================
-    // # Validation helpers
-    // =====================================================================
     private String normalizeRole(String role) {
         if (role == null) {
             throw new AccessDeniedException("Role is missing");

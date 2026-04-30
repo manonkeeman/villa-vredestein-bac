@@ -11,11 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-/**
- * Receives payment status updates from Mollie.
- * Must be publicly accessible (no JWT required).
- * Mollie POSTs to this endpoint with the payment ID whenever the status changes.
- */
 @RestController
 @RequestMapping("/api/mollie")
 public class MollieWebhookController {
@@ -34,10 +29,6 @@ public class MollieWebhookController {
         this.mailService = mailService;
     }
 
-    /**
-     * Mollie calls this with ?id={molliePaymentId} after every status change.
-     * We fetch the real status from Mollie, find the matching invoice, and update it.
-     */
     @PostMapping("/webhook")
     public ResponseEntity<Void> handleWebhook(@RequestParam String id) {
         log.info("Mollie webhook received for payment id={}", id);
@@ -61,7 +52,6 @@ public class MollieWebhookController {
                 }
             }
         } catch (Exception e) {
-            // Always return 200 to Mollie — retries otherwise
             log.error("Error processing Mollie webhook for id={}: {}", id, e.getMessage());
         }
 

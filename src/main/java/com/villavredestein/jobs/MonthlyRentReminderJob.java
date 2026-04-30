@@ -31,7 +31,6 @@ public class MonthlyRentReminderJob {
         this.mailService = mailService;
     }
 
-    // Runs every 28th of the month at 9:00 AM Amsterdam time
     @Scheduled(cron = "0 0 9 28 * *", zone = "Europe/Amsterdam")
     public void sendRentReminders() {
         LocalDate today = LocalDate.now();

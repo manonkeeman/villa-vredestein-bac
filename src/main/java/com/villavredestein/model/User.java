@@ -41,9 +41,6 @@ public class User {
         OPEN_VOOR_CHILLEN
     }
 
-    // =====================================================================
-    // # FIELDS
-    // =====================================================================
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -107,10 +104,6 @@ public class User {
     @Column(length = 255)
     private String contractFile;
 
-    /**
-     * Student-specific monthly rent amount.
-     * Null means use the application-level default (app.rent.amount).
-     */
     @Column(name = "rent_amount", precision = 10, scale = 2)
     private java.math.BigDecimal rentAmount;
 
@@ -124,9 +117,6 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
-    // =====================================================================
-    // # CONSTRUCTORS
-    // =====================================================================
 
     public User() {
     }
@@ -139,9 +129,6 @@ public class User {
         normalize();
     }
 
-    // =====================================================================
-    // # LIFECYCLE
-    // =====================================================================
 
     @PrePersist
     @PreUpdate
@@ -161,9 +148,6 @@ public class User {
         contractFile = clean(contractFile);
     }
 
-    // =====================================================================
-    // # GETTERS
-    // =====================================================================
 
     public Long getId() {
         return id;
@@ -237,9 +221,6 @@ public class User {
         return role;
     }
 
-    // =====================================================================
-    // # SETTERS
-    // =====================================================================
 
     public void setUsername(String username) {
         this.username = require(username, "username");
@@ -319,9 +300,6 @@ public class User {
         this.role = require(role, "role");
     }
 
-    // =====================================================================
-    // # HELPERS
-    // =====================================================================
 
     private <T> T require(T value, String field) {
         if (value == null) {
@@ -343,9 +321,6 @@ public class User {
         return this.role == expectedRole;
     }
 
-    // =====================================================================
-    // # OBJECT CONTRACT
-    // =====================================================================
 
     @Override
     public boolean equals(Object o) {

@@ -75,7 +75,6 @@ public class InvoicePdfService {
         addBodyCell(table, desc);
         addBodyCell(table, EUR.format(invoice.getAmount()));
 
-        // Total row
         PdfPCell totalLabel = new PdfPCell(new Phrase("Totaal",
                 FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11)));
         totalLabel.setBorder(Rectangle.TOP);

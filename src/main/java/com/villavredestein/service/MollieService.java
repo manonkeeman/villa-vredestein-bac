@@ -10,14 +10,6 @@ import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
 import java.util.Map;
 
-/**
- * Mollie payment service — creates iDEAL payments and retrieves their status.
- *
- * Placeholders in application.yml:
- *   mollie.api-key     → MOLLIE_API_KEY env var
- *   mollie.webhook-url → MOLLIE_WEBHOOK_URL env var
- *   app.frontend-url   → FRONTEND_URL env var
- */
 @Service
 public class MollieService {
 
@@ -39,14 +31,7 @@ public class MollieService {
         this.restClient = builder.baseUrl(BASE_URL).build();
     }
 
-    // =====================================================================
-    // # Create payment
-    // =====================================================================
 
-    /**
-     * Creates an iDEAL payment in Mollie.
-     * Returns (molliePaymentId, checkoutUrl) or null if disabled/failed.
-     */
     public MolliePaymentResult createPayment(BigDecimal amount, String description, Long invoiceId) {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("[MOLLIE DISABLED] No API key configured — skipping payment creation for invoiceId={}", invoiceId);
@@ -86,13 +71,7 @@ public class MollieService {
         }
     }
 
-    // =====================================================================
-    // # Get payment status
-    // =====================================================================
 
-    /**
-     * Fetches the current status of a Mollie payment.
-     */
     public String getPaymentStatus(String molliePaymentId) {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("[MOLLIE DISABLED] No API key — cannot fetch status for {}", molliePaymentId);
@@ -116,24 +95,14 @@ public class MollieService {
         }
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private String formatAmount(BigDecimal amount) {
         return String.format("%.2f", amount);
     }
 
-    // =====================================================================
-    // # Inner types — Mollie API response mapping
-    // =====================================================================
 
     public record MolliePaymentResult(String molliePaymentId, String checkoutUrl) {}
 
-    /**
-     * Subset of the Mollie payment object we care about.
-     * Jackson maps _links.checkout.href via a custom getter.
-     */
     public static class MolliePaymentResponse {
         private String id;
         private String status;

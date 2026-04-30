@@ -39,9 +39,6 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // =====================================================================
-    // # 401 / 403
-    // =====================================================================
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
@@ -61,9 +58,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "You do not have access to this resource.", request);
     }
 
-    // =====================================================================
-    // # 404
-    // =====================================================================
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex, HttpServletRequest request) {
@@ -77,9 +71,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "Endpoint not found.", request);
     }
 
-    // =====================================================================
-    // # 400
-    // =====================================================================
 
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<Map<String, Object>> handleMultipart(MultipartException ex, HttpServletRequest request) {
@@ -137,9 +128,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
-    // =====================================================================
-    // # 405 / 415
-    // =====================================================================
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Map<String, Object>> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
@@ -153,9 +141,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type. Use the correct Content-Type.", request);
     }
 
-    // =====================================================================
-    // # 409
-    // =====================================================================
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
@@ -170,9 +155,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 
-    // =====================================================================
-    // # Mail
-    // =====================================================================
 
     @ExceptionHandler(MailException.class)
     public ResponseEntity<Map<String, Object>> handleMailException(MailException ex, HttpServletRequest request) {
@@ -186,9 +168,6 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Email could not be processed. Please try again.", request);
     }
 
-    // =====================================================================
-    // # ResponseStatusException
-    // =====================================================================
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
@@ -198,9 +177,6 @@ public class GlobalExceptionHandler {
         return buildResponse(status, msg, request);
     }
 
-    // =====================================================================
-    // # 500
-    // =====================================================================
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex, HttpServletRequest request) {
@@ -214,9 +190,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private String resolveRequestId(HttpServletRequest request) {
         if (request == null) {

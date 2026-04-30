@@ -29,7 +29,6 @@ public class AnnouncementController {
         this.announcementRepository = announcementRepository;
     }
 
-    // ── GET /api/announcements — ADMIN + STUDENT (not CLEANER) ────────────
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     public ResponseEntity<List<AnnouncementResponseDTO>> getAll() {
@@ -40,7 +39,6 @@ public class AnnouncementController {
         return ResponseEntity.ok(result);
     }
 
-    // ── POST /api/announcements — ADMIN only ──────────────────────────────
     public record CreateRequest(
             @Pattern(regexp = "mededeling|onderhoud|evenement",
                     flags = Pattern.Flag.CASE_INSENSITIVE,
@@ -77,7 +75,6 @@ public class AnnouncementController {
         return ResponseEntity.ok(toDTO(saved));
     }
 
-    // ── DELETE /api/announcements/{id} — ADMIN only ───────────────────────
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
@@ -88,7 +85,6 @@ public class AnnouncementController {
         return ResponseEntity.ok(Map.of("message", "Verwijderd"));
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────
     private AnnouncementResponseDTO toDTO(Announcement a) {
         return new AnnouncementResponseDTO(
                 a.getId(),

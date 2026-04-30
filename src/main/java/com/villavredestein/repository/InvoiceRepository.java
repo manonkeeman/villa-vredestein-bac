@@ -26,16 +26,12 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
 
-    // Mollie webhook lookup
     Optional<Invoice> findByMolliePaymentId(String molliePaymentId);
 
-    // For reminder jobs: all invoices of a given month/year that aren't paid/cancelled
     List<Invoice> findByInvoiceMonthAndInvoiceYearAndStatusNotIn(
             int invoiceMonth, int invoiceYear, List<Invoice.InvoiceStatus> excludedStatuses);
 
-    // For admin overview: all invoices of a given month/year
     List<Invoice> findByInvoiceMonthAndInvoiceYearOrderByStudentUsernameAsc(int invoiceMonth, int invoiceYear);
 
-    // For admin manual send: find invoices for a specific student + month
     List<Invoice> findByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
 }

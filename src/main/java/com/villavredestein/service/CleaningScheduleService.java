@@ -11,16 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Generates / regenerates the cleaning schedule based on current STUDENT users.
- *
- * Slots  = students sorted by ID  +  one null slot (Japan / vrije week).
- * Weeks  = number of slots.
- * Tasks  = 4 per week (Keuken, Badkamer, Vuilnis, Woonkamer).
- * Formula: task[i] → slot[(i + week - 1) % slots]
- *
- * Call reseedNow() after any student is added or removed.
- */
 @Service
 public class CleaningScheduleService {
 
@@ -79,13 +69,11 @@ public class CleaningScheduleService {
                 slots * 4, students.size(), slots);
     }
 
-    /** Verwacht aantal taken op basis van huidige studenten. */
     public int expectedTaskCount() {
         int n = userRepository.findByRole(User.Role.STUDENT).size();
         return (n + 1) * 4;
     }
 
-    /** Rotatiefactor (aantal weken in de cyclus). */
     public int rotationLength() {
         return userRepository.findByRole(User.Role.STUDENT).size() + 1;
     }

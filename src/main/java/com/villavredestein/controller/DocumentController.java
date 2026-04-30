@@ -26,9 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 
-// =====================================================================
-// # DocumentController
-// =====================================================================
 @Validated
 @RestController
 @RequestMapping(value = "/api/documents", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -40,9 +37,6 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
-    // =====================================================================
-    // # READ
-    // =====================================================================
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @GetMapping
@@ -56,9 +50,6 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.listAccessibleDocuments(role));
     }
 
-    // =====================================================================
-    // # CREATE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(
@@ -82,9 +73,6 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // =====================================================================
-    // # DOWNLOAD
-    // =====================================================================
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     @GetMapping("/{id}/download")
@@ -129,9 +117,6 @@ public class DocumentController {
                 .body(result.resource());
     }
 
-    // =====================================================================
-    // # DELETE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
@@ -140,9 +125,6 @@ public class DocumentController {
         return ResponseEntity.noContent().build();
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private String resolveRole(Authentication authentication) {
         if (authentication == null || authentication.getAuthorities() == null) {

@@ -25,9 +25,6 @@ public class PaymentService {
         this.userRepository = userRepository;
     }
 
-    // =====================================================================
-    // # READ
-    // =====================================================================
     @Transactional(readOnly = true)
     public List<PaymentResponseDTO> getAllPayments() {
         return paymentRepository.findAllByOrderByIdDesc()
@@ -73,9 +70,6 @@ public class PaymentService {
         return toResponseDTO(payment);
     }
 
-    // =====================================================================
-    // # CREATE / UPDATE
-    // =====================================================================
     public PaymentResponseDTO createPayment(PaymentRequestDTO dto) {
         if (dto == null) {
             throw new IllegalArgumentException("PaymentRequestDTO is required");
@@ -130,9 +124,6 @@ public class PaymentService {
         paymentRepository.delete(payment);
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
     private Long requireId(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("id is required");

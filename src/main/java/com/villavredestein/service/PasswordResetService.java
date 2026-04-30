@@ -48,7 +48,7 @@ public class PasswordResetService {
     }
 
     // -----------------------------
-    // Preferred API (veilig)
+    // Preferred API
     // -----------------------------
 
     public Optional<String> createResetTokenIfUserExists(String emailRaw) {

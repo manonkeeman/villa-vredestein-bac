@@ -24,9 +24,6 @@ public class RoomService {
         this.userRepository = userRepository;
     }
 
-    // =====================================================================
-    // # READ
-    // =====================================================================
 
     @Transactional(readOnly = true)
     public List<RoomResponseDTO> getAllRoomsDTO() {
@@ -44,9 +41,6 @@ public class RoomService {
         return roomRepository.findById(id).map(this::toDTO);
     }
 
-    // =====================================================================
-    // # UPDATE
-    // =====================================================================
 
     public RoomResponseDTO assignOccupantDTO(Long roomId, Long userId) {
         Room room = roomRepository.findById(requireId(roomId, "roomId"))
@@ -77,9 +71,6 @@ public class RoomService {
         return toDTO(room);
     }
 
-    // =====================================================================
-    // # DELETE (optional)
-    // =====================================================================
 
     public void deleteRoom(Long id) {
         Room room = roomRepository.findById(requireId(id, "id"))
@@ -87,9 +78,6 @@ public class RoomService {
         roomRepository.delete(room);
     }
 
-    // =====================================================================
-    // # MAPPER
-    // =====================================================================
 
     private RoomResponseDTO toDTO(Room room) {
         Long occupantId = room.getOccupant() != null ? room.getOccupant().getId() : null;
@@ -103,9 +91,6 @@ public class RoomService {
         );
     }
 
-    // =====================================================================
-    // # HELPERS
-    // =====================================================================
 
     private Long requireId(Long value, String fieldName) {
         if (value == null || value <= 0) {

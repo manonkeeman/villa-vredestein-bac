@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 
-// =====================================================================
-// # CleaningTaskController
-// =====================================================================
 @Validated
 @RestController
 @RequestMapping("/api/cleaning")
@@ -31,9 +28,6 @@ public class CleaningTaskController {
         this.cleaningService = cleaningService;
     }
 
-    // =====================================================================
-    // # Schedule info — ISO week + rotation week
-    // =====================================================================
     @GetMapping("/schedule/info")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<Map<String, Integer>> getScheduleInfo() {
@@ -45,18 +39,12 @@ public class CleaningTaskController {
         return ResponseEntity.ok(info);
     }
 
-    // =====================================================================
-    // # Access check
-    // =====================================================================
     @GetMapping("/tasks/test-cleaner")
     @PreAuthorize("hasRole('CLEANER')")
     public ResponseEntity<String> cleanerAccessCheck() {
         return ResponseEntity.ok("CLEANER OK");
     }
 
-    // =====================================================================
-    // # READ – own tasks
-    // =====================================================================
     @GetMapping("/tasks/me")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<List<CleaningTaskResponseDTO>> getMyTasks(Authentication authentication) {
@@ -64,9 +52,6 @@ public class CleaningTaskController {
         return ResponseEntity.ok(cleaningService.getTasksForCaller(email));
     }
 
-    // =====================================================================
-    // # READ – tasks
-    // =====================================================================
     @GetMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<List<CleaningTaskResponseDTO>> getTasks(
@@ -86,9 +71,6 @@ public class CleaningTaskController {
         return ResponseEntity.ok(result);
     }
 
-    // =====================================================================
-    // # CREATE
-    // =====================================================================
     @PostMapping("/tasks")
     @PreAuthorize("hasAnyRole('ADMIN','CLEANER')")
     public ResponseEntity<CleaningTaskResponseDTO> createTask(
@@ -98,9 +80,6 @@ public class CleaningTaskController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // =====================================================================
-    // # UPDATE
-    // =====================================================================
     @PutMapping("/tasks/{taskId}/toggle")
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT','CLEANER')")
     public ResponseEntity<CleaningTaskResponseDTO> toggleTask(
@@ -127,9 +106,6 @@ public class CleaningTaskController {
         return ResponseEntity.ok(cleaningService.addIncident(taskId, incident));
     }
 
-    // =====================================================================
-    // # DELETE
-    // =====================================================================
     @DeleteMapping("/tasks/{taskId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTask(@PathVariable @Positive Long taskId) {

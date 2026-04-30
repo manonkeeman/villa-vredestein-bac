@@ -14,9 +14,7 @@ import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
 
-// ==============================================================
 // CleaningTaskService
-// ==============================================================
 @Service
 @Transactional
 public class CleaningTaskService {
@@ -34,7 +32,7 @@ public class CleaningTaskService {
     }
 
     // --------------------------------------------------------------
-    // ISO week + rotation helpers (dynamisch op basis van studenten)
+    // ISO week + rotation helpers
     // --------------------------------------------------------------
     public int getCurrentIsoWeek() {
         return LocalDate.now().get(WeekFields.ISO.weekOfWeekBasedYear());
@@ -54,9 +52,7 @@ public class CleaningTaskService {
         return scheduleService.rotationLength();
     }
 
-    // ==============================================================
     // Role-aware methods
-    // ==============================================================
 
     public List<CleaningTaskResponseDTO> getAllTasksForRole(String role) {
         String callerRole = normalizeCallerRole(role);
@@ -84,9 +80,7 @@ public class CleaningTaskService {
         return getTasksByWeekForRole(role, rotationWeek);
     }
 
-    // ==============================================================
     // Backwards-compatible READ methods
-    // ==============================================================
 
     public List<CleaningTaskResponseDTO> getAllTasks() {
         return getAllTasksForRole("ADMIN");
@@ -100,9 +94,7 @@ public class CleaningTaskService {
         return getTasksByWeekForRole("STUDENT", weekNumber);
     }
 
-    // ==============================================================
     // WRITE methods
-    // ==============================================================
 
     public CleaningTaskResponseDTO addTask(CleaningTaskRequestDTO dto) {
         int weekNumber = requireValidWeekNumber(dto.getWeekNumber());
@@ -166,9 +158,7 @@ public class CleaningTaskService {
         taskRepository.delete(task);
     }
 
-    // ==============================================================
     // Helpers
-    // ==============================================================
 
     private String normalizeCallerRole(String role) {
         if (role == null || role.isBlank()) {

@@ -55,7 +55,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
         userRepository.save(admin);
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
 
     private String loginAndGetToken() throws Exception {
         var payload = objectMapper.createObjectNode();
@@ -122,8 +121,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
         return invoiceRepository.save(invoice);
     }
 
-    // ── GET /api/invoices (admin listing) ──────────────────────────────────
-
     @Test
     void getInvoices_withValidJwt_returns200() throws Exception {
         String token = loginAndGetToken();
@@ -143,8 +140,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isIn(401, 403);
     }
-
-    // ── POST /api/invoices (admin create) ──────────────────────────────────
 
     @Test
     void createInvoice_asAdmin_validBody_returns201() throws Exception {
@@ -177,7 +172,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
 
         var payload = objectMapper.createObjectNode();
         payload.put("title", "Huur mei");
-        // amount, issueDate, dueDate, studentEmail all missing
 
         mockMvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -196,8 +190,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isIn(401, 403);
     }
-
-    // ── GET /api/invoices/{id} (ownership check) ───────────────────────────
 
     @Test
     void getInvoiceById_asStudent_ownInvoice_returns200() throws Exception {
@@ -230,8 +222,6 @@ class InvoiceIntegrationTest extends BaseIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + s2Token))
                 .andExpect(status().isForbidden());
     }
-
-    // ── DELETE /api/invoices/{id} (admin only) ─────────────────────────────
 
     @Test
     void deleteInvoice_asStudent_returns403() throws Exception {

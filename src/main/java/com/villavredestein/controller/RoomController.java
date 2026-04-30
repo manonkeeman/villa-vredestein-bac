@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// =====================================================================
-// # RoomController
-// =====================================================================
 @Validated
 @RestController
 @RequestMapping(value = "/api/rooms", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -26,9 +23,6 @@ public class RoomController {
         this.roomService = roomService;
     }
 
-    // =====================================================================
-    // # READ
-    // =====================================================================
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping
@@ -45,9 +39,6 @@ public class RoomController {
         );
     }
 
-    // =====================================================================
-    // # UPDATE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{roomId}/assign/{userId}")
@@ -64,9 +55,6 @@ public class RoomController {
         return ResponseEntity.ok(roomService.removeOccupantDTO(roomId));
     }
 
-    // =====================================================================
-    // # DELETE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")

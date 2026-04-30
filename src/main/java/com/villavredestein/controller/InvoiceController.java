@@ -18,9 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// =====================================================================
-// # InvoiceController
-// =====================================================================
 @Validated
 @RestController
 @RequestMapping(value = "/api/invoices", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -32,27 +29,18 @@ public class InvoiceController {
         this.invoiceService = invoiceService;
     }
 
-    // =====================================================================
-    // # READ – admin listing
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<InvoiceResponseDTO>> getAllInvoices() {
         return ResponseEntity.ok(invoiceService.getAllInvoices());
     }
 
-    // =====================================================================
-    // # READ – current user listing
-    // =====================================================================
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/me")
     public ResponseEntity<List<InvoiceResponseDTO>> getMyInvoices(Authentication authentication) {
         return ResponseEntity.ok(invoiceService.getInvoicesForStudent(authentication.getName()));
     }
 
-    // =====================================================================
-    // # READ – by id
-    // =====================================================================
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceResponseDTO> getInvoiceById(
@@ -64,9 +52,6 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.getInvoiceByIdForCaller(id, authentication.getName(), isAdmin));
     }
 
-    // =====================================================================
-    // # PDF DOWNLOAD
-    // =====================================================================
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadInvoicePdf(
@@ -85,9 +70,6 @@ public class InvoiceController {
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
-    // =====================================================================
-    // # CREATE
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<InvoiceResponseDTO> createInvoice(@Valid @RequestBody InvoiceRequestDTO request) {
@@ -95,9 +77,6 @@ public class InvoiceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // =====================================================================
-    // # UPDATE – status
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<InvoiceResponseDTO> updateInvoiceStatus(
@@ -108,9 +87,6 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.updateStatus(id, normalizedStatus));
     }
 
-    // =====================================================================
-    // # DELETE
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInvoice(@PathVariable @Positive Long id) {

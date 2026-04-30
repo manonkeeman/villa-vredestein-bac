@@ -17,11 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Runs at startup to ensure the cleaning task rotation is correct.
- * Delegates the actual seeding to CleaningScheduleService so that
- * the same logic is used at startup AND when students are added/removed.
- */
 @Component
 @Order(20) // runs after ContractSeeder
 public class CleaningTaskSeeder implements ApplicationRunner {
@@ -63,7 +58,6 @@ public class CleaningTaskSeeder implements ApplicationRunner {
 
         List<CleaningTask> all = taskRepository.findAllByOrderByIdAsc();
 
-        // Verouderde Engelse taaknamen
         boolean hasEnglish = all.stream().anyMatch(t ->
             t.getName() != null && (
                 t.getName().toLowerCase().contains("kitchen") ||
@@ -78,7 +72,6 @@ public class CleaningTaskSeeder implements ApplicationRunner {
             return true;
         }
 
-        // Taken toegewezen aan niet-studenten
         Set<Long> studentIds = new HashSet<>();
         userRepository.findByRole(User.Role.STUDENT).forEach(u -> studentIds.add(u.getId()));
 

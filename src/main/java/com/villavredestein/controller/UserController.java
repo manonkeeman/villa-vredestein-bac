@@ -31,9 +31,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    // =====================================================================
     // REQUEST DTOs
-    // =====================================================================
 
     public static class CreateStudentRequest {
 
@@ -118,9 +116,7 @@ public class UserController {
         public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 
-    // =====================================================================
     // CREATE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -145,9 +141,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // =====================================================================
     // READ
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
@@ -177,9 +171,7 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    // =====================================================================
     // UPDATE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/{id}/role", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -219,9 +211,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(id, dto));
     }
 
-    // =====================================================================
     // DELETE
-    // =====================================================================
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")

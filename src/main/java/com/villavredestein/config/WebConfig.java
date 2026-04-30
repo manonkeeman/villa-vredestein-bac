@@ -19,7 +19,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String absolutePath = Paths.get(uploadDir).toAbsolutePath().normalize().toUri().toString();
-        // Classpath location first (bundled contract PDFs), filesystem second (runtime uploads like profile photos)
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("classpath:/static/uploads/", absolutePath + "/");
     }

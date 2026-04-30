@@ -31,9 +31,6 @@ class PaymentServiceTest {
     @Mock UserRepository userRepository;
     @InjectMocks PaymentService paymentService;
 
-    // =====================================================================
-    // # getAllPayments
-    // =====================================================================
 
     @Test
     void getAllPayments_returnsMappedDtoList() {
@@ -58,9 +55,6 @@ class PaymentServiceTest {
         assertThat(result).isEmpty();
     }
 
-    // =====================================================================
-    // # getPaymentsForStudent
-    // =====================================================================
 
     @Test
     void getPaymentsForStudent_validEmail_returnsList() {
@@ -86,9 +80,6 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).findByStudent_EmailIgnoreCaseOrderByIdDesc(any());
     }
 
-    // =====================================================================
-    // # getOpenPaymentsForStudent
-    // =====================================================================
 
     @Test
     void getOpenPaymentsForStudent_returnsCombinedOpenAndPendingPayments() {
@@ -120,9 +111,6 @@ class PaymentServiceTest {
         assertThat(result.get(0).status()).isEqualTo("PENDING");
     }
 
-    // =====================================================================
-    // # getPaymentById
-    // =====================================================================
 
     @Test
     void getPaymentById_found_returnsDto() {
@@ -155,9 +143,6 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).findById(any());
     }
 
-    // =====================================================================
-    // # createPayment
-    // =====================================================================
 
     @Test
     void createPayment_success_returnsDto() {
@@ -197,9 +182,6 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).save(any());
     }
 
-    // =====================================================================
-    // # updateStatus
-    // =====================================================================
 
     @Test
     void updateStatus_toPaid_setsPaidAtAndReturnsDto() {
@@ -234,9 +216,6 @@ class PaymentServiceTest {
         assertThrows(EntityNotFoundException.class, () -> paymentService.updateStatus(99L, "PAID"));
     }
 
-    // =====================================================================
-    // # deletePayment
-    // =====================================================================
 
     @Test
     void deletePayment_success_deletesPayment() {
@@ -262,9 +241,6 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).findById(any());
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
 
     private User makeStudent(long id, String username, String email) {
         User user = new User(username, email, "hash", User.Role.STUDENT);

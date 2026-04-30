@@ -9,10 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-/**
- * Sets contract file names for known residents on every startup (idempotent).
- * Only updates rows where contract_file is not yet set.
- */
 @Component
 @Order(10)
 public class ContractSeeder implements ApplicationRunner {

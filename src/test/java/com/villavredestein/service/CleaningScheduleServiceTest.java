@@ -30,9 +30,6 @@ class CleaningScheduleServiceTest {
         return user;
     }
 
-    // =====================================================================
-    // # rotationLength
-    // =====================================================================
 
     @Test
     void rotationLength_withThreeStudents_returnsFour() {
@@ -55,9 +52,6 @@ class CleaningScheduleServiceTest {
         assertThat(result).isEqualTo(1);
     }
 
-    // =====================================================================
-    // # expectedTaskCount
-    // =====================================================================
 
     @Test
     void expectedTaskCount_withFourStudents_returnsTwenty() {
@@ -81,9 +75,6 @@ class CleaningScheduleServiceTest {
         assertThat(result).isEqualTo(4); // (0 + 1) * 4
     }
 
-    // =====================================================================
-    // # reseedNow
-    // =====================================================================
 
     @Test
     void reseedNow_withTwoStudents_createsThreeWeeksTwelveTasksTotal() {
@@ -93,7 +84,6 @@ class CleaningScheduleServiceTest {
 
         cleaningScheduleService.reseedNow();
 
-        // 2 studenten + 1 vrije week = 3 weken * 4 taken = 12 taken
         verify(cleaningTaskRepository, times(12)).save(any(CleaningTask.class));
         verify(cleaningTaskRepository).deleteAll();
         verify(cleaningTaskRepository).flush();
@@ -105,7 +95,6 @@ class CleaningScheduleServiceTest {
 
         cleaningScheduleService.reseedNow();
 
-        // 0 studenten + 1 vrije week = 1 week * 4 taken = 4 taken
         verify(cleaningTaskRepository, times(4)).save(any(CleaningTask.class));
     }
 
@@ -115,7 +104,6 @@ class CleaningScheduleServiceTest {
 
         cleaningScheduleService.reseedNow();
 
-        // deleteAll moet vóór save worden aangeroepen
         var inOrder = inOrder(cleaningTaskRepository);
         inOrder.verify(cleaningTaskRepository).deleteAll();
         inOrder.verify(cleaningTaskRepository).flush();
@@ -129,16 +117,13 @@ class CleaningScheduleServiceTest {
 
         cleaningScheduleService.reseedNow();
 
-        // 1 student + 1 vrije week = 2 weken * 4 taken = 8 taken
         verify(cleaningTaskRepository, times(8)).save(any(CleaningTask.class));
     }
 
     @Test
     void reseedNow_sortsByStudentId() {
-        // s2 heeft hogere id dan s1 — volgorde in list is omgekeerd maar service sorteert op id
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         User s2 = makeStudent(2, "desmond", "desmond@vv.com");
-        // Geef ze in omgekeerde volgorde mee
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s2, s1));
 
         ArgumentCaptor<CleaningTask> captor = ArgumentCaptor.forClass(CleaningTask.class);
@@ -147,7 +132,6 @@ class CleaningScheduleServiceTest {
 
         verify(cleaningTaskRepository, times(12)).save(captor.capture());
 
-        // Week 1, eerste task (taskIdx=0, week=1): slot = (0 + 1 - 1) % 3 = 0 → simon (id=1)
         CleaningTask firstTask = captor.getAllValues().get(0);
         assertThat(firstTask.getWeekNumber()).isEqualTo(1);
         assertThat(firstTask.getAssignedTo()).isEqualTo(s1); // gesorteerd op id → simon eerst
@@ -185,7 +169,6 @@ class CleaningScheduleServiceTest {
 
         verify(cleaningTaskRepository, times(8)).save(captor.capture());
 
-        // Er moet minstens één taak zijn zonder assignee (vrije week)
         assertThat(captor.getAllValues())
                 .anyMatch(t -> t.getAssignedTo() == null);
     }

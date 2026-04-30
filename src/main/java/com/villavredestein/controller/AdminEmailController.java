@@ -25,10 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Admin endpoint for manually sending payment reminder emails to individual students.
- * Always generates a fresh Mollie iDEAL payment link so the student receives a valid checkout URL.
- */
 @RestController
 @RequestMapping(value = "/api/admin/email", produces = MediaType.APPLICATION_JSON_VALUE)
 @PreAuthorize("hasRole('ADMIN')")
@@ -60,21 +56,16 @@ public class AdminEmailController {
         this.emailTemplateService = emailTemplateService;
     }
 
-    // =========================================================================
     // POST /api/admin/email/send
-    // Body: { "userId": 3, "templateType": "PAYMENT_REMINDER_1" }
-    // =========================================================================
 
     public record SendReminderRequest(Long userId, String templateType) {}
 
     @PostMapping(value = "/send", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> sendReminder(@RequestBody SendReminderRequest request) {
 
-        // ── 1. Resolve student ───────────────────────────────────────────────
         User student = userRepository.findById(request.userId())
                 .orElseThrow(() -> new EntityNotFoundException("Student niet gevonden: id=" + request.userId()));
 
-        // ── 2. Find open invoice for current month ───────────────────────────
         LocalDate today = LocalDate.now();
         int month = today.getMonthValue();
         int year  = today.getYear();
@@ -88,13 +79,11 @@ public class AdminEmailController {
                         "Geen openstaande factuur gevonden voor " + student.getUsername()
                         + " in " + month + "/" + year));
 
-        // ── 3. Fresh Mollie iDEAL payment ────────────────────────────────────
         String maand       = LocalDate.of(year, month, 1).format(MONTH_NL);
         String vervaldatum = invoice.getDueDate() != null ? invoice.getDueDate().format(DATE_NL) : "";
         String bedrag      = formatBedrag(invoice.getAmount());
         String betaalLink  = refreshCheckoutUrl(invoice, maand);
 
-        // ── 4. Load email template ───────────────────────────────────────────
         EmailTemplate.TemplateType templateType = resolveTemplateType(request.templateType());
         EmailTemplate template = loadTemplate(templateType);
 
@@ -110,10 +99,8 @@ public class AdminEmailController {
                     + "\n\nMet vriendelijke groet,\nVilla Vredestein";
         }
 
-        // ── 5. Send email ────────────────────────────────────────────────────
         mailService.sendInvoiceReminderMail(student.getEmail(), subject, body);
 
-        // ── 6. Track reminder metadata ───────────────────────────────────────
         invoice.setReminderCount(invoice.getReminderCount() + 1);
         invoice.setLastReminderSentAt(LocalDateTime.now());
         invoiceService.saveReminderMeta(invoice);
@@ -128,9 +115,7 @@ public class AdminEmailController {
         ));
     }
 
-    // =========================================================================
     // Helpers
-    // =========================================================================
 
     private String refreshCheckoutUrl(Invoice invoice, String maand) {
         String description = "Huur " + maand + " – Villa Vredestein";

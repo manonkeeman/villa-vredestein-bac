@@ -20,10 +20,8 @@ import jakarta.validation.constraints.NotBlank;
 )
 public class CleaningTask {
 
-    // Canonical public access value we store going forward
     public static final String ROLE_ALL = "ROLE_ALL";
 
-    // Backwards compatibility: older rows / inputs may still contain "ALL"
     public static final String LEGACY_ALL = "ALL";
 
     @Id
@@ -79,22 +77,18 @@ public class CleaningTask {
 
         String normalized = roleAccess.trim().toUpperCase(Locale.ROOT);
 
-        // Convert Spring Security authority format (ROLE_STUDENT -> STUDENT)
         if (normalized.startsWith("ROLE_")) {
             normalized = normalized.substring("ROLE_".length());
         }
 
-        // Legacy support
         if (LEGACY_ALL.equals(normalized)) {
             return ROLE_ALL;
         }
 
-        // Canonical values
         if ("ADMIN".equals(normalized) || "STUDENT".equals(normalized) || "CLEANER".equals(normalized)) {
             return normalized;
         }
 
-        // Keep as-is (uppercased). Validation/service layer can reject if needed.
         return normalized;
     }
 

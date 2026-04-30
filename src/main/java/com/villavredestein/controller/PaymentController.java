@@ -18,9 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// =====================================================================
-// # PaymentController
-// =====================================================================
 @Validated
 @RestController
 @RequestMapping(value = "/api/payments", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -32,9 +29,6 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    // =====================================================================
-    // # READ - current user
-    // =====================================================================
     @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
     @GetMapping("/me")
     public ResponseEntity<List<PaymentResponseDTO>> getMyPayments(Authentication authentication) {
@@ -49,9 +43,6 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getOpenPaymentsForStudent(email));
     }
 
-    // =====================================================================
-    // # READ - admin
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<PaymentResponseDTO>> getAllPayments() {
@@ -70,9 +61,6 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
-    // =====================================================================
-    // # CREATE / DELETE - admin
-    // =====================================================================
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PaymentResponseDTO> createPayment(@Valid @RequestBody PaymentRequestDTO dto) {
@@ -87,9 +75,6 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
-    // =====================================================================
-    // # Helpers
-    // =====================================================================
     private String currentUserEmail(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             throw new AuthenticationCredentialsNotFoundException("No authenticated user found");

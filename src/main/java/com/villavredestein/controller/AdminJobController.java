@@ -62,21 +62,18 @@ public class AdminJobController {
         return ResponseEntity.ok(Map.of("message", "Rent reminder sent to all students"));
     }
 
-    /** Creates invoices + sends PAYMENT_NEW emails for current month (1st-of-month job). */
     @PostMapping("/monthly-invoices/trigger")
     public ResponseEntity<Map<String, String>> triggerMonthlyInvoices() {
         monthlyRentInvoiceJob.run();
         return ResponseEntity.ok(Map.of("message", "Monthly invoice job triggered"));
     }
 
-    /** Sends first payment reminder (normally runs on 3rd). */
     @PostMapping("/payment-reminder-1/trigger")
     public ResponseEntity<Map<String, String>> triggerPaymentReminder1() {
         paymentReminderJob.triggerFirstReminder();
         return ResponseEntity.ok(Map.of("message", "First payment reminder triggered"));
     }
 
-    /** Sends second payment reminder (normally runs on 7th). */
     @PostMapping("/payment-reminder-2/trigger")
     public ResponseEntity<Map<String, String>> triggerPaymentReminder2() {
         paymentReminderJob.triggerSecondReminder();

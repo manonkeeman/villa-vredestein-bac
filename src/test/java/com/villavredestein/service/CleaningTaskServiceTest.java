@@ -42,9 +42,6 @@ class CleaningTaskServiceTest {
         return task;
     }
 
-    // =====================================================================
-    // # getAllTasksForRole
-    // =====================================================================
 
     @Test
     void getAllTasksForRole_admin_returnsAllTasks() {
@@ -94,9 +91,6 @@ class CleaningTaskServiceTest {
         verify(taskRepository).findAccessibleForRole("STUDENT");
     }
 
-    // =====================================================================
-    // # getTasksByWeekForRole
-    // =====================================================================
 
     @Test
     void getTasksByWeekForRole_admin_usesAdminQuery() {
@@ -135,9 +129,6 @@ class CleaningTaskServiceTest {
                 () -> cleaningTaskService.getTasksByWeekForRole("ADMIN", -5));
     }
 
-    // =====================================================================
-    // # getCurrentWeekTasksForRole
-    // =====================================================================
 
     @Test
     void getCurrentWeekTasksForRole_callsRotationWeek() {
@@ -149,9 +140,6 @@ class CleaningTaskServiceTest {
         verify(scheduleService).rotationLength();
     }
 
-    // =====================================================================
-    // # addTask
-    // =====================================================================
 
     @Test
     void addTask_withValidDto_savesAndReturnsDto() {
@@ -212,9 +200,6 @@ class CleaningTaskServiceTest {
         assertThrows(IllegalArgumentException.class, () -> cleaningTaskService.addTask(dto));
     }
 
-    // =====================================================================
-    // # updateTask
-    // =====================================================================
 
     @Test
     void updateTask_existing_updatesFields() {
@@ -244,9 +229,6 @@ class CleaningTaskServiceTest {
         assertThrows(EntityNotFoundException.class, () -> cleaningTaskService.updateTask(99L, dto));
     }
 
-    // =====================================================================
-    // # toggleTask
-    // =====================================================================
 
     @Test
     void toggleTask_completedTrue_setsToFalse() {
@@ -276,9 +258,6 @@ class CleaningTaskServiceTest {
         assertThrows(EntityNotFoundException.class, () -> cleaningTaskService.toggleTask(99L));
     }
 
-    // =====================================================================
-    // # addComment
-    // =====================================================================
 
     @Test
     void addComment_validComment_setsComment() {
@@ -306,9 +285,6 @@ class CleaningTaskServiceTest {
         assertThrows(IllegalArgumentException.class, () -> cleaningTaskService.addComment(1L, null));
     }
 
-    // =====================================================================
-    // # addIncident
-    // =====================================================================
 
     @Test
     void addIncident_validReport_setsIncidentReport() {
@@ -328,9 +304,6 @@ class CleaningTaskServiceTest {
         assertThrows(IllegalArgumentException.class, () -> cleaningTaskService.addIncident(1L, ""));
     }
 
-    // =====================================================================
-    // # deleteTask
-    // =====================================================================
 
     @Test
     void deleteTask_existing_callsDelete() {
@@ -350,9 +323,6 @@ class CleaningTaskServiceTest {
         verify(taskRepository, never()).delete(any());
     }
 
-    // =====================================================================
-    // # getTasksForCaller
-    // =====================================================================
 
     @Test
     void getTasksForCaller_validEmail_returnsTasks() {
@@ -378,9 +348,6 @@ class CleaningTaskServiceTest {
         assertThrows(IllegalArgumentException.class, () -> cleaningTaskService.getTasksForCaller("   "));
     }
 
-    // =====================================================================
-    // # getRotationLength / getCurrentRotationWeek
-    // =====================================================================
 
     @Test
     void getRotationLength_delegatesToScheduleService() {

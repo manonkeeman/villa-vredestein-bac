@@ -11,12 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Admin-only REST endpoints for managing email templates.
- *
- * GET  /api/admin/email-templates          → list all three templates
- * PUT  /api/admin/email-templates/{type}   → update subject + body
- */
 @RestController
 @RequestMapping(value = "/api/admin/email-templates", produces = MediaType.APPLICATION_JSON_VALUE)
 @PreAuthorize("hasRole('ADMIN')")

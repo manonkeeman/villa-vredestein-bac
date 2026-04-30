@@ -5,9 +5,11 @@ import com.villavredestein.dto.UserResponseDTO;
 import com.villavredestein.model.Invoice;
 import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
+import com.villavredestein.dto.PasswordResetTokenRepository;
 import com.villavredestein.repository.CleaningTaskRepository;
 import com.villavredestein.repository.DocumentRepository;
 import com.villavredestein.repository.InvoiceRepository;
+import com.villavredestein.repository.PaymentRepository;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -58,6 +60,8 @@ public class UserService implements UserDetailsService {
     private final CleaningTaskRepository cleaningTaskRepository;
     private final InvoiceRepository invoiceRepository;
     private final DocumentRepository documentRepository;
+    private final PaymentRepository paymentRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final CleaningScheduleService cleaningScheduleService;
     private final Path uploadDir;
 
@@ -68,6 +72,8 @@ public class UserService implements UserDetailsService {
             CleaningTaskRepository cleaningTaskRepository,
             InvoiceRepository invoiceRepository,
             DocumentRepository documentRepository,
+            PaymentRepository paymentRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             @Lazy CleaningScheduleService cleaningScheduleService,
             @Value("${app.upload-dir:uploads}") String uploadDir
     ) {
@@ -77,6 +83,8 @@ public class UserService implements UserDetailsService {
         this.cleaningTaskRepository = cleaningTaskRepository;
         this.invoiceRepository = invoiceRepository;
         this.documentRepository = documentRepository;
+        this.paymentRepository = paymentRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.cleaningScheduleService = cleaningScheduleService;
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
@@ -323,6 +331,9 @@ public class UserService implements UserDetailsService {
         }
 
         documentRepository.deleteAll(documentRepository.findByUploadedByOrderByIdDesc(user));
+
+        paymentRepository.deleteAll(paymentRepository.findByStudent(user));
+        passwordResetTokenRepository.deleteAllByUser(user);
 
         userRepository.delete(user);
 

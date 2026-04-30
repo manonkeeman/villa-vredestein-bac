@@ -81,7 +81,7 @@ public class PasswordResetService {
         if (newPassword == null || newPassword.isBlank()) throw new IllegalArgumentException("New password is required");
         if (newPassword.length() < 8) throw new IllegalArgumentException("New password must be at least 8 characters");
 
-        PasswordResetToken prt = tokenRepository.findById(token.trim())
+        PasswordResetToken prt = tokenRepository.findByToken(token.trim())
                 .orElseThrow(() -> new EntityNotFoundException("Invalid or unknown token"));
 
         if (prt.isUsed()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Token already used");

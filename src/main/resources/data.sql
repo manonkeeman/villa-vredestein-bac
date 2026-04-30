@@ -10,15 +10,15 @@ BEGIN;
 
 INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('villavredestein@gmail.com', 'Admin', '$2a$10$C6cl7EPzdrsj2xIZ7ECJbeZzAUVqAICC6qG0uQ.GwSnQjqlbnmiGm', 'ADMIN', true)
-ON CONFLICT (email) DO NOTHING;
+  ('villavredestein@gmail.com', 'Admin', '$2b$08$V8tpGDrFALoLlA38ZYbmPOvi3zB9YsdGJ49xOMsL69ZY.Nla8/Anq', 'ADMIN', true)
+ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password;
 
 INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('desmondstaal@gmail.com',  'Desmond', '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
-  ('medocstaal@gmail.com',    'Medoc',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
-  ('simontalsma2@gmail.com',  'Simon',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true),
-  ('arwenleonor@gmail.com',   'Arwen',   '$2a$10$8jkpw3jcNo8VPa/OTIj/W.E0Z9sDghGL1hwupThQuQTFpWYhN2uMm', 'STUDENT', true)
+  ('desmondstaal@gmail.com',  'Desmond', '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
+  ('medocstaal@gmail.com',    'Medoc',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
+  ('simontalsma2@gmail.com',  'Simon',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
+  ('arwenleonor@gmail.com',   'Arwen',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
 UPDATE users SET rent_amount = 350.00 WHERE email = 'desmondstaal@gmail.com';
@@ -38,8 +38,8 @@ WHERE email = 'arwenleonor@gmail.com'
 
 INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
-  ('cleaner@villavredestein.com', 'Cleaner', '$2a$10$lsHY1ORj580Kn9Dt3sbWF.yu/iNfsbOvsynzxZKy0sb9osdcpFQqS', 'CLEANER', true)
-ON CONFLICT (email) DO NOTHING;
+  ('cleaner@villavredestein.com', 'Cleaner', '$2b$08$I9JPSEPfvziWzcURaTxxnOabQfREUqEHEaYflGrxWOX7rYO1Bwvty', 'CLEANER', true)
+ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password;
 
 -- ==================================================
 -- ROOMS

@@ -6,6 +6,7 @@ import com.villavredestein.model.Invoice;
 import com.villavredestein.model.Room;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.CleaningTaskRepository;
+import com.villavredestein.repository.DocumentRepository;
 import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.RoomRepository;
 import com.villavredestein.repository.UserRepository;
@@ -56,6 +57,7 @@ public class UserService implements UserDetailsService {
     private final RoomRepository roomRepository;
     private final CleaningTaskRepository cleaningTaskRepository;
     private final InvoiceRepository invoiceRepository;
+    private final DocumentRepository documentRepository;
     private final CleaningScheduleService cleaningScheduleService;
     private final Path uploadDir;
 
@@ -65,6 +67,7 @@ public class UserService implements UserDetailsService {
             RoomRepository roomRepository,
             CleaningTaskRepository cleaningTaskRepository,
             InvoiceRepository invoiceRepository,
+            DocumentRepository documentRepository,
             @Lazy CleaningScheduleService cleaningScheduleService,
             @Value("${app.upload-dir:uploads}") String uploadDir
     ) {
@@ -73,6 +76,7 @@ public class UserService implements UserDetailsService {
         this.roomRepository = roomRepository;
         this.cleaningTaskRepository = cleaningTaskRepository;
         this.invoiceRepository = invoiceRepository;
+        this.documentRepository = documentRepository;
         this.cleaningScheduleService = cleaningScheduleService;
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
@@ -317,6 +321,8 @@ public class UserService implements UserDetailsService {
         if (!invoices.isEmpty()) {
             invoiceRepository.deleteAll(invoices);
         }
+
+        documentRepository.deleteAll(documentRepository.findByUploadedByOrderByIdDesc(user));
 
         userRepository.delete(user);
 

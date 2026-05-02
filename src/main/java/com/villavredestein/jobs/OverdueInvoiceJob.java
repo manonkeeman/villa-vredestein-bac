@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -44,6 +45,7 @@ public class OverdueInvoiceJob {
         this.mailService = mailService;
     }
 
+    @Transactional
     @Scheduled(cron = "${app.invoice.overdue.cron:0 15 9 * * *}", zone = "Europe/Amsterdam")
     public void sendOverdueReminders() {
         LocalDate today = LocalDate.now();

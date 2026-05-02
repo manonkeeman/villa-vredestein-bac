@@ -41,42 +41,42 @@ public class AdminJobController {
     @PostMapping("/reminders/trigger")
     public ResponseEntity<Map<String, String>> triggerReminders() {
         invoiceReminderJob.sendReminders();
-        return ResponseEntity.ok(Map.of("message", "Invoice reminder job triggered"));
+        return ResponseEntity.ok(Map.of("message", "Factuurherinneringen zijn verstuurd"));
     }
 
     @PostMapping("/overdue/trigger")
     public ResponseEntity<Map<String, String>> triggerOverdue() {
         overdueInvoiceJob.sendOverdueReminders();
-        return ResponseEntity.ok(Map.of("message", "Overdue invoice job triggered"));
+        return ResponseEntity.ok(Map.of("message", "Vervallen facturen zijn verwerkt"));
     }
 
     @PostMapping("/cleaning/missed/trigger")
     public ResponseEntity<Map<String, String>> triggerMissedCleaning() {
         missedCleaningTaskJob.sendMissedTaskNotifications();
-        return ResponseEntity.ok(Map.of("message", "Missed cleaning task job triggered"));
+        return ResponseEntity.ok(Map.of("message", "Meldingen voor gemiste schoonmaaktaken zijn verstuurd"));
     }
 
     @PostMapping("/rent-reminder/trigger")
     public ResponseEntity<Map<String, String>> triggerRentReminder() {
         monthlyRentReminderJob.sendRentReminders();
-        return ResponseEntity.ok(Map.of("message", "Rent reminder sent to all students"));
+        return ResponseEntity.ok(Map.of("message", "Huurherinneringen zijn verstuurd naar alle studenten"));
     }
 
     @PostMapping("/monthly-invoices/trigger")
     public ResponseEntity<Map<String, String>> triggerMonthlyInvoices() {
         monthlyRentInvoiceJob.run();
-        return ResponseEntity.ok(Map.of("message", "Monthly invoice job triggered"));
+        return ResponseEntity.ok(Map.of("message", "Maandelijkse facturen zijn aangemaakt"));
     }
 
     @PostMapping("/payment-reminder-1/trigger")
     public ResponseEntity<Map<String, String>> triggerPaymentReminder1() {
         paymentReminderJob.triggerFirstReminder();
-        return ResponseEntity.ok(Map.of("message", "First payment reminder triggered"));
+        return ResponseEntity.ok(Map.of("message", "Eerste betalingsherinnering is verstuurd"));
     }
 
     @PostMapping("/payment-reminder-2/trigger")
     public ResponseEntity<Map<String, String>> triggerPaymentReminder2() {
         paymentReminderJob.triggerSecondReminder();
-        return ResponseEntity.ok(Map.of("message", "Second payment reminder triggered"));
+        return ResponseEntity.ok(Map.of("message", "Tweede betalingsherinnering is verstuurd"));
     }
 }

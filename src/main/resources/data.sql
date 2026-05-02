@@ -86,9 +86,9 @@ UPDATE rooms SET occupant_id = NULL WHERE name = 'Japan';
 
 INSERT INTO documents (title, description, storage_path, role_access, uploaded_by_id)
 VALUES
-  ('Huisregels Villa Vredestein', 'Overview of house rules and code of conduct.', 'uploads/Huisregels.pdf', 'ALL',
+  ('Huisregels Villa Vredestein', 'Overview of house rules and code of conduct.', 'uploads/Huisregels.pdf', 'ROLE_ALL',
    (SELECT id FROM users WHERE email = 'villavredestein@gmail.com')),
-  ('Veiligheidsinstructies', 'Fire safety and emergency procedures.', 'uploads/Veiligheid.pdf', 'ALL',
+  ('Veiligheidsinstructies', 'Fire safety and emergency procedures.', 'uploads/Veiligheid.pdf', 'ROLE_ALL',
    (SELECT id FROM users WHERE email = 'villavredestein@gmail.com')),
   ('Pensionovereenkomst', 'Rental agreement template.', 'uploads/Pensionovereenkomst.pdf', 'STUDENT',
    (SELECT id FROM users WHERE email = 'villavredestein@gmail.com'))

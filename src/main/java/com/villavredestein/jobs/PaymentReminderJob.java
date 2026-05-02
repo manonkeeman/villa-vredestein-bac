@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -44,21 +45,25 @@ public class PaymentReminderJob {
     }
 
 
+    @Transactional
     @Scheduled(cron = "0 0 9 3 * *", zone = "Europe/Amsterdam")
     public void sendFirstReminders() {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_1, 1);
     }
 
+    @Transactional
     public void triggerFirstReminder() {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_1, 1);
     }
 
 
+    @Transactional
     @Scheduled(cron = "0 0 9 7 * *", zone = "Europe/Amsterdam")
     public void sendSecondReminders() {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_2, 2);
     }
 
+    @Transactional
     public void triggerSecondReminder() {
         sendReminders(EmailTemplate.TemplateType.PAYMENT_REMINDER_2, 2);
     }

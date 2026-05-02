@@ -53,23 +53,33 @@ public class DocumentController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(
-            value = "/upload",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<UploadResponseDTO> uploadDocument(
             Principal principal,
             @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "roleAccess", required = false) String roleAccess
+    ) {
+        String uploaderEmail = principal == null ? "unknown" : principal.getName();
+        UploadResponseDTO created = documentService.upload(uploaderEmail, file,
+                roleAccess != null ? roleAccess : "ROLE_ALL");
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(
+            value = "/upload",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<UploadResponseDTO> uploadDocumentLegacy(
+            Principal principal,
+            @RequestPart("file") MultipartFile file,
             @Valid @RequestPart("meta") DocumentRequestDTO meta
     ) {
         String uploaderEmail = principal == null ? "unknown" : principal.getName();
-
-        UploadResponseDTO created = documentService.upload(
-                uploaderEmail,
-                file,
-                meta.getRoleAccess()
-        );
-
+        UploadResponseDTO created = documentService.upload(uploaderEmail, file, meta.getRoleAccess());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

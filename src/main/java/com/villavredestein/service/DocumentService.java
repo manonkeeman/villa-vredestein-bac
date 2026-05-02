@@ -119,6 +119,7 @@ public class DocumentService {
 
     // LIST
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<DocumentResponseDTO> listAll() {
         return documentRepository.findAllByOrderByIdDesc()
                 .stream()
@@ -126,6 +127,7 @@ public class DocumentService {
                 .toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<DocumentResponseDTO> listAccessibleDocuments(String role) {
         String normalizedRole = normalizeRoleAccess(role);
 

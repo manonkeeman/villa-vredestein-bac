@@ -3,7 +3,10 @@ package com.villavredestein.controller;
 import com.villavredestein.dto.RoomResponseDTO;
 import com.villavredestein.service.RoomService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +27,21 @@ public class RoomController {
     }
 
 
+    record RoomCreateRequest(
+            @NotBlank(message = "naam is verplicht")
+            @Size(max = 100, message = "naam mag maximaal 100 tekens bevatten")
+            String name) {}
+
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")
     @GetMapping
     public ResponseEntity<List<RoomResponseDTO>> getAllRooms() {
         return ResponseEntity.ok(roomService.getAllRoomsDTO());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RoomResponseDTO> createRoom(@Validated @RequestBody RoomCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(roomService.createRoom(request.name()));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','STUDENT')")

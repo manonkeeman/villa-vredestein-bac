@@ -72,6 +72,17 @@ public class RoomService {
     }
 
 
+    public RoomResponseDTO createRoom(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Naam is verplicht");
+        }
+        String trimmed = name.trim();
+        if (roomRepository.findByNameIgnoreCase(trimmed).isPresent()) {
+            throw new IllegalStateException("Kamer met naam '" + trimmed + "' bestaat al");
+        }
+        return toDTO(roomRepository.save(new Room(trimmed)));
+    }
+
     public void deleteRoom(Long id) {
         Room room = roomRepository.findById(requireId(id, "id"))
                 .orElseThrow(() -> new EntityNotFoundException("Room not found: " + id));

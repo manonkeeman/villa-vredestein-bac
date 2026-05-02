@@ -1,0 +1,2062 @@
+{
+  "info": {
+    "_postman_id": "villa-vredestein-api-docs",
+    "name": "Villa Vredestein — API Documentatie",
+    "description": "API-documentatie Villa Vredestein backend.\n\nGebruik:\n1. Zet 'baseUrl' op http://localhost:8080\n2. Run request '01 Login als admin' — token wordt automatisch opgeslagen\n3. Run daarna de andere requests één voor één\n\nStandaard testaccounts:\n- ADMIN:   villavredestein@gmail.com  / Vredestein1906!\n- STUDENT: medocstaal@gmail.com       / Student1234!  (kamer: Frankrijk)\n- CLEANER: cleaner@villavredestein.com / Cleaner1234!\n\nLet op: requests met 'HANDMATIG' vereisen handmatige invoer in Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "createdUserId",
+      "value": ""
+    },
+    {
+      "key": "createdStudentId",
+      "value": ""
+    },
+    {
+      "key": "createdRoomId",
+      "value": ""
+    },
+    {
+      "key": "createdInvoiceId",
+      "value": ""
+    },
+    {
+      "key": "createdPaymentId",
+      "value": ""
+    },
+    {
+      "key": "createdTaskId",
+      "value": ""
+    },
+    {
+      "key": "createdAnnouncementId",
+      "value": ""
+    },
+    {
+      "key": "createdDocId",
+      "value": ""
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "description": "Wordt ingesteld via 'Login als student'"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Authenticatie (geen token vereist)",
+      "description": "Publieke endpoints — geen Authorization-header nodig.",
+      "item": [
+        {
+          "name": "Login als admin",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logt in als beheerder. Token wordt automatisch opgeslagen.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"villavredestein@gmail.com\",\n  \"password\": \"Vredestein1906!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login als student (kamer verplicht)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Student-login vereist de kameroptie. Geeft ROLE_STUDENT in de response.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"medocstaal@gmail.com\",\n  \"password\": \"Student1234!\",\n  \"loginMode\": \"STUDENT\",\n  \"room\": \"Frankrijk\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('studentToken', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login als cleaner",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logt in als schoonmaker. Geeft ROLE_CLEANER in de response.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"cleaner@villavredestein.com\",\n  \"password\": \"Cleaner1234!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Wachtwoord vergeten",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Stuurt een reset-link. Geeft altijd 204 — ook bij onbekend e-mail (veiligheid).",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"medocstaal@gmail.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Wachtwoord resetten (HANDMATIG: vul echte token in)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Gebruik 'Wachtwoord vergeten' eerst om een echte token te ontvangen. Lokaal: haal token op via de database.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"token\": \"<token-uit-de-reset-mail>\",\n  \"newPassword\": \"NieuwWacht1!\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Gebruikers",
+      "description": "Eigen profiel: alle rollen. Gebruikersbeheer: alleen ADMIN.",
+      "item": [
+        {
+          "name": "Eigen profiel ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Geeft de ingelogde gebruiker terug op basis van het JWT-token."
+          }
+        },
+        {
+          "name": "Eigen profiel bijwerken",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "profile"
+              ]
+            },
+            "description": "Werkt naam, telefoon en voorkeuren bij. socialPreference: OPEN_FOR_CONTACT|LEUK|AF_EN_TOE|LIEVER_OP_MEZELF",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"username\": \"Admin\",\n  \"phoneNumber\": \"0612345678\",\n  \"socialPreference\": \"LEUK\",\n  \"mealPreference\": \"JA\",\n  \"availabilityStatus\": \"OPEN_VOOR_CHILLEN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Eigen wachtwoord wijzigen",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Oud wachtwoord is verplicht. LET OP: na dit request is het wachtwoord gewijzigd — zet het daarna terug.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"oldPassword\": \"Vredestein1906!\",\n  \"newPassword\": \"NieuwWacht1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Wachtwoord terugzetten (cleanup na test)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"oldPassword\": \"NieuwWacht1!\",\n  \"newPassword\": \"Vredestein1906!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Zet het admin-wachtwoord terug naar Vredestein1906! zodat volgende runs weer kunnen inloggen."
+          }
+        },
+        {
+          "name": "Profielfoto uploaden (HANDMATIG: selecteer bestand)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile-photo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "profile-photo"
+              ]
+            },
+            "description": "Upload een profielfoto. Body: form-data, key=file, type=File. Toegestaan: JPEG, PNG, WEBP.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Selecteer .jpg/.png/.webp"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Profielfoto verwijderen",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile-photo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "profile-photo"
+              ]
+            },
+            "description": "Verwijdert de profielfoto van de ingelogde gebruiker."
+          }
+        },
+        {
+          "name": "Alle gebruikers ophalen (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Geeft een lijst van alle gebruikers. Alleen toegankelijk voor ADMIN."
+          }
+        },
+        {
+          "name": "Gebruiker ophalen op ID (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/2150",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "2150"
+              ]
+            },
+            "description": "Geeft één gebruiker terug op ID. Voorbeeld: Medoc (ID 2150)."
+          }
+        },
+        {
+          "name": "Gebruiker zoeken op e-mail (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/email/medocstaal@gmail.com",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "email",
+                "medocstaal@gmail.com"
+              ]
+            },
+            "description": "Zoekt een gebruiker op e-mailadres."
+          }
+        },
+        {
+          "name": "Nieuwe gebruiker aanmaken (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Maakt een nieuwe gebruiker aan. Rol: ADMIN|STUDENT|CLEANER. Geeft 201 terug. ID wordt opgeslagen voor verwijdering.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"username\": \"TestGebruikerNovi\",\n  \"email\": \"testgebruiker-novi@example.com\",\n  \"password\": \"Wacht123!\",\n  \"role\": \"STUDENT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdUserId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student aanmaken met kamer + factuur (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "students"
+              ]
+            },
+            "description": "Maakt student aan, koppelt kamer en genereert meteen een factuur.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"username\": \"NieuweStudentNovi\",\n  \"email\": \"nieuwstudent-novi@example.com\",\n  \"password\": \"Student123!\",\n  \"room\": \"Japan\",\n  \"rentAmount\": 350.0,\n  \"sendWelcomeEmail\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdStudentId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student verwijderen (cleanup na aanmaken)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{createdStudentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{createdStudentId}}"
+              ]
+            },
+            "description": "Verwijdert de student aangemaakt in 'Student aanmaken met kamer + factuur'. Maakt Japan vrij voor volgende run."
+          }
+        },
+        {
+          "name": "Profiel bijwerken van andere gebruiker (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/2150/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "2150",
+                "profile"
+              ]
+            },
+            "description": "Admin werkt profiel van gebruiker 2150 (Medoc) bij.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"username\": \"Medoc\",\n  \"socialPreference\": \"AF_EN_TOE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Rol wijzigen (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/2150/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "2150",
+                "role"
+              ]
+            },
+            "description": "Wijzigt de rol. Geldige waarden: ADMIN|STUDENT|CLEANER.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"newRole\": \"STUDENT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Gebruiker verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{createdUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{createdUserId}}"
+              ]
+            },
+            "description": "Verwijdert de testgebruiker aangemaakt in 'Nieuwe gebruiker aanmaken'. Geeft 204 terug."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Kamers",
+      "description": "Ophalen: ADMIN en STUDENT. Wijzigen/verwijderen: alleen ADMIN.",
+      "item": [
+        {
+          "name": "Alle kamers ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "description": "Geeft een lijst van alle kamers inclusief bewoner."
+          }
+        },
+        {
+          "name": "Kamer ophalen op ID (Japan = 47)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/47",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "47"
+              ]
+            },
+            "description": "Geeft één kamer terug. Voorbeeld: Japan (ID 47)."
+          }
+        },
+        {
+          "name": "Beschikbare kamers ophalen (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/rooms/available",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "rooms",
+                "available"
+              ]
+            },
+            "description": "Geeft kamernamen terug zonder bewoner."
+          }
+        },
+        {
+          "name": "Kamer aanmaken (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ]
+            },
+            "description": "Maakt een nieuwe kamer aan. Naam moet uniek zijn. ID wordt opgeslagen voor verwijdering.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"name\": \"TestKamerNovi\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdRoomId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student toewijzen aan kamer (Admin → Japan 47)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/47/assign/16",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "47",
+                "assign",
+                "16"
+              ]
+            },
+            "description": "Wijst Admin (ID 16, geen kamer) toe aan Japan (47). Kamer mag niet bezet zijn."
+          }
+        },
+        {
+          "name": "Student verwijderen uit kamer (Japan 47)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/47/remove",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "47",
+                "remove"
+              ]
+            },
+            "description": "Verwijdert de bewoner uit de kamer. Kamer blijft bestaan."
+          }
+        },
+        {
+          "name": "Kamer verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{createdRoomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{createdRoomId}}"
+              ]
+            },
+            "description": "Verwijdert de kamer aangemaakt in 'Kamer aanmaken'. Geeft 204 terug."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Facturen",
+      "description": "STUDENT ziet eigen facturen. ADMIN ziet en beheert alle facturen.",
+      "item": [
+        {
+          "name": "Alle facturen ophalen (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices"
+              ]
+            },
+            "description": "Geeft alle facturen terug."
+          }
+        },
+        {
+          "name": "Eigen facturen ophalen (STUDENT)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices",
+                "me"
+              ]
+            },
+            "description": "Geeft de facturen van de ingelogde student terug."
+          }
+        },
+        {
+          "name": "Factuur ophalen op ID (57)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/57",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices",
+                "57"
+              ]
+            },
+            "description": "Geeft één factuur. Voorbeeld: Desmond (ID 57)."
+          }
+        },
+        {
+          "name": "Factuur als PDF downloaden (57)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/57/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices",
+                "57",
+                "pdf"
+              ]
+            },
+            "description": "Genereert de factuur als PDF. Content-Type: application/pdf."
+          }
+        },
+        {
+          "name": "Factuur aanmaken (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices"
+              ]
+            },
+            "description": "Maakt een factuur aan. Één factuur per student per maand. ID opgeslagen voor verwijdering.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"title\": \"Huur november 2026\",\n  \"description\": \"Maandelijkse huur\",\n  \"amount\": 350.0,\n  \"issueDate\": \"2026-11-01\",\n  \"dueDate\": \"2026-11-30\",\n  \"studentEmail\": \"desmondstaal@gmail.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdInvoiceId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Factuurstatus wijzigen (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/{{createdInvoiceId}}/status?status=PAID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices",
+                "{{createdInvoiceId}}",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                }
+              ]
+            },
+            "description": "Wijzigt de status. Geldige waarden: OPEN|PAID|OVERDUE|CANCELLED."
+          }
+        },
+        {
+          "name": "Factuur verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/{{createdInvoiceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices",
+                "{{createdInvoiceId}}"
+              ]
+            },
+            "description": "Verwijdert de factuur aangemaakt in 'Factuur aanmaken'. Geeft 204 terug."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Betalingen",
+      "description": "STUDENT ziet eigen betalingen. ADMIN beheert alle betalingen.",
+      "item": [
+        {
+          "name": "Alle betalingen ophalen (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Geeft alle betalingen terug."
+          }
+        },
+        {
+          "name": "Betalingen per student (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/student/desmondstaal@gmail.com",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "student",
+                "desmondstaal@gmail.com"
+              ]
+            },
+            "description": "Geeft betalingen van één student terug."
+          }
+        },
+        {
+          "name": "Eigen betalingen ophalen (STUDENT)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "me"
+              ]
+            },
+            "description": "Geeft alle betalingen van de ingelogde student."
+          }
+        },
+        {
+          "name": "Eigen openstaande betalingen (STUDENT)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/me/open",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "me",
+                "open"
+              ]
+            },
+            "description": "Geeft alleen openstaande betalingen van de ingelogde student."
+          }
+        },
+        {
+          "name": "Betaling registreren (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Registreert een betaling. Status: OPEN|PAID|OVERDUE|CANCELLED. ID opgeslagen.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"amount\": 350.0,\n  \"description\": \"Huur mei 2026\",\n  \"status\": \"PAID\",\n  \"studentEmail\": \"desmondstaal@gmail.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdPaymentId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Betaling ophalen op ID (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{createdPaymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{createdPaymentId}}"
+              ]
+            },
+            "description": "Geeft één betaling terug op basis van het opgeslagen ID."
+          }
+        },
+        {
+          "name": "Betaling verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{createdPaymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{createdPaymentId}}"
+              ]
+            },
+            "description": "Verwijdert de betaling aangemaakt in 'Betaling registreren'. Geeft 204 terug."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Documenten",
+      "description": "Uploaden/verwijderen: ADMIN. Ophalen: per rol op basis van roleAccess.",
+      "item": [
+        {
+          "name": "Alle documenten ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents"
+              ]
+            },
+            "description": "Geeft documenten terug toegankelijk voor de ingelogde rol."
+          }
+        },
+        {
+          "name": "Document uploaden (ADMIN) — HANDMATIG: selecteer bestand",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents"
+              ]
+            },
+            "description": "Uploadt een document. Body: form-data. Sleutel 'file' (type=File) en 'roleAccess' (type=Text). Geeft 201 terug.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Selecteer een bestand"
+                },
+                {
+                  "key": "roleAccess",
+                  "value": "STUDENT",
+                  "type": "text",
+                  "description": "ROLE_ALL|STUDENT|CLEANER|ADMIN"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.documentId) pm.collectionVariables.set('createdDocId', String(b.documentId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Document downloaden (ID van geüpload doc)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{createdDocId}}/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                "{{createdDocId}}",
+                "download"
+              ]
+            },
+            "description": "Downloadt het document geüpload in 'Document uploaden'. Vereist dat 6.2 handmatig is uitgevoerd."
+          }
+        },
+        {
+          "name": "Document verwijderen (ID van geüpload doc)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/{{createdDocId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                "{{createdDocId}}"
+              ]
+            },
+            "description": "Verwijdert het document geüpload in 'Document uploaden'. Vereist dat 6.2 handmatig is uitgevoerd."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Aankondigingen",
+      "description": "Ophalen: ADMIN en STUDENT. Cleaners hebben geen toegang. Aanmaken/verwijderen: ADMIN.",
+      "item": [
+        {
+          "name": "Alle aankondigingen ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/announcements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "announcements"
+              ]
+            },
+            "description": "Geeft alle aankondigingen terug."
+          }
+        },
+        {
+          "name": "Aankondiging aanmaken (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/announcements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "announcements"
+              ]
+            },
+            "description": "Maakt een aankondiging aan. Types: mededeling|onderhoud|evenement. ID opgeslagen.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"type\": \"mededeling\",\n  \"title\": \"Schoonmaakdag zaterdag\",\n  \"body\": \"Zaterdag is er een gezamenlijke schoonmaakdag.\",\n  \"author\": \"Beheerder\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdAnnouncementId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aankondiging verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/announcements/{{createdAnnouncementId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "announcements",
+                "{{createdAnnouncementId}}"
+              ]
+            },
+            "description": "Verwijdert de aankondiging aangemaakt in 'Aankondiging aanmaken'."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Schoonmaaktaken",
+      "description": "Alle rollen kunnen taken inzien en afvinken. Incident melden: ADMIN en CLEANER.",
+      "item": [
+        {
+          "name": "Alle taken ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks"
+              ]
+            },
+            "description": "Geeft alle schoonmaaktaken terug."
+          }
+        },
+        {
+          "name": "Taken van specifieke week (weekNumber=18)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks?weekNumber=18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "weekNumber",
+                  "value": "18"
+                }
+              ]
+            },
+            "description": "Filtert taken op weeknummer (1-53)."
+          }
+        },
+        {
+          "name": "Eigen taken ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks",
+                "me"
+              ]
+            },
+            "description": "Geeft taken terug die aan de ingelogde gebruiker zijn toegewezen."
+          }
+        },
+        {
+          "name": "Rooster-info ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/schedule/info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "schedule",
+                "info"
+              ]
+            },
+            "description": "Geeft het huidige weeknummer, rotatieweek en roosterlengte terug."
+          }
+        },
+        {
+          "name": "Taak aanmaken (ADMIN/CLEANER)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks"
+              ]
+            },
+            "description": "Maakt een nieuwe schoonmaaktaak aan. ID opgeslagen voor vervolgacties.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"weekNumber\": 25,\n  \"name\": \"Keuken schoonmaken\",\n  \"description\": \"Fornuis en vaatwasser\",\n  \"assignedTo\": \"desmondstaal@gmail.com\",\n  \"dueDate\": \"2026-06-20\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const b = pm.response.json();",
+                  "  if (b.id) pm.collectionVariables.set('createdTaskId', String(b.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Taak afvinken/toggle",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks/{{createdTaskId}}/toggle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks",
+                "{{createdTaskId}}",
+                "toggle"
+              ]
+            },
+            "description": "Wisselt de 'completed'-status. Geen body nodig."
+          }
+        },
+        {
+          "name": "Comment toevoegen (ADMIN/CLEANER)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks/{{createdTaskId}}/comment?comment=Goed gedaan!",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks",
+                "{{createdTaskId}}",
+                "comment"
+              ],
+              "query": [
+                {
+                  "key": "comment",
+                  "value": "Goed gedaan!"
+                }
+              ]
+            },
+            "description": "Voegt opmerking toe. Comment als query-parameter."
+          }
+        },
+        {
+          "name": "Incident melden (ADMIN/CLEANER)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks/{{createdTaskId}}/incident?incident=Schoonmaakspullen op",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks",
+                "{{createdTaskId}}",
+                "incident"
+              ],
+              "query": [
+                {
+                  "key": "incident",
+                  "value": "Schoonmaakspullen op"
+                }
+              ]
+            },
+            "description": "Meldt een incident. Niet toegankelijk voor STUDENT."
+          }
+        },
+        {
+          "name": "Taak verwijderen (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/cleaning/tasks/{{createdTaskId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cleaning",
+                "tasks",
+                "{{createdTaskId}}"
+              ]
+            },
+            "description": "Verwijdert de taak aangemaakt in 'Taak aanmaken'. Geeft 204 terug."
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — E-mail templates (ADMIN)",
+      "description": "Beheer van betalingsherinnering-templates. Alleen ADMIN.",
+      "item": [
+        {
+          "name": "Alle templates ophalen",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/email-templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "email-templates"
+              ]
+            },
+            "description": "Geeft alle e-mailtemplates terug."
+          }
+        },
+        {
+          "name": "Template aanpassen",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/email-templates/PAYMENT_REMINDER_1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "email-templates",
+                "PAYMENT_REMINDER_1"
+              ]
+            },
+            "description": "Wijzigt een template. Templates: PAYMENT_REMINDER_1|PAYMENT_REMINDER_2. Variabelen: {{naam}}, {{bedrag}}, {{maand}}, {{vervaldatum}}.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"subject\": \"Herinnering huur {{maand}} – Villa Vredestein\",\n  \"body\": \"Beste {{naam}},\\n\\nJe huur van {{bedrag}} is nog niet betaald. Vervaldatum: {{vervaldatum}}.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Herinnering handmatig sturen",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/email/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "email",
+                "send"
+              ]
+            },
+            "description": "Stuurt een betalingsherinnering naar student 17 (Desmond) op basis van openstaande factuur.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"userId\": 17,\n  \"templateType\": \"PAYMENT_REMINDER_1\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — Geplande taken / Jobs (ADMIN)",
+      "description": "Handmatig triggeren van achtergrondtaken. Normaal draaien deze automatisch via cron. Alleen ADMIN.",
+      "item": [
+        {
+          "name": "Factuurherinneringen versturen",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/reminders/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "reminders",
+                "trigger"
+              ]
+            },
+            "description": "Stuurt herinneringen voor openstaande facturen."
+          }
+        },
+        {
+          "name": "Vervallen facturen verwerken",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/overdue/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "overdue",
+                "trigger"
+              ]
+            },
+            "description": "Markeert facturen als OVERDUE wanneer vervaldatum verstreken is."
+          }
+        },
+        {
+          "name": "Gemiste schoonmaaktaken melden",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/cleaning/missed/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "cleaning",
+                "missed",
+                "trigger"
+              ]
+            },
+            "description": "Stuurt melding voor niet-afgevinkte schoonmaaktaken."
+          }
+        },
+        {
+          "name": "Huurherinnering alle studenten",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/rent-reminder/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "rent-reminder",
+                "trigger"
+              ]
+            },
+            "description": "Stuurt huurherinnering naar alle actieve studenten."
+          }
+        },
+        {
+          "name": "Maandelijkse facturen aanmaken",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/monthly-invoices/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "monthly-invoices",
+                "trigger"
+              ]
+            },
+            "description": "Genereert facturen voor de huidige maand voor alle studenten."
+          }
+        },
+        {
+          "name": "Eerste betalingsherinnering",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/payment-reminder-1/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "payment-reminder-1",
+                "trigger"
+              ]
+            },
+            "description": "Stuurt eerste betalingsherinnering."
+          }
+        },
+        {
+          "name": "Tweede betalingsherinnering",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/jobs/payment-reminder-2/trigger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "jobs",
+                "payment-reminder-2",
+                "trigger"
+              ]
+            },
+            "description": "Stuurt tweede (definitieve) betalingsherinnering."
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 — Foutcodes (400–500)",
+      "description": "Voorbeelden van foutresponses. Laat zien dat de API correcte HTTP-statuscodes en foutmeldingen teruggeeft.",
+      "item": [
+        {
+          "name": "400 — Validatiefout (ongeldig e-mailadres)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"geengeldig\",\n  \"password\": \"Vredestein1906!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Geeft 400 Bad Request terug met fieldErrors wanneer de invoer niet geldig is."
+          }
+        },
+        {
+          "name": "400 — Verplicht veld ontbreekt (geen username)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!\",\n  \"role\": \"STUDENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Geeft 400 terug met fieldErrors wanneer een verplicht veld ontbreekt."
+          }
+        },
+        {
+          "name": "401 — Geen token (niet ingelogd)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Geeft 401 Unauthorized terug wanneer er geen of een ongeldige Authorization-header is."
+          }
+        },
+        {
+          "name": "401 — Verkeerd wachtwoord",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"email\": \"villavredestein@gmail.com\",\n  \"password\": \"foutpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Geeft 401 Unauthorized terug bij onjuiste inloggegevens."
+          }
+        },
+        {
+          "name": "403 — Geen toegang (student probeert admin-endpoint)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Geeft 403 Forbidden terug wanneer de gebruiker niet de juiste rol heeft. Vereist een student-token in de variabele 'studentToken'."
+          }
+        },
+        {
+          "name": "404 — Resource niet gevonden",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/99999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "99999"
+              ]
+            },
+            "description": "Geeft 404 Not Found terug wanneer de gevraagde resource niet bestaat."
+          }
+        },
+        {
+          "name": "409 — Conflict (factuur bestaat al voor deze maand)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"title\": \"Huur mei 2026\",\n  \"description\": \"Duplicaat factuur\",\n  \"amount\": 350.0,\n  \"issueDate\": \"2026-05-01\",\n  \"dueDate\": \"2026-05-31\",\n  \"studentEmail\": \"desmondstaal@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "invoices"
+              ]
+            },
+            "description": "Geeft 409 Conflict terug wanneer er al een factuur bestaat voor deze student in deze maand."
+          }
+        }
+      ]
+    }
+  ]
+}

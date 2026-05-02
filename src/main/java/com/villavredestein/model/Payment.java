@@ -103,15 +103,7 @@ public class Payment {
         }
     }
 
-    @AssertTrue(message = "paidAt mag niet voor createdAt liggen")
-    private boolean isPaidAtAfterOrEqualCreatedAt() {
-        if (createdAt == null || paidAt == null) {
-            return true;
-        }
-        return !paidAt.isBefore(createdAt);
-    }
-
-    @AssertTrue(message = "Bij status PAID moet paidAt gevuld zijn")
+@AssertTrue(message = "Bij status PAID moet paidAt gevuld zijn")
     private boolean isPaidAtPresentWhenPaid() {
         if (status == null) {
             return true;

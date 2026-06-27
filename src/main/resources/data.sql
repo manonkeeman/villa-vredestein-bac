@@ -19,7 +19,7 @@ VALUES
   ('medocstaal@gmail.com',    'Medoc',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
   ('simontalsma2@gmail.com',  'Simon',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
   ('arwenleonor@gmail.com',   'Arwen',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true)
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, role = EXCLUDED.role;
 
 UPDATE users SET phone_number = '+31634450320' WHERE email = 'desmondstaal@gmail.com'
   AND (phone_number IS NULL OR phone_number != '+31634450320');

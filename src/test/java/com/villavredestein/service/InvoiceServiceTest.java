@@ -34,7 +34,6 @@ class InvoiceServiceTest {
     @Mock InvoiceRepository invoiceRepository;
     @Mock UserRepository userRepository;
     @Mock InvoicePdfService invoicePdfService;
-    @Mock MollieService mollieService;
     @InjectMocks InvoiceService invoiceService;
 
 

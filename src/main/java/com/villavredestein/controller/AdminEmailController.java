@@ -8,7 +8,6 @@ import com.villavredestein.repository.UserRepository;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
-import com.villavredestein.service.MollieService;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,20 +37,17 @@ public class AdminEmailController {
     private final UserRepository userRepository;
     private final InvoiceRepository invoiceRepository;
     private final InvoiceService invoiceService;
-    private final MollieService mollieService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
 
     public AdminEmailController(UserRepository userRepository,
                                 InvoiceRepository invoiceRepository,
                                 InvoiceService invoiceService,
-                                MollieService mollieService,
                                 MailService mailService,
                                 EmailTemplateService emailTemplateService) {
         this.userRepository      = userRepository;
         this.invoiceRepository   = invoiceRepository;
         this.invoiceService      = invoiceService;
-        this.mollieService       = mollieService;
         this.mailService         = mailService;
         this.emailTemplateService = emailTemplateService;
     }
@@ -82,7 +78,7 @@ public class AdminEmailController {
         String maand       = LocalDate.of(year, month, 1).format(MONTH_NL);
         String vervaldatum = invoice.getDueDate() != null ? invoice.getDueDate().format(DATE_NL) : "";
         String bedrag      = formatBedrag(invoice.getAmount());
-        String betaalLink  = refreshCheckoutUrl(invoice, maand);
+        String betaalLink  = "";
 
         EmailTemplate.TemplateType templateType = resolveTemplateType(request.templateType());
         EmailTemplate template = loadTemplate(templateType);
@@ -116,21 +112,6 @@ public class AdminEmailController {
     }
 
     // Helpers
-
-    private String refreshCheckoutUrl(Invoice invoice, String maand) {
-        String description = "Huur " + maand + " – Villa Vredestein";
-        try {
-            MollieService.MolliePaymentResult result =
-                    mollieService.createPayment(invoice.getAmount(), description, invoice.getId());
-            if (result != null && result.checkoutUrl() != null) {
-                invoiceService.attachMolliePayment(invoice, result.molliePaymentId(), result.checkoutUrl());
-                return result.checkoutUrl();
-            }
-        } catch (Exception e) {
-            log.warn("Could not create Mollie payment for invoiceId={}: {}", invoice.getId(), e.getMessage());
-        }
-        return invoice.getCheckoutUrl() != null ? invoice.getCheckoutUrl() : "";
-    }
 
     private EmailTemplate.TemplateType resolveTemplateType(String raw) {
         if (raw == null) return EmailTemplate.TemplateType.PAYMENT_REMINDER_1;

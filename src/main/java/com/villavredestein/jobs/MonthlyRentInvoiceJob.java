@@ -1,13 +1,11 @@
 package com.villavredestein.jobs;
 
 import com.villavredestein.model.EmailTemplate;
-import com.villavredestein.model.Invoice;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.UserRepository;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
-import com.villavredestein.service.MollieService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +31,6 @@ public class MonthlyRentInvoiceJob {
 
     private final UserRepository userRepository;
     private final InvoiceService invoiceService;
-    private final MollieService mollieService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
 
@@ -42,12 +39,10 @@ public class MonthlyRentInvoiceJob {
 
     public MonthlyRentInvoiceJob(UserRepository userRepository,
                                  InvoiceService invoiceService,
-                                 MollieService mollieService,
                                  MailService mailService,
                                  EmailTemplateService emailTemplateService) {
         this.userRepository = userRepository;
         this.invoiceService = invoiceService;
-        this.mollieService = mollieService;
         this.mailService = mailService;
         this.emailTemplateService = emailTemplateService;
     }
@@ -106,19 +101,7 @@ public class MonthlyRentInvoiceJob {
             }
 
             Long invoiceId = invoiceDTO.getId();
-
-            String description = "Huur " + maand + " – Villa Vredestein";
-            MollieService.MolliePaymentResult mollie = mollieService.createPayment(studentRent, description, invoiceId);
-
             String betaalLink = "";
-            if (mollie != null) {
-                Invoice invoice = invoiceService.getRawById(invoiceId);
-                invoiceService.attachMolliePayment(invoice, mollie.molliePaymentId(), mollie.checkoutUrl());
-                betaalLink = mollie.checkoutUrl() != null ? mollie.checkoutUrl() : "";
-                log.info("Mollie payment attached (invoiceId={}, mollieId={})", invoiceId, mollie.molliePaymentId());
-            } else {
-                log.warn("Mollie disabled — no payment link for invoiceId={}", invoiceId);
-            }
 
             if (template != null) {
                 String naam = student.getUsername();

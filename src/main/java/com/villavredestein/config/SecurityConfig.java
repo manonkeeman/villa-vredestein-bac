@@ -106,8 +106,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/google-login",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password",
-                                "/api/mollie/webhook"
+                                "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(
                                 "/actuator/health",

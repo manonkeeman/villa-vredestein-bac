@@ -160,40 +160,41 @@ WHERE NOT EXISTS (
 
 DELETE FROM cleaning_tasks;
 
+-- Rooster: Desmond, Medoc + 2 nog onbekende bewoners (NULL = nog toe te wijzen)
 -- ── Week 1 ────────────────────────────────────────
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (1, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (1, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (1, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (1, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL');
+  (1, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (1, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
+  (1, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (1, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
 
 -- ── Week 2 ────────────────────────────────────────
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (2, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (2, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (2, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
-  (2, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
+  (2, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
+  (2, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (2, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (2, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
 
 -- ── Week 3 ────────────────────────────────────────
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (3, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
-  (3, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
-  (3, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (3, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL');
+  (3, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (3, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (3, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (3, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL');
 
 -- ── Week 4 ────────────────────────────────────────
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (4, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com'), 'ALL'),
-  (4, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (4, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (4, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL');
+  (4, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (4, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (4, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
+  (4, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
 
 -- ── Week 5 ────────────────────────────────────────
 INSERT INTO cleaning_tasks (week_number, name, description, completed, comment, incident_report, assigned_to_id, role_access) VALUES
-  (5, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, NULL, 'ALL'),
-  (5, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'), 'ALL'),
-  (5, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
-  (5, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL');
+  (5, 'Keuken & vaatwasser', 'Vaatwasser leegmaken, aanrecht, oven en inductieplaat schoonmaken.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'desmondstaal@gmail.com'), 'ALL'),
+  (5, 'Badkamer & toilet',   'Wastafel, douche, spiegel en toilet grondig schoonmaken en droogvegen.', FALSE, NULL, NULL, (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'), 'ALL'),
+  (5, 'Vuilnis & was',       'Afval scheiden: gft, plastic/blik, papier, restafval, statiegeld. Was draaien en opvouwen.', FALSE, NULL, NULL, NULL, 'ALL'),
+  (5, 'Woonkamer & gang',    'Woonkamer stofzuigen en dweilen. Gang en trap schoonmaken. Eettafel opruimen.', FALSE, NULL, NULL, NULL, 'ALL');
 
 -- ==================================================
 -- VIEW

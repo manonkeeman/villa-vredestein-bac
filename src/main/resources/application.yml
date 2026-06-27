@@ -92,6 +92,3 @@ jwt:
 google:
   client-id: ${GOOGLE_CLIENT_ID:}
 
-mollie:
-  api-key: ${MOLLIE_API_KEY:}
-  webhook-url: ${MOLLIE_WEBHOOK_URL:}

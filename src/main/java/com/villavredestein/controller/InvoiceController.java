@@ -17,7 +17,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Validated
 @RestController
@@ -69,18 +68,6 @@ public class InvoiceController {
                 ContentDisposition.attachment().filename("factuur-" + id + ".pdf").build()
         );
         return ResponseEntity.ok().headers(headers).body(pdf);
-    }
-
-    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
-    @PostMapping("/{id}/pay")
-    public ResponseEntity<Map<String, String>> initiatePayment(
-            @PathVariable @Positive Long id,
-            Authentication authentication
-    ) {
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        String checkoutUrl = invoiceService.initiatePayment(id, authentication.getName(), isAdmin);
-        return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

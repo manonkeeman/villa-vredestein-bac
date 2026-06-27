@@ -5,7 +5,6 @@ import com.villavredestein.model.Invoice;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
-import com.villavredestein.service.MollieService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -32,16 +31,13 @@ public class PaymentReminderJob {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
-    private final MollieService mollieService;
 
     public PaymentReminderJob(InvoiceService invoiceService,
                               MailService mailService,
-                              EmailTemplateService emailTemplateService,
-                              MollieService mollieService) {
+                              EmailTemplateService emailTemplateService) {
         this.invoiceService = invoiceService;
         this.mailService = mailService;
         this.emailTemplateService = emailTemplateService;
-        this.mollieService = mollieService;
     }
 
 
@@ -94,7 +90,7 @@ public class PaymentReminderJob {
             String naam = invoice.getStudent().getUsername();
             String maand = LocalDate.of(invoice.getInvoiceYear(), invoice.getInvoiceMonth(), 1).format(MONTH_NL);
             String bedrag = formatBedrag(invoice.getAmount());
-            String betaalLink = refreshCheckoutUrl(invoice, maand);
+            String betaalLink = "";
             String vervaldatum = invoice.getDueDate() != null ? invoice.getDueDate().format(DATE_NL) : "";
 
             String subject, body;
@@ -119,23 +115,6 @@ public class PaymentReminderJob {
         }
     }
 
-
-    private String refreshCheckoutUrl(Invoice invoice, String maand) {
-        String description = "Huur " + maand + " – Villa Vredestein";
-        try {
-            MollieService.MolliePaymentResult result =
-                    mollieService.createPayment(invoice.getAmount(), description, invoice.getId());
-            if (result != null && result.checkoutUrl() != null) {
-                invoiceService.attachMolliePayment(invoice, result.molliePaymentId(), result.checkoutUrl());
-                log.info("Fresh Mollie payment created for reminder (invoiceId={}, mollieId={})",
-                        invoice.getId(), result.molliePaymentId());
-                return result.checkoutUrl();
-            }
-        } catch (Exception e) {
-            log.warn("Could not refresh Mollie link for invoiceId={}: {}", invoice.getId(), e.getMessage());
-        }
-        return invoice.getCheckoutUrl() != null ? invoice.getCheckoutUrl() : "";
-    }
 
     private EmailTemplate loadTemplate(EmailTemplate.TemplateType type) {
         try {

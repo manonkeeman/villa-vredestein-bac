@@ -26,8 +26,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByStudentAndInvoiceMonthAndInvoiceYear(User student, int invoiceMonth, int invoiceYear);
 
-    Optional<Invoice> findByMolliePaymentId(String molliePaymentId);
-
     List<Invoice> findByInvoiceMonthAndInvoiceYearAndStatusNotIn(
             int invoiceMonth, int invoiceYear, List<Invoice.InvoiceStatus> excludedStatuses);
 

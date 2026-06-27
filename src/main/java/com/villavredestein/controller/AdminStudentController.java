@@ -11,7 +11,6 @@ import com.villavredestein.repository.UserRepository;
 import com.villavredestein.service.CleaningScheduleService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
-import com.villavredestein.service.MollieService;
 import com.villavredestein.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -47,7 +46,6 @@ public class AdminStudentController {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final InvoiceService invoiceService;
-    private final MollieService mollieService;
     private final MailService mailService;
     private final CleaningScheduleService cleaningScheduleService;
 
@@ -61,14 +59,12 @@ public class AdminStudentController {
                                   UserRepository userRepository,
                                   RoomRepository roomRepository,
                                   InvoiceService invoiceService,
-                                  MollieService mollieService,
                                   MailService mailService,
                                   CleaningScheduleService cleaningScheduleService) {
         this.userService              = userService;
         this.userRepository           = userRepository;
         this.roomRepository           = roomRepository;
         this.invoiceService           = invoiceService;
-        this.mollieService            = mollieService;
         this.mailService              = mailService;
         this.cleaningScheduleService  = cleaningScheduleService;
     }
@@ -165,18 +161,6 @@ public class AdminStudentController {
 
             InvoiceResponseDTO invoice = invoiceService.createInvoice(invoiceDto);
 
-            try {
-                String description = "Huur " + maand + " – Villa Vredestein";
-                MollieService.MolliePaymentResult mollie =
-                        mollieService.createPayment(req.getRentAmount(), description, invoice.getId());
-                if (mollie != null && mollie.checkoutUrl() != null) {
-                    Invoice raw = invoiceService.getRawById(invoice.getId());
-                    invoiceService.attachMolliePayment(raw, mollie.molliePaymentId(), mollie.checkoutUrl());
-                    log.info("Mollie payment created for new student invoiceId={}", invoice.getId());
-                }
-            } catch (Exception e) {
-                log.warn("Mollie payment failed for new student invoiceId={}: {}", invoice.getId(), e.getMessage());
-            }
         } catch (Exception e) {
             log.error("Invoice creation failed for new student {}: {}", maskEmail(email), e.getMessage());
         }

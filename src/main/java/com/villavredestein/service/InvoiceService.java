@@ -7,6 +7,7 @@ import com.villavredestein.model.Invoice.InvoiceStatus;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.InvoiceRepository;
 import com.villavredestein.repository.UserRepository;
+import com.villavredestein.service.MollieService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -31,12 +32,16 @@ public class InvoiceService {
     private final UserRepository userRepository;
     private final InvoicePdfService invoicePdfService;
 
+    private final MollieService mollieService;
+
     public InvoiceService(InvoiceRepository invoiceRepository,
                           UserRepository userRepository,
-                          InvoicePdfService invoicePdfService) {
+                          InvoicePdfService invoicePdfService,
+                          MollieService mollieService) {
         this.invoiceRepository = invoiceRepository;
         this.userRepository = userRepository;
         this.invoicePdfService = invoicePdfService;
+        this.mollieService = mollieService;
     }
 
 
@@ -168,6 +173,42 @@ public class InvoiceService {
                 .orElseThrow(() -> new EntityNotFoundException("Factuur niet gevonden: " + id));
     }
 
+
+    public String initiatePayment(Long invoiceId, String callerEmail, boolean isAdmin) {
+        Invoice invoice = findInvoiceOrThrow(invoiceId);
+
+        if (!isAdmin && !invoice.getStudent().getEmail().equalsIgnoreCase(callerEmail)) {
+            throw new AccessDeniedException("You can only pay your own invoices");
+        }
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Deze factuur is al betaald.");
+        }
+        if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Deze factuur is geannuleerd.");
+        }
+
+        // Reuse existing checkout URL if still valid
+        if (invoice.getCheckoutUrl() != null && !invoice.getCheckoutUrl().isBlank()) {
+            return invoice.getCheckoutUrl();
+        }
+
+        String description = String.format("Huur %d/%d – %s",
+                invoice.getInvoiceMonth(), invoice.getInvoiceYear(),
+                invoice.getStudent().getUsername());
+
+        MollieService.MolliePaymentResult result =
+                mollieService.createPayment(invoice.getAmount(), description, invoice.getId());
+
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Betaling aanmaken is tijdelijk niet beschikbaar. Controleer de Mollie API-sleutel.");
+        }
+
+        attachMolliePayment(invoice, result.molliePaymentId(), result.checkoutUrl());
+        log.info("Mollie betaling aangemaakt voor invoiceId={}", invoiceId);
+        return result.checkoutUrl();
+    }
 
     public void attachMolliePayment(Invoice invoice, String mollieId, String checkoutUrl) {
         invoice.setMolliePaymentId(mollieId);

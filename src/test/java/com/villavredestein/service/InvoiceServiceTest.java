@@ -33,6 +33,8 @@ class InvoiceServiceTest {
 
     @Mock InvoiceRepository invoiceRepository;
     @Mock UserRepository userRepository;
+    @Mock InvoicePdfService invoicePdfService;
+    @Mock MollieService mollieService;
     @InjectMocks InvoiceService invoiceService;
 
 
@@ -236,12 +238,6 @@ class InvoiceServiceTest {
 
     @Test
     void updateStatus_withInvalidStatus_throwsIllegalArgumentException() {
-        User student = new User("student", "student@villavredestein.com", "hash", User.Role.STUDENT);
-        Invoice inv = new Invoice("Factuur 1", null, new BigDecimal("150.00"),
-                LocalDate.of(2025, 3, 1), LocalDate.of(2025, 3, 31), 3, 2025, Invoice.InvoiceStatus.OPEN, student);
-        ReflectionTestUtils.setField(inv, "id", 1L);
-        when(invoiceRepository.findById(1L)).thenReturn(Optional.of(inv));
-
         assertThrows(IllegalArgumentException.class, () -> invoiceService.updateStatus(1L, "ONBEKEND"));
     }
 

@@ -104,6 +104,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/login",
+                                "/api/auth/google-login",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/mollie/webhook"

@@ -99,3 +99,7 @@ twilio:
     from: ${TWILIO_WHATSAPP_FROM:}
     admin-numbers: ${TWILIO_WHATSAPP_ADMIN_NUMBERS:+31625015299,+31624766568}
 
+bunq:
+  me:
+    username: ${BUNQ_ME_USERNAME:MaximStaal}
+

@@ -39,6 +39,9 @@ public class MonthlyRentInvoiceJob {
     @Value("${app.rent.amount:350.00}")
     private BigDecimal rentAmount;
 
+    @Value("${bunq.me.username:MaximStaal}")
+    private String bunqMeUsername;
+
     public MonthlyRentInvoiceJob(UserRepository userRepository,
                                  InvoiceService invoiceService,
                                  MailService mailService,
@@ -115,15 +118,17 @@ public class MonthlyRentInvoiceJob {
                 log.info("PAYMENT_NEW email sent to {}", maskEmail(student.getEmail()));
             }
 
+            String bunqLink = buildBunqLink(studentRent, maand);
             String waMsg = String.format(
                     "Hallo %s! Je huurrekening van %s voor %s is aangemaakt. " +
-                    "Betaal vóór %s via overboeking naar NL94 INGB 0660 8510 83 t.n.v. M. Staal. " +
-                    "Vragen? Neem contact op via WhatsApp.",
-                    naam, bedragFormatted, maand, vervaldatum);
+                    "Je kunt betalen vóór %s via overboeking naar NL94 INGB 0660 8510 83 ten name van M. Staal.%s" +
+                    " Heb je vragen? Neem dan gerust contact op.",
+                    naam, bedragFormatted, maand, vervaldatum,
+                    bunqLink.isEmpty() ? "" : " Of betaal via bunq: " + bunqLink + ".");
             if (student.getPhoneNumber() != null && !student.getPhoneNumber().isBlank()) {
                 whatsAppService.send(student.getPhoneNumber(), waMsg);
             }
-            whatsAppService.sendToAdmins("📋 Huur " + maand + " factuur aangemaakt voor " + naam + " (" + bedragFormatted + ").");
+            whatsAppService.sendToAdmins("Huur " + maand + " factuur aangemaakt voor " + naam + " (" + bedragFormatted + ").");
 
         } catch (Exception e) {
             log.error("Error processing student {} for month={}/{}: {}", maskEmail(student.getEmail()), month, year, e.getMessage(), e);
@@ -143,6 +148,18 @@ public class MonthlyRentInvoiceJob {
     private String formatBedrag(BigDecimal amount) {
         NumberFormat nf = NumberFormat.getCurrencyInstance(NL);
         return nf.format(amount);
+    }
+
+    String buildBunqLink(BigDecimal amount, String maand) {
+        if (bunqMeUsername == null || bunqMeUsername.isBlank()) return "";
+        try {
+            String amountStr = amount.stripTrailingZeros().toPlainString();
+            String desc = java.net.URLEncoder.encode("Huur " + maand + " Villa Vredestein",
+                    java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+            return "https://bunq.me/" + bunqMeUsername + "/" + amountStr + "/" + desc;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private String maskEmail(String email) {

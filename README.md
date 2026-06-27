@@ -104,15 +104,34 @@ De API is bereikbaar op `http://localhost:8080`.
 
 ## Tests uitvoeren
 
-```bash
-# Alleen unit tests (geen Docker nodig)
-mvn test
+### Unit tests (geen Docker nodig)
 
-# Unit tests + integratietests (Docker vereist)
+```bash
+mvn test
+```
+
+### Integratietests (Docker vereist)
+
+De integratietests gebruiken **Testcontainers**: er wordt automatisch een tijdelijke PostgreSQL Docker-container gestart en na afloop opgeruimd. Er wordt geen `@MockBean` gebruikt — alle lagen worden echt aangestuurd.
+
+**Vereiste:** Docker Desktop moet draaien voordat je deze tests uitvoert.
+
+```bash
+# Start Docker Desktop, daarna:
 mvn verify
 ```
 
-De integratietests gebruiken **Testcontainers**: er wordt automatisch een tijdelijke PostgreSQL-instantie gestart. Er wordt geen `@MockBean` gebruikt — alle lagen worden echt aangestuurd.
+Of via het Maven-profiel:
+
+```bash
+mvn verify -PrunIT
+```
+
+Controleer of Docker actief is met:
+
+```bash
+docker info
+```
 
 ### Codecoverage
 

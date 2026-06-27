@@ -102,7 +102,7 @@ public class PaymentReminderJob {
                 subject = template.renderSubject(naam, bedrag, maand, betaalLink, vervaldatum);
                 body = template.renderBody(naam, bedrag, maand, betaalLink, vervaldatum);
             } else {
-                subject = "Herinnering huur " + maand + " – Villa Vredestein";
+                subject = "Herinnering huur " + maand + " voor Villa Vredestein";
                 body = "Beste " + naam + ",\n\nJe huur van " + bedrag + " voor " + maand + " is nog niet betaald.\n\nMet vriendelijke groet,\nVilla Vredestein";
             }
 
@@ -111,9 +111,10 @@ public class PaymentReminderJob {
             String phone = invoice.getStudent().getPhoneNumber();
             if (phone != null && !phone.isBlank()) {
                 String waMsg = String.format(
-                        "⚠️ Huurherinnering %d – Villa Vredestein\n\nHallo %s, je huur van %s voor %s is nog niet betaald.\n" +
-                        "Betaal vóór %s via NL94 INGB 0660 8510 83 t.n.v. M. Staal.",
-                        reminderNumber, naam, bedrag, maand, vervaldatum);
+                        "Hallo %s! Dit is herinnering %d voor je huur van %s voor %s. De huur is nog niet betaald. " +
+                        "Maak het bedrag over vóór %s naar NL94 INGB 0660 8510 83 ten name van M. Staal. " +
+                        "Heb je vragen? Neem dan gerust contact op.",
+                        naam, reminderNumber, bedrag, maand, vervaldatum);
                 whatsAppService.send(phone, waMsg);
             }
             whatsAppService.sendToAdmins("🔔 Herinnering " + reminderNumber + " verstuurd aan " + naam + " voor huur " + maand + " (" + bedrag + ").");

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/manonkeeman/Desktop/Villa-Vredestein online version/**)",
+      "Bash(npm run:*)",
+      "Bash(npx newman *)",
+      "Bash(PGPASSWORD=postgres psql -U postgres -d villavredestein -c \"SELECT r.id, r.name, r.occupant_id, u.email FROM rooms r LEFT JOIN users u ON r.occupant_id = u.id;\")",
+      "Bash(PGPASSWORD=postgres psql -U postgres -d villavredestein -c \"SELECT id, title, storage_path FROM documents ORDER BY id;\")",
+      "Bash(psql -U postgres -d villavredestein -c ' *)",
+      "Bash(curl -s http://localhost:8080/api/auth/login -X POST -H 'Content-Type: application/json' -d '{\"email\":\"villavredestein@gmail.com\",\"password\":\"Vredestein1906!\"}')",
+      "Bash(PGPASSWORD=postgres psql -U postgres -d villavredestein -c \"INSERT INTO documents \\(title, description, storage_path, role_access, uploaded_by_id\\) VALUES \\('Huisregels Villa Vredestein', 'Overview of house rules and code of conduct.', 'uploads/Huisregels.pdf', 'ROLE_ALL', \\(SELECT id FROM users WHERE email = 'villavredestein@gmail.com'\\)\\) ON CONFLICT \\(storage_path\\) DO NOTHING;\")",
+      "Bash(PGPASSWORD=postgres psql *)",
+      "Bash(node -e 'const bcrypt = require\\('\\\\''bcrypt'\\\\''\\); bcrypt.compare\\('\\\\''Vredestein1906!'\\\\'', '\\\\''$2b$08$V8tpGDrFALoLlA38ZYbmPOvi3zB9YsdGJ49xOMsL69ZY.Nla8/Anq'\\\\''\\).then\\(r => console.log\\('\\\\''match:'\\\\'', r\\)\\)')",
+      "Bash(node -e 'const bcrypt = require\\('\\\\''bcryptjs'\\\\''\\); bcrypt.compare\\('\\\\''Vredestein1906!'\\\\'', '\\\\''$2b$08$V8tpGDrFALoLlA38ZYbmPOvi3zB9YsdGJ49xOMsL69ZY.Nla8/Anq'\\\\''\\).then\\(r => console.log\\('\\\\''match:'\\\\'', r\\)\\)')",
+      "Bash(python3 -c 'import bcrypt; print\\('\\\\''match:'\\\\'', bcrypt.checkpw\\(b'\\\\''Vredestein1906!'\\\\'', b'\\\\''$2b$08$V8tpGDrFALoLlA38ZYbmPOvi3zB9YsdGJ49xOMsL69ZY.Nla8/Anq'\\\\''\\)\\)')",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(mvn test *)",
+      "Bash(git rm *)"
+    ]
+  }
+}

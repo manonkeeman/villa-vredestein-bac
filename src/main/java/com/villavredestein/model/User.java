@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -106,6 +108,9 @@ public class User {
 
     @Column(name = "rent_amount", precision = 10, scale = 2)
     private java.math.BigDecimal rentAmount;
+
+    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    private List<Invoice> invoices = new ArrayList<>();
 
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 255, message = "Password must be at least 8 characters")

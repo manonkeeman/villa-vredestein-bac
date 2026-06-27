@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +39,7 @@ class CleaningScheduleServiceTest {
 
         int result = cleaningScheduleService.rotationLength();
 
-        assertThat(result).isEqualTo(4); // 3 studenten + 1 vrije week
+        assertThat(result).isEqualTo(4);
     }
 
     @Test
@@ -63,7 +62,7 @@ class CleaningScheduleServiceTest {
 
         int result = cleaningScheduleService.expectedTaskCount();
 
-        assertThat(result).isEqualTo(20); // (4 + 1) * 4
+        assertThat(result).isEqualTo(20);
     }
 
     @Test
@@ -72,11 +71,12 @@ class CleaningScheduleServiceTest {
 
         int result = cleaningScheduleService.expectedTaskCount();
 
-        assertThat(result).isEqualTo(4); // (0 + 1) * 4
+        assertThat(result).isEqualTo(4);
     }
 
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_withTwoStudents_createsThreeWeeksTwelveTasksTotal() {
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         User s2 = makeStudent(2, "desmond", "desmond@vv.com");
@@ -84,71 +84,79 @@ class CleaningScheduleServiceTest {
 
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, times(12)).save(any(CleaningTask.class));
-        verify(cleaningTaskRepository).deleteAll();
-        verify(cleaningTaskRepository).flush();
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).hasSize(12);
+        verify(cleaningTaskRepository).deleteAllTasks();
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_withNoStudents_createsOneWeekFourTasks() {
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of());
 
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, times(4)).save(any(CleaningTask.class));
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).hasSize(4);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_deletesAllExistingTasksFirst() {
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of());
 
         cleaningScheduleService.reseedNow();
 
         var inOrder = inOrder(cleaningTaskRepository);
-        inOrder.verify(cleaningTaskRepository).deleteAll();
-        inOrder.verify(cleaningTaskRepository).flush();
-        inOrder.verify(cleaningTaskRepository, atLeastOnce()).save(any(CleaningTask.class));
+        inOrder.verify(cleaningTaskRepository).deleteAllTasks();
+        inOrder.verify(cleaningTaskRepository).saveAll(any(List.class));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_withOneStudent_createsEightTasksTwoWeeks() {
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, times(8)).save(any(CleaningTask.class));
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
+        assertThat(captor.getValue()).hasSize(8);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_sortsByStudentId() {
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         User s2 = makeStudent(2, "desmond", "desmond@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s2, s1));
 
-        ArgumentCaptor<CleaningTask> captor = ArgumentCaptor.forClass(CleaningTask.class);
-
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, times(12)).save(captor.capture());
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
 
-        CleaningTask firstTask = captor.getAllValues().get(0);
+        List<CleaningTask> tasks = captor.getValue();
+        CleaningTask firstTask = tasks.get(0);
         assertThat(firstTask.getWeekNumber()).isEqualTo(1);
-        assertThat(firstTask.getAssignedTo()).isEqualTo(s1); // gesorteerd op id → simon eerst
+        assertThat(firstTask.getAssignedTo()).isEqualTo(s1);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_taskNamesAreInDutch() {
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
-        ArgumentCaptor<CleaningTask> captor = ArgumentCaptor.forClass(CleaningTask.class);
-
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, atLeastOnce()).save(captor.capture());
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
 
-        List<String> names = captor.getAllValues().stream()
+        List<String> names = captor.getValue().stream()
                 .map(CleaningTask::getName)
                 .toList();
 
@@ -159,17 +167,17 @@ class CleaningScheduleServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void reseedNow_freeWeekHasNullAssignee() {
         User s1 = makeStudent(1, "simon", "simon@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
-        ArgumentCaptor<CleaningTask> captor = ArgumentCaptor.forClass(CleaningTask.class);
-
         cleaningScheduleService.reseedNow();
 
-        verify(cleaningTaskRepository, times(8)).save(captor.capture());
+        ArgumentCaptor<List<CleaningTask>> captor = ArgumentCaptor.forClass(List.class);
+        verify(cleaningTaskRepository).saveAll(captor.capture());
 
-        assertThat(captor.getAllValues())
-                .anyMatch(t -> t.getAssignedTo() == null);
+        assertThat(captor.getValue()).hasSize(8);
+        assertThat(captor.getValue()).anyMatch(t -> t.getAssignedTo() == null);
     }
 }

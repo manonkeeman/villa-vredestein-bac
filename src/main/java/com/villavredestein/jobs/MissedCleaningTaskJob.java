@@ -93,8 +93,8 @@ public class MissedCleaningTaskJob {
         String phone = assignedTo.getPhoneNumber();
         if (phone != null && !phone.isBlank()) {
             String waMsg = String.format(
-                    "🧹 Schoonmaak vergeten – Villa Vredestein\n\nHallo %s, je taak '%s' (week %d) is nog niet afgerond. " +
-                    "Deadline was %s. Graag zo snel mogelijk afhandelen!",
+                    "Hallo %s! Je schoonmaaktaak '%s' van week %d is nog niet afgerond. " +
+                    "De deadline was %s. Graag zo snel mogelijk oppakken!",
                     safeName(assignedTo), task.getName(), task.getWeekNumber(), deadline);
             whatsAppService.send(phone, waMsg);
         }

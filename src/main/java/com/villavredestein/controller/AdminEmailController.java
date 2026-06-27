@@ -93,7 +93,7 @@ public class AdminEmailController {
             subject = template.renderSubject(naam, bedrag, maand, betaalLink, vervaldatum);
             body    = template.renderBody(naam, bedrag, maand, betaalLink, vervaldatum);
         } else {
-            subject = "Herinnering huur " + maand + " – Villa Vredestein";
+            subject = "Herinnering huur " + maand + " voor Villa Vredestein";
             body    = "Beste " + naam + ",\n\nJe huur van " + bedrag + " voor " + maand
                     + " is nog niet betaald.\n\nBetaal via: " + betaalLink
                     + "\n\nMet vriendelijke groet,\nVilla Vredestein";
@@ -104,8 +104,9 @@ public class AdminEmailController {
         String phone = student.getPhoneNumber();
         if (phone != null && !phone.isBlank()) {
             String waMsg = String.format(
-                    "⚠️ Huurherinnering – Villa Vredestein\n\nHallo %s, je huur van %s voor %s is nog niet betaald.\n" +
-                    "Betaal vóór %s via NL94 INGB 0660 8510 83 t.n.v. M. Staal.",
+                    "Hallo %s! Je huur van %s voor %s is nog niet betaald. " +
+                    "Maak het bedrag over vóór %s naar NL94 INGB 0660 8510 83 ten name van M. Staal. " +
+                    "Vragen? Neem gerust contact op.",
                     naam, bedrag, maand, vervaldatum);
             whatsAppService.send(phone, waMsg);
         }

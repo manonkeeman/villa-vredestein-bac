@@ -6,6 +6,7 @@ import com.villavredestein.repository.UserRepository;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class MonthlyRentInvoiceJob {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
+    private final WhatsAppService whatsAppService;
 
     @Value("${app.rent.amount:350.00}")
     private BigDecimal rentAmount;
@@ -40,11 +42,13 @@ public class MonthlyRentInvoiceJob {
     public MonthlyRentInvoiceJob(UserRepository userRepository,
                                  InvoiceService invoiceService,
                                  MailService mailService,
-                                 EmailTemplateService emailTemplateService) {
+                                 EmailTemplateService emailTemplateService,
+                                 WhatsAppService whatsAppService) {
         this.userRepository = userRepository;
         this.invoiceService = invoiceService;
         this.mailService = mailService;
         this.emailTemplateService = emailTemplateService;
+        this.whatsAppService = whatsAppService;
     }
 
     @Scheduled(cron = "0 0 8 1 * *", zone = "Europe/Amsterdam")
@@ -103,13 +107,23 @@ public class MonthlyRentInvoiceJob {
             Long invoiceId = invoiceDTO.getId();
             String betaalLink = "";
 
+            String naam = student.getUsername();
             if (template != null) {
-                String naam = student.getUsername();
                 String subject = template.renderSubject(naam, bedragFormatted, maand, betaalLink, vervaldatum);
                 String body = template.renderBody(naam, bedragFormatted, maand, betaalLink, vervaldatum);
                 mailService.sendInvoiceReminderMail(student.getEmail(), subject, body);
                 log.info("PAYMENT_NEW email sent to {}", maskEmail(student.getEmail()));
             }
+
+            String waMsg = String.format(
+                    "Hallo %s! Je huurrekening van %s voor %s is aangemaakt. " +
+                    "Betaal vóór %s via overboeking naar NL94 INGB 0660 8510 83 t.n.v. M. Staal. " +
+                    "Vragen? Neem contact op via WhatsApp.",
+                    naam, bedragFormatted, maand, vervaldatum);
+            if (student.getPhoneNumber() != null && !student.getPhoneNumber().isBlank()) {
+                whatsAppService.send(student.getPhoneNumber(), waMsg);
+            }
+            whatsAppService.sendToAdmins("📋 Huur " + maand + " factuur aangemaakt voor " + naam + " (" + bedragFormatted + ").");
 
         } catch (Exception e) {
             log.error("Error processing student {} for month={}/{}: {}", maskEmail(student.getEmail()), month, year, e.getMessage(), e);

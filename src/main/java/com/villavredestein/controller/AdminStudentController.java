@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +31,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Validated
 @RestController
@@ -48,6 +50,7 @@ public class AdminStudentController {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final CleaningScheduleService cleaningScheduleService;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.frontend-url:https://villa-vredestein.netlify.app}")
     private String frontendUrl;
@@ -60,13 +63,15 @@ public class AdminStudentController {
                                   RoomRepository roomRepository,
                                   InvoiceService invoiceService,
                                   MailService mailService,
-                                  CleaningScheduleService cleaningScheduleService) {
+                                  CleaningScheduleService cleaningScheduleService,
+                                  PasswordEncoder passwordEncoder) {
         this.userService              = userService;
         this.userRepository           = userRepository;
         this.roomRepository           = roomRepository;
         this.invoiceService           = invoiceService;
         this.mailService              = mailService;
         this.cleaningScheduleService  = cleaningScheduleService;
+        this.passwordEncoder          = passwordEncoder;
     }
 
     @GetMapping("/rooms/available")
@@ -184,6 +189,50 @@ public class AdminStudentController {
 
         UserResponseDTO finalDto = userService.getUserById(created.id()).orElse(created);
         return ResponseEntity.ok(finalDto);
+    }
+
+    @PatchMapping(value = "/students/{id}/password", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> resetStudentPassword(
+            @PathVariable @NotNull Long id,
+            @RequestBody Map<String, String> body) {
+
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wachtwoord moet minimaal 8 tekens zijn.");
+        }
+
+        User student = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gebruiker niet gevonden."));
+
+        student.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(student);
+
+        log.info("Admin reset password for userId={}", id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/students/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponseDTO> updateStudent(
+            @PathVariable @NotNull Long id,
+            @RequestBody Map<String, Object> body) {
+
+        User student = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gebruiker niet gevonden."));
+
+        if (body.containsKey("rentAmount") && body.get("rentAmount") != null) {
+            student.setRentAmount(new BigDecimal(body.get("rentAmount").toString()));
+        }
+        if (body.containsKey("phoneNumber")) {
+            student.setPhoneNumber(body.get("phoneNumber") != null ? body.get("phoneNumber").toString() : null);
+        }
+        if (body.containsKey("username") && body.get("username") != null) {
+            String newName = body.get("username").toString().trim();
+            if (!newName.isEmpty()) student.setUsername(newName);
+        }
+
+        userRepository.save(student);
+        log.info("Admin updated student id={}", id);
+        return ResponseEntity.ok(userService.getUserById(id).orElseThrow());
     }
 
     private String maskEmail(String email) {

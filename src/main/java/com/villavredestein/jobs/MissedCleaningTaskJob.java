@@ -4,6 +4,7 @@ import com.villavredestein.model.CleaningTask;
 import com.villavredestein.model.User;
 import com.villavredestein.repository.CleaningTaskRepository;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,10 +26,12 @@ public class MissedCleaningTaskJob {
 
     private final CleaningTaskRepository taskRepository;
     private final MailService mailService;
+    private final WhatsAppService whatsAppService;
 
-    public MissedCleaningTaskJob(CleaningTaskRepository taskRepository, MailService mailService) {
+    public MissedCleaningTaskJob(CleaningTaskRepository taskRepository, MailService mailService, WhatsAppService whatsAppService) {
         this.taskRepository = taskRepository;
         this.mailService = mailService;
+        this.whatsAppService = whatsAppService;
     }
 
     @Scheduled(cron = "0 30 9 * * *", zone = "Europe/Amsterdam")
@@ -86,6 +89,16 @@ public class MissedCleaningTaskJob {
         } catch (Exception e) {
             log.error("Failed to send missed task notification (taskId={}, to={}): {}", task.getId(), maskEmail(email), e.getMessage());
         }
+
+        String phone = assignedTo.getPhoneNumber();
+        if (phone != null && !phone.isBlank()) {
+            String waMsg = String.format(
+                    "🧹 Schoonmaak vergeten – Villa Vredestein\n\nHallo %s, je taak '%s' (week %d) is nog niet afgerond. " +
+                    "Deadline was %s. Graag zo snel mogelijk afhandelen!",
+                    safeName(assignedTo), task.getName(), task.getWeekNumber(), deadline);
+            whatsAppService.send(phone, waMsg);
+        }
+        whatsAppService.sendToAdmins("🧹 " + safeName(assignedTo) + " heeft schoonmaaktaak '" + task.getName() + "' (week " + task.getWeekNumber() + ") nog niet voltooid.");
     }
 
     private String safeName(User user) {

@@ -8,6 +8,7 @@ import com.villavredestein.repository.UserRepository;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.WhatsAppService;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +40,20 @@ public class AdminEmailController {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
+    private final WhatsAppService whatsAppService;
 
     public AdminEmailController(UserRepository userRepository,
                                 InvoiceRepository invoiceRepository,
                                 InvoiceService invoiceService,
                                 MailService mailService,
-                                EmailTemplateService emailTemplateService) {
+                                EmailTemplateService emailTemplateService,
+                                WhatsAppService whatsAppService) {
         this.userRepository      = userRepository;
         this.invoiceRepository   = invoiceRepository;
         this.invoiceService      = invoiceService;
         this.mailService         = mailService;
         this.emailTemplateService = emailTemplateService;
+        this.whatsAppService     = whatsAppService;
     }
 
     // POST /api/admin/email/send
@@ -96,6 +100,15 @@ public class AdminEmailController {
         }
 
         mailService.sendInvoiceReminderMail(student.getEmail(), subject, body);
+
+        String phone = student.getPhoneNumber();
+        if (phone != null && !phone.isBlank()) {
+            String waMsg = String.format(
+                    "⚠️ Huurherinnering – Villa Vredestein\n\nHallo %s, je huur van %s voor %s is nog niet betaald.\n" +
+                    "Betaal vóór %s via NL94 INGB 0660 8510 83 t.n.v. M. Staal.",
+                    naam, bedrag, maand, vervaldatum);
+            whatsAppService.send(phone, waMsg);
+        }
 
         invoice.setReminderCount(invoice.getReminderCount() + 1);
         invoice.setLastReminderSentAt(LocalDateTime.now());

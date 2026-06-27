@@ -5,6 +5,7 @@ import com.villavredestein.model.Invoice;
 import com.villavredestein.service.EmailTemplateService;
 import com.villavredestein.service.InvoiceService;
 import com.villavredestein.service.MailService;
+import com.villavredestein.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,13 +32,16 @@ public class PaymentReminderJob {
     private final InvoiceService invoiceService;
     private final MailService mailService;
     private final EmailTemplateService emailTemplateService;
+    private final WhatsAppService whatsAppService;
 
     public PaymentReminderJob(InvoiceService invoiceService,
                               MailService mailService,
-                              EmailTemplateService emailTemplateService) {
+                              EmailTemplateService emailTemplateService,
+                              WhatsAppService whatsAppService) {
         this.invoiceService = invoiceService;
         this.mailService = mailService;
         this.emailTemplateService = emailTemplateService;
+        this.whatsAppService = whatsAppService;
     }
 
 
@@ -103,6 +107,16 @@ public class PaymentReminderJob {
             }
 
             mailService.sendInvoiceReminderMail(email, subject, body);
+
+            String phone = invoice.getStudent().getPhoneNumber();
+            if (phone != null && !phone.isBlank()) {
+                String waMsg = String.format(
+                        "⚠️ Huurherinnering %d – Villa Vredestein\n\nHallo %s, je huur van %s voor %s is nog niet betaald.\n" +
+                        "Betaal vóór %s via NL94 INGB 0660 8510 83 t.n.v. M. Staal.",
+                        reminderNumber, naam, bedrag, maand, vervaldatum);
+                whatsAppService.send(phone, waMsg);
+            }
+            whatsAppService.sendToAdmins("🔔 Herinnering " + reminderNumber + " verstuurd aan " + naam + " voor huur " + maand + " (" + bedrag + ").");
 
             invoice.setReminderCount(invoice.getReminderCount() + 1);
             invoice.setLastReminderSentAt(LocalDateTime.now());

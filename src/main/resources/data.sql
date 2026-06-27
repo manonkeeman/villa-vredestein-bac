@@ -21,6 +21,15 @@ VALUES
   ('arwenleonor@gmail.com',   'Arwen',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true)
 ON CONFLICT (email) DO NOTHING;
 
+UPDATE users SET phone_number = '+31634450320' WHERE email = 'desmondstaal@gmail.com'
+  AND (phone_number IS NULL OR phone_number != '+31634450320');
+UPDATE users SET phone_number = '+31638737114' WHERE email = 'medocstaal@gmail.com'
+  AND (phone_number IS NULL OR phone_number != '+31638737114');
+UPDATE users SET phone_number = '+3129792252' WHERE email = 'arwenleonor@gmail.com'
+  AND (phone_number IS NULL OR phone_number != '+3129792252');
+UPDATE users SET phone_number = '+31625015299' WHERE email = 'villavredestein@gmail.com'
+  AND (phone_number IS NULL OR phone_number != '+31625015299');
+
 UPDATE users SET rent_amount = 350.00 WHERE email = 'desmondstaal@gmail.com';
 UPDATE users SET rent_amount = 350.00 WHERE email = 'medocstaal@gmail.com';
 UPDATE users SET rent_amount = 550.00 WHERE email = 'simontalsma2@gmail.com';

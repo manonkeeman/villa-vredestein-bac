@@ -45,7 +45,7 @@ class CleaningTaskServiceTest {
 
     @Test
     void getAllTasksForRole_admin_returnsAllTasks() {
-        User student = makeStudent("simon", "simon@vv.com");
+        User student = makeStudent("student1", "student1@vv.com");
         CleaningTask t1 = makeTask(1L, 1, "Keuken", student);
         CleaningTask t2 = makeTask(2L, 2, "Badkamer", null);
 
@@ -61,7 +61,7 @@ class CleaningTaskServiceTest {
 
     @Test
     void getAllTasksForRole_student_returnsAccessibleTasks() {
-        User student = makeStudent("simon", "simon@vv.com");
+        User student = makeStudent("student1", "student1@vv.com");
         CleaningTask t1 = makeTask(1L, 1, "Keuken", student);
 
         when(taskRepository.findAccessibleForRole("STUDENT")).thenReturn(List.of(t1));
@@ -94,7 +94,7 @@ class CleaningTaskServiceTest {
 
     @Test
     void getTasksByWeekForRole_admin_usesAdminQuery() {
-        User student = makeStudent("simon", "simon@vv.com");
+        User student = makeStudent("student1", "student1@vv.com");
         CleaningTask t = makeTask(1L, 1, "Keuken", student);
 
         when(taskRepository.findByWeekNumberOrderByIdAsc(1)).thenReturn(List.of(t));
@@ -163,19 +163,19 @@ class CleaningTaskServiceTest {
         CleaningTaskRequestDTO dto = new CleaningTaskRequestDTO();
         dto.setWeekNumber(2);
         dto.setName("Badkamer");
-        dto.setAssignedTo("simon@vv.com");
+        dto.setAssignedTo("student1@vv.com");
 
-        User student = makeStudent("simon", "simon@vv.com");
-        when(userRepository.findByEmailIgnoreCase("simon@vv.com")).thenReturn(Optional.of(student));
+        User student = makeStudent("student1", "student1@vv.com");
+        when(userRepository.findByEmailIgnoreCase("student1@vv.com")).thenReturn(Optional.of(student));
 
         CleaningTask saved = makeTask(11L, 2, "Badkamer", student);
         when(taskRepository.save(any(CleaningTask.class))).thenReturn(saved);
 
         CleaningTaskResponseDTO result = cleaningTaskService.addTask(dto);
 
-        assertThat(result.getAssignedTo()).isEqualTo("simon");
-        assertThat(result.getAssignedToEmail()).isEqualTo("simon@vv.com");
-        verify(userRepository).findByEmailIgnoreCase("simon@vv.com");
+        assertThat(result.getAssignedTo()).isEqualTo("student1");
+        assertThat(result.getAssignedToEmail()).isEqualTo("student1@vv.com");
+        verify(userRepository).findByEmailIgnoreCase("student1@vv.com");
     }
 
     @Test
@@ -203,7 +203,7 @@ class CleaningTaskServiceTest {
 
     @Test
     void updateTask_existing_updatesFields() {
-        User student = makeStudent("simon", "simon@vv.com");
+        User student = makeStudent("student1", "student1@vv.com");
         CleaningTask task = makeTask(1L, 1, "OudNaam", student);
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
 
@@ -326,16 +326,16 @@ class CleaningTaskServiceTest {
 
     @Test
     void getTasksForCaller_validEmail_returnsTasks() {
-        User student = makeStudent("simon", "simon@vv.com");
+        User student = makeStudent("student1", "student1@vv.com");
         CleaningTask task = makeTask(1L, 1, "Keuken", student);
 
-        when(taskRepository.findByAssignedTo_EmailIgnoreCaseOrderByWeekNumberAscIdAsc("simon@vv.com"))
+        when(taskRepository.findByAssignedTo_EmailIgnoreCaseOrderByWeekNumberAscIdAsc("student1@vv.com"))
                 .thenReturn(List.of(task));
 
-        List<CleaningTaskResponseDTO> result = cleaningTaskService.getTasksForCaller("simon@vv.com");
+        List<CleaningTaskResponseDTO> result = cleaningTaskService.getTasksForCaller("student1@vv.com");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getAssignedTo()).isEqualTo("simon");
+        assertThat(result.get(0).getAssignedTo()).isEqualTo("student1");
     }
 
     @Test

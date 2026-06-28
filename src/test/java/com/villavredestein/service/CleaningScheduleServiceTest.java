@@ -34,7 +34,7 @@ class CleaningScheduleServiceTest {
     void rotationLength_withThreeStudents_returnsFour() {
         when(userRepository.findByRole(User.Role.STUDENT))
                 .thenReturn(List.of(makeStudent(1, "a", "a@vv.com"),
-                                    makeStudent(2, "b", "b@vv.com"),
+                                    makeStudent(2, "student2", "student2@vv.com"),
                                     makeStudent(3, "c", "c@vv.com")));
 
         int result = cleaningScheduleService.rotationLength();
@@ -56,7 +56,7 @@ class CleaningScheduleServiceTest {
     void expectedTaskCount_withFourStudents_returnsTwenty() {
         when(userRepository.findByRole(User.Role.STUDENT))
                 .thenReturn(List.of(makeStudent(1, "a", "a@vv.com"),
-                                    makeStudent(2, "b", "b@vv.com"),
+                                    makeStudent(2, "student2", "student2@vv.com"),
                                     makeStudent(3, "c", "c@vv.com"),
                                     makeStudent(4, "d", "d@vv.com")));
 
@@ -78,7 +78,7 @@ class CleaningScheduleServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void reseedNow_withTwoStudents_createsThreeWeeksTwelveTasksTotal() {
-        User s1 = makeStudent(1, "simon", "simon@vv.com");
+        User s1 = makeStudent(1, "student1", "student1@vv.com");
         User s2 = makeStudent(2, "desmond", "desmond@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1, s2));
 
@@ -117,7 +117,7 @@ class CleaningScheduleServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void reseedNow_withOneStudent_createsEightTasksTwoWeeks() {
-        User s1 = makeStudent(1, "simon", "simon@vv.com");
+        User s1 = makeStudent(1, "student1", "student1@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
         cleaningScheduleService.reseedNow();
@@ -130,7 +130,7 @@ class CleaningScheduleServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void reseedNow_sortsByStudentId() {
-        User s1 = makeStudent(1, "simon", "simon@vv.com");
+        User s1 = makeStudent(1, "student1", "student1@vv.com");
         User s2 = makeStudent(2, "desmond", "desmond@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s2, s1));
 
@@ -148,7 +148,7 @@ class CleaningScheduleServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void reseedNow_taskNamesAreInDutch() {
-        User s1 = makeStudent(1, "simon", "simon@vv.com");
+        User s1 = makeStudent(1, "student1", "student1@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
         cleaningScheduleService.reseedNow();
@@ -169,7 +169,7 @@ class CleaningScheduleServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void reseedNow_freeWeekHasNullAssignee() {
-        User s1 = makeStudent(1, "simon", "simon@vv.com");
+        User s1 = makeStudent(1, "student1", "student1@vv.com");
         when(userRepository.findByRole(User.Role.STUDENT)).thenReturn(List.of(s1));
 
         cleaningScheduleService.reseedNow();

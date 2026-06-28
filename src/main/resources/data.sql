@@ -17,7 +17,6 @@ INSERT INTO users (email, username, password, role, status_toggle)
 VALUES
   ('desmondstaal@gmail.com',  'Desmond', '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
   ('medocstaal@gmail.com',    'Medoc',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
-  ('simontalsma2@gmail.com',  'Simon',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true),
   ('arwenleonor@gmail.com',   'Arwen',   '$2b$08$ie6hcbOAKgx1XBbLjqVz0eLzHy3xp7TO5Q/1gYp5Z4fTIoSZxQZQe', 'STUDENT', true)
 ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, role = EXCLUDED.role;
 
@@ -32,7 +31,6 @@ UPDATE users SET phone_number = '+31625015299' WHERE email = 'villavredestein@gm
 
 UPDATE users SET rent_amount = 350.00 WHERE email = 'desmondstaal@gmail.com';
 UPDATE users SET rent_amount = 350.00 WHERE email = 'medocstaal@gmail.com';
-UPDATE users SET rent_amount = 550.00 WHERE email = 'simontalsma2@gmail.com';
 UPDATE users SET rent_amount = 350.00 WHERE email = 'arwenleonor@gmail.com';
 
 UPDATE users
@@ -77,10 +75,7 @@ SET occupant_id = (SELECT id FROM users WHERE email = 'medocstaal@gmail.com')
 WHERE name = 'Frankrijk'
   AND (occupant_id IS DISTINCT FROM (SELECT id FROM users WHERE email = 'medocstaal@gmail.com'));
 
-UPDATE rooms
-SET occupant_id = (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com')
-WHERE name = 'Argentinië'
-  AND (occupant_id IS DISTINCT FROM (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com'));
+UPDATE rooms SET occupant_id = NULL WHERE name = 'Argentinië';
 
 UPDATE rooms
 SET occupant_id = (SELECT id FROM users WHERE email = 'arwenleonor@gmail.com')
@@ -98,10 +93,10 @@ VALUES
   ('Huisregels Villa Vredestein', 'Overview of house rules and code of conduct.', 'uploads/Huisregels.pdf', 'ROLE_ALL',
    (SELECT id FROM users WHERE email = 'villavredestein@gmail.com')),
   ('Veiligheidsinstructies', 'Fire safety and emergency procedures.', 'uploads/Veiligheid.pdf', 'ROLE_ALL',
-   (SELECT id FROM users WHERE email = 'villavredestein@gmail.com')),
-  ('Pensionovereenkomst', 'Rental agreement template.', 'uploads/Pensionovereenkomst.pdf', 'STUDENT',
    (SELECT id FROM users WHERE email = 'villavredestein@gmail.com'))
 ON CONFLICT (storage_path) DO NOTHING;
+
+DELETE FROM documents WHERE storage_path = 'uploads/Pensionovereenkomst.pdf';
 
 -- ==================================================
 -- INVOICES
@@ -131,20 +126,6 @@ SELECT
 WHERE NOT EXISTS (
   SELECT 1 FROM invoices
   WHERE student_id = (SELECT id FROM users WHERE email = 'medocstaal@gmail.com')
-    AND invoice_month = CAST(EXTRACT(MONTH FROM CURRENT_DATE) AS int)
-    AND invoice_year  = CAST(EXTRACT(YEAR  FROM CURRENT_DATE) AS int)
-);
-
-INSERT INTO invoices (title, description, amount, issue_date, due_date, invoice_month, invoice_year, reminder_count, status, student_id)
-SELECT
-  'Huur huidige maand - Simon', 'Maandelijkse huur - Simon', 550.00,
-  CURRENT_DATE, CURRENT_DATE + INTERVAL '7 day',
-  CAST(EXTRACT(MONTH FROM CURRENT_DATE) AS int), CAST(EXTRACT(YEAR FROM CURRENT_DATE) AS int),
-  0, 'OPEN',
-  (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com')
-WHERE NOT EXISTS (
-  SELECT 1 FROM invoices
-  WHERE student_id = (SELECT id FROM users WHERE email = 'simontalsma2@gmail.com')
     AND invoice_month = CAST(EXTRACT(MONTH FROM CURRENT_DATE) AS int)
     AND invoice_year  = CAST(EXTRACT(YEAR  FROM CURRENT_DATE) AS int)
 );
